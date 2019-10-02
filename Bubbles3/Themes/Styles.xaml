@@ -1,0 +1,369 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="clr-namespace:Bubbles3">
+    
+    <SolidColorBrush x:Key="BblWindowBackgroundBrush" Color="#e4e4e4"/>
+    <SolidColorBrush x:Key="BblWindowBorderBrush" Color="#141414"/>
+    <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="#535353"/>
+
+    <SolidColorBrush x:Key="ColumnSplitterBackgroundBrush" Color="#797979"/>
+    <SolidColorBrush x:Key="StatusBarBackgroundBrush" Color="#797979"/>
+    <SolidColorBrush x:Key="ToolBarBackgroundBrush" Color="#e4e4e4"/>
+    <SolidColorBrush x:Key="TabContentBackgroundBrush" Color="#fff"/>
+    <SolidColorBrush x:Key="InactiveTabBackgroundBrush" Color="#797979"/>
+
+    <!-- App Menu button-->
+    <LinearGradientBrush  x:Key="MenuButtonBackgroundBrush" StartPoint="0.5,0" EndPoint="0.5,1" >
+        <GradientStop Color="#6b6b6b" Offset="0"/>
+        <GradientStop Color="#545454" Offset="1"/>
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="MenuButtonBorderBrush" Color="#303030"/>
+    <SolidColorBrush x:Key="MenuButtonFocusBorderBrush" Color="#303030"/>
+    <SolidColorBrush x:Key="MenuButtonMouseOverBrush" Color="#777777 "/>
+    <SolidColorBrush x:Key="MenuButtonPressedBackgroundBrush" Color="#3d3d3d"/>
+    <SolidColorBrush x:Key="MenuButtonPressedHighlightBrush" Color="#2BA5A5A5"/>
+    <SolidColorBrush x:Key="MenuButtonShineBrush" Color="#3FFFFFFF"/>
+    
+    <Style x:Key="MenuButton" TargetType="{x:Type Button}">
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Foreground" Value="AntiqueWhite" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Width" Value="100" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="top" />
+
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Border x:Name="BaseRectangle" 
+                                Background="{StaticResource MenuButtonBackgroundBrush}" 
+                                BorderBrush="{StaticResource MenuButtonBorderBrush}" 
+                                BorderThickness="1"
+                                CornerRadius="0,0,5,5">
+                        </Border>
+                        <ContentPresenter x:Name="content"
+	                                      HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+	                                      Margin="0,0,5,0"
+	                                      SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="White" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Window Buttons (close, minimize, maximize etc...) -->
+    <SolidColorBrush x:Key="WindowButtonBackgroundBrush" Color="#646464"/>
+    <SolidColorBrush x:Key="WindowButtonBorderBrush" Color="#303030"/>
+    <SolidColorBrush x:Key="WindowButtonHighlightBrush" Color="#797979"/>
+    <SolidColorBrush x:Key="WindowButtonPressedBrush" Color="#3d3d3d"/>
+    
+    <Style x:Key="WindowButton" TargetType="{x:Type Button}">
+        <Setter Property="Height" Value="20" />
+        <Setter Property="Width" Value="20" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Border x:Name="border" 
+                                Background="{StaticResource WindowButtonBackgroundBrush}" 
+                                BorderBrush="{StaticResource WindowButtonBorderBrush}" 
+                                BorderThickness="1">
+                        </Border>
+
+                        <ContentPresenter x:Name="content"
+	                                      HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter Property="Background" TargetName="border" Value="{StaticResource WindowButtonHighlightBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="true">
+                            <Setter Property="Background" TargetName="border" Value="{StaticResource WindowButtonPressedBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="White" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    
+    
+    
+    <!-- discreet button -->
+    <Style x:Key="DiscreetButton" TargetType="{x:Type Button}">
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Border x:Name="border" 
+    						Background="Transparent" 
+    						BorderThickness="0"/>
+
+
+                        <ContentPresenter x:Name="content"
+    						HorizontalAlignment="Center"
+    						VerticalAlignment="Center"
+    						Opacity="1"/>
+
+                    </Grid>
+                    <ControlTemplate.Triggers>
+
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <Style.Triggers>
+        </Style.Triggers>
+    </Style>
+    
+    <!-- Tab Item -->
+    <Style TargetType="{x:Type TabItem}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TabItem}">
+                    <Grid>
+                        <Border 
+                            Name="Border"
+                            BorderBrush="{StaticResource WindowButtonBorderBrush}" 
+                  
+                            BorderThickness="1,1,1,0" 
+                            CornerRadius="6,6,0,0" >
+                            <ContentPresenter x:Name="ContentSite"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center"
+                                ContentSource="Header"
+                                Margin="6,2,2,2"/>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Border" Property="Background" Value="{StaticResource ToolBarBackgroundBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="False">
+                            <Setter TargetName="Border" Property="Background" Value="{StaticResource InactiveTabBackgroundBrush}" />
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="Border.IsMouseOver" Value="True"/>
+                                <Condition Property="IsSelected" Value="False"/>
+                            </MultiTrigger.Conditions>
+                            <Setter Property="TextElement.Foreground" TargetName="ContentSite" Value="AntiqueWhite"/>
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ToolBar Button -->
+    <Style x:Key="ToolBarButton" TargetType="{x:Type Button}">
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Width" Value="22" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="1,3"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Border x:Name="border" 
+                                Background="{StaticResource ToolBarBackgroundBrush}" 
+                                BorderBrush="{StaticResource WindowButtonBorderBrush}" 
+                                BorderThickness="0">
+                        </Border>
+
+
+                        <ContentPresenter x:Name="content"
+	                                      HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Opacity="1"/>
+
+                        <Border x:Name="darken" Background="Black" Opacity="0">
+                        </Border>
+
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="false">
+                            <Setter TargetName="content" Property="Opacity" Value="0.66"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="true">
+                            <Setter TargetName="darken" Property="Opacity" Value="0.3"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="White" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ToolBar Button -->
+    <Style x:Key="ToolBarToggle" TargetType="{x:Type ToggleButton}">
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Width" Value="22" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="1,3"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ToggleButton}">
+                    <Grid>
+                        <Border x:Name="border" 
+                                Background="{StaticResource ToolBarBackgroundBrush}" 
+                                BorderBrush="{StaticResource WindowButtonBorderBrush}" 
+                                BorderThickness="0">
+                        </Border>
+
+
+                        <ContentPresenter x:Name="content"
+	                                      HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Opacity="1"/>
+
+                        <Border x:Name="darken" Background="Black" Opacity="0">
+                        </Border>
+
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="false">
+                            <Setter TargetName="content" Property="Opacity" Value="0.66"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="true">
+                            <Setter TargetName="darken" Property="Opacity" Value="0.3"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="White" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+
+    <Style  x:Key="TextBoxButton" TargetType="{x:Type Button}" BasedOn="{StaticResource DiscreetButton}">
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="FocusManager.FocusedElement" Value="{Binding RelativeSource={RelativeSource Self}}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="FocusVisual">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="2" SnapsToDevicePixels="true" Stroke="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}" StrokeThickness="1" StrokeDashArray="1 2"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+
+
+    <Style x:Key="SortDirectionButton" TargetType="{x:Type ToggleButton}">
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Width" Value="22" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ToggleButton}">
+                    <Grid>
+                        <Border x:Name="border" 
+                                Background="Transparent" 
+                                BorderBrush="Transparent" 
+                                BorderThickness="0">
+                        </Border>
+
+                        <Path x:Name="AscendingPath" Margin="2" VerticalAlignment="Center" Width="10" Fill="Black" Stretch="Uniform" HorizontalAlignment="Center"
+                              Data="F1 M 301.14,-189.041L 311.57,-189.041L 306.355,-182.942L 301.14,-189.041 Z " RenderTransformOrigin="0.5,0.5"
+                              Visibility="Visible" >
+
+                        </Path>
+
+                        <Path x:Name="DescendingPath" Margin="2" VerticalAlignment="Center" Width="10" Fill="Black" Stretch="Uniform" HorizontalAlignment="Center"
+                              Data="F1 M 301.14,-189.041L 311.57,-189.041L 306.355,-182.942L 301.14,-189.041 Z "  RenderTransformOrigin="0.5,0.5"
+                              Visibility="Hidden">
+                            <Path.RenderTransform>
+                                <RotateTransform Angle="-180"/>
+                            </Path.RenderTransform>
+                        </Path>
+
+                        <ContentPresenter x:Name="content"
+	                                      HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Opacity="1"/>
+
+                        <Border x:Name="darken" Background="Black" Opacity="0">
+                        </Border>
+
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="true">
+                            <Setter TargetName="AscendingPath" Property="Visibility" Value="Hidden"/>
+                            <Setter TargetName="DescendingPath" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="false">
+                            <Setter TargetName="AscendingPath" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="DescendingPath" Property="Visibility" Value="Hidden"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="White" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+
+    <Style TargetType="{x:Type ComboBoxItem}">
+        <Setter Property="Height" Value="17"/>
+    </Style>
+
+    <Style x:Key="MenuBarText" TargetType="{x:Type TextBlock}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="AntiqueWhite"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+    </Style>
+    
+</ResourceDictionary>

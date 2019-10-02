@@ -1,0 +1,69 @@
+﻿<Window x:Class="Bubbles3.Views.TabOptionsView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Bubbles3.Views"
+        mc:Ignorable="d"
+        Title="TabOptionsView" Height="325" Width="540">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="auto"/>
+        </Grid.ColumnDefinitions>
+
+        <Border BorderThickness="1" Margin="5" BorderBrush="{StaticResource BblWindowBorderBrush}">
+            <StackPanel>
+                <CheckBox x:Name="UseIvp" Content="Remember View"/>
+                <CheckBox x:Name="SaveIvp" Content="Save viewing params in .ivp files"/>
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+
+                <CheckBox x:Name="KeepZoom" Content="Keep Zoomfactor when turning pages"/>
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+
+                <CheckBox x:Name="SavePageMarkers" Content="Keep a Bookmark to the last viewed page "/>
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+
+                <TextBlock>Default Zoom Mode:</TextBlock>
+                <ComboBox x:Name="ZoomMode" />
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+
+                <CheckBox x:Name="ZoomRectOnRightClick" Content="Rectangle zoom on right click. (Ctrl+click when unchecked)" />
+                <CheckBox x:Name="ReadBackwards" Content="Scroll to the bottom of the page when reading backwards"/>
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+
+                <CheckBox x:Name="ShowScroll" Content="Show Scroll Indicator"/>
+                <CheckBox x:Name="ShowPaging" Content="Show Paging info"/>
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+
+                <TextBlock>Mouse Wheel Action</TextBlock>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition  Width="*"/>
+                        <ColumnDefinition  Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <RadioButton x:Name="MouseWheelAction" Content="Scroll and Turn" GroupName="mw"  Margin="3"/>
+                    <RadioButton IsChecked="{Binding MouseWheelAction, Converter={StaticResource InverseBool}}" Content="Turn Pages" GroupName="mw" Grid.Column="1" Margin="3"/>
+                </Grid>
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+                <TextBox x:Name="SaveName"/>
+                <Button x:Name="SaveButton" Content="Name and Save the current Settings" Margin="2"/>
+            </StackPanel>
+        </Border>
+        <Border BorderThickness="1" BorderBrush="{StaticResource BblWindowBorderBrush}" Margin="5" Grid.Column ="1">
+            <StackPanel >
+                <CheckBox x:Name="AnimRotation" Content="Animate Rotations"/>
+                <CheckBox x:Name="AnimScroll" Content="Animate Scrolling"/>
+                <CheckBox x:Name="AnimZoom" Content="Animate Keyboard Zooming"/>
+                <CheckBox x:Name="AnimIvp" Content="Animate IVP restoration"/>
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+                <TextBlock>Saved Settings</TextBlock>
+                <ListBox x:Name ="SavedSettings" SelectedItem="{Binding SelectedSavedSettings}" Height="164" DisplayMemberPath="Name"/>
+
+                <DockPanel>
+                    <Button x:Name="DeleteButton" Content="Delete Selected" DockPanel.Dock="Right" Margin="5"/>
+                </DockPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

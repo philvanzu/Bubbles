@@ -1,0 +1,67 @@
+﻿<Window x:Class="XamlFileSystemExplorerTest.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:XamlFileSystemExplorerTest"
+        xmlns:fse="clr-namespace:XamlFSExplorer;assembly=XamlFSExplorer"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="auto" Width="auto">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="32"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="200"/>
+        </Grid.RowDefinitions>
+        <fse:FSExplorerNavbar BorderBrush="Black" BorderThickness="0" Margin="10,0"
+                              Explorer="{Binding TheExplorer}" 
+                              SelectedItem="{Binding SelectedTreeItem}"/>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <fse:FSExplorerTree Margin="10,10,0,10" BorderBrush="Black" BorderThickness="3" 
+                                ShowFiles="True"
+                                ShowCheckbox="True"  
+                                Explorer="{Binding Path=TheExplorer}"  
+                                SelectedItem="{Binding SelectedTreeItem, Mode=TwoWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}"
+                                CheckedItems="{Binding CheckedItems, Mode=TwoWay}"  
+                                SortField="LastModified" SortDirection="Descending"
+                                />
+
+            <fse:FSExplorerList Grid.Column="1" Margin="10" BorderBrush="Black" BorderThickness="3" 
+                                ShowFiles="True"
+                                ShowCheckbox="True"  
+                                Explorer="{Binding Path=TheExplorer}"  
+                                SelectedItem="{Binding SelectedListItem, Mode=TwoWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}"
+                                CheckedItems="{Binding CheckedItems, Mode=TwoWay}"  
+                                ViewDetails="True"
+                                ShowParentFolder="True"
+                                />
+        </Grid>
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Text="Tree Panel"/>
+                <TextBlock Text="selected item : "/>
+                <TextBlock Text="{Binding SelectedTreeItem.Label}"/>
+
+                <TextBlock Text="checked items"/>
+                <ListBox x:Name="CheckedList" ItemsSource="{Binding CheckedItems}"/>
+                <Button Click="SetSelectedButton" Content="Set tree selection to this list's selected" Width="250"/>
+            </StackPanel>
+            <Canvas Grid.Column="1" Background="AliceBlue" Height="16" Width="16">
+                <Path Fill="Black">
+                    <Path.Data>
+                        <PathGeometry Figures="m 16 8 -0.0374 -2.66761 -9.9885402 0.0404 3.04994 -4.15478 -0.0374 -1.31262 -0.78483 -0.5641 h -1.20343 l -5.51256996 7.34881 5.51705996 7.33558 1.24804 -0.0151 0.78007 -0.73349 0.0291 -1.31739 -3.16272 -3.93727 z" FillRule="NonZero"/>
+                    </Path.Data>
+                </Path>
+            </Canvas>
+        </Grid>
+    </Grid>
+</Window>

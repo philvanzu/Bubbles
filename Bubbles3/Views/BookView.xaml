@@ -1,0 +1,175 @@
+﻿ <UserControl x:Class="Bubbles3.Views.BookView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:i="clr-namespace:System.Windows.Interactivity;assembly=System.Windows.Interactivity"
+             xmlns:cal="http://www.caliburnproject.org" 
+             xmlns:local="clr-namespace:Bubbles3.Views"
+             xmlns:ctrl="clr-namespace:Bubbles3.Controls"
+             xmlns:conv="clr-namespace:Bubbles3.Converters"
+             xmlns:bhv="clr-namespace:Bubbles3.Behaviors" 
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+
+    <UserControl.Resources>
+        <Style TargetType="ListViewItem">
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListViewItem}">
+                        <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <SolidColorBrush x:Key="SelectedBackgroundBrush" Color="#cde4fc" />
+        <SolidColorBrush x:Key="SelectedBorderBrush" Color="#70c0e7" />
+        <SolidColorBrush x:Key="HoverBackgroundBrush" Color="#eaf8fb" />
+        <SolidColorBrush x:Key="HoverBorderBrush" Color="#dadada" />
+        <SolidColorBrush x:Key="TextStroke" Color="White" />
+        <SolidColorBrush x:Key="TextFill" Color="Black" />
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="24"/>
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <DockPanel Grid.Row="0" x:Name="LibraryToolbar" Background="{StaticResource ToolBarBackgroundBrush}" LastChildFill="true">
+            <Button x:Name="Collapse"  DockPanel.Dock="Right" Margin="0,0,2,0" Padding="0" Height="14" Width="14">
+                <Image Source="..\icons\tab_close.png" Height="8" Width="8" VerticalAlignment="Center" HorizontalAlignment="Center" />
+            </Button>
+            <ComboBox Name="SortBy" SelectedItem="SelectedSortBy" BorderThickness="0" Background="Transparent"/>
+            <ToggleButton x:Name="SortDirection" Style="{StaticResource SortDirectionButton}" IsChecked="True"/>
+            <Button x:Name="SortPages"  Style="{StaticResource ToolBarButton}" Height="22" Width="22" Margin="0" ToolTipService.ToolTip="Refresh Sort">
+                <Image Source="../icons/refresh.ico" Height="22" Width="22"/>
+            </Button>
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+
+            <StackPanel Name="BatchRenameStackPanel" Orientation="Horizontal" Visibility="{Binding CanDisplayBatchRename}" >
+                <TextBlock Text="Prefix " IsEnabled="{Binding CanRename}" VerticalAlignment="Center" Padding="4,2"/>
+                <TextBox Name="BatchRenamePrefix" Width="100" Margin="2,0" IsEnabled="{Binding CanRename}" Height="20" VerticalContentAlignment="Center"/>
+                <Button x:Name="SetBatchRenamePrefixToBookName" Content="Auto Prefix" Margin="3,0" Height="20"  Padding="4,2" IsEnabled="{Binding CanRename}"/>
+                <Button x:Name="BatchRename" Content="Batch Rename"  Margin="3,0" Padding="4,2" Height="20" IsEnabled="{Binding CanRename}" />
+                <Button x:Name="ReorderCreationTimes" Content="Reorder Creation Times"  Margin="3,0" Padding="4,2" Height="20" IsEnabled="{Binding CanRename}" />
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+                <ToggleButton x:Name="ShowIvp" Content="ivp" Margin="4,2" Padding="4,0"/>
+                <!--<Button x:Name="AddToDeepVDataSet" Content="Add To DataSet" Margin="4,0,4,2" Padding="4,0" Height="20" VerticalAlignment="Bottom"/>-->
+                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+            </StackPanel>
+            <ProgressBar x:Name="BookProgress" Maximum="{Binding BookProgressMax}" MinWidth="50"  Margin="4" />
+        </DockPanel>
+        <Border BorderBrush ="{StaticResource ColumnSplitterBackgroundBrush}" BorderThickness="1" Grid.Row="1">
+
+            <ctrl:BblListView x:Name="lv" ItemsSource="{Binding PagesCV}" IsSynchronizedWithCurrentItem="True" Margin="0"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
+                      VirtualizingPanel.IsVirtualizing="True"
+                      SelectedItem="{Binding SelectedPage, Mode=TwoWay}"
+                      cal:Message.Attach="[Event KeyDown] = [Action LV_KeyDown($executionContext )]" >
+
+                <i:Interaction.Behaviors>
+                    <bhv:ListViewSelectedItemsBehavior SelectedItems="{Binding SelectedPages}"/>
+                </i:Interaction.Behaviors>
+                <ctrl:BblListView.ItemTemplate>
+                    <DataTemplate>
+                        
+                        <StackPanel Name="ItemStackPanel"  Height="174" Width="154" Orientation="Vertical">
+                            <StackPanel.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Delete" cal:Message.Attach="DeleteFile()"/>
+                                    <MenuItem Header="Rename" cal:Message.Attach="StartRenaming()"/>
+                                </ContextMenu>
+                            </StackPanel.ContextMenu>
+                            <Border  BorderBrush="Black" BorderThickness="1" CornerRadius="5" Width="150" Height="150">
+                                <Grid>
+                                    <Image Source="{Binding Thumbnail, Mode=OneWay}"  Height="150"  Width="150" VerticalAlignment="Center"  HorizontalAlignment="Center"/>
+                                    <ctrl:OutlinedTextBlock HorizontalAlignment="Left" VerticalAlignment="Top"  Margin="3" Text ="{Binding PageNumber}"
+                                        FontSize="12pt" FontWeight="ExtraBold"  StrokeThickness="1"  Stroke="{StaticResource TextStroke}" Fill="{StaticResource TextFill}" />
+                                    <Canvas Height="150" Width="150" Visibility="{Binding ShowIvp}">
+                                        <Path>
+                                            <Path.Data>
+                                                <CombinedGeometry GeometryCombineMode="Exclude">
+                                                    <CombinedGeometry.Geometry1>
+                                                        <RectangleGeometry Rect="{Binding ThumbRect}"/>
+                                                    </CombinedGeometry.Geometry1>
+                                                    <CombinedGeometry.Geometry2>
+                                                        <RectangleGeometry Rect="{Binding IvpRect}"/>
+                                                    </CombinedGeometry.Geometry2>
+                                                </CombinedGeometry>
+                                            </Path.Data>
+                                            <Path.Fill>
+                                                <SolidColorBrush Color="Black" Opacity="0.66"/>
+                                            </Path.Fill>
+                                        </Path>
+                                    </Canvas>
+                                </Grid>
+                            </Border>
+                            <TextBlock Name="FilenameTextBlock" HorizontalAlignment="Left"  Margin="3" Text ="{Binding Filename}" TextWrapping="Wrap"/>
+                            <TextBox Name="FilenameTextBox" HorizontalAlignment="Left" Margin="3" Visibility="Collapsed" TextWrapping="Wrap"
+                                     Text ="{Binding Filename, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     cal:Message.Attach="[Event LostFocus] = [RenamePageTextBoxLostFocus];
+                                     [Event KeyDown] = [Action RenamePageTextBoxKeyDown($executionContext)]">
+                                    
+                                <i:Interaction.Behaviors>
+                                    <bhv:FileNameEditorTextBoxBehavior/>
+                                </i:Interaction.Behaviors>
+                            </TextBox>
+                        </StackPanel>
+
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding Renaming}" Value="true">
+                                <Setter TargetName="FilenameTextBlock" Property="Visibility" Value="Collapsed"/>
+                                <Setter TargetName="FilenameTextBox" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="ItemStackPanel" Property="FocusManager.FocusedElement" Value="{Binding ElementName=FilenameTextBox}" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ctrl:BblListView.ItemTemplate>
+                <ctrl:BblListView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <ctrl:VirtualizingWrapPanel ItemHeight="174" ItemWidth="154" ScrollToIndex="{Binding ScrollToIndex, Mode=TwoWay}" />
+                    </ItemsPanelTemplate>
+                </ctrl:BblListView.ItemsPanel>
+                <ctrl:BblListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border Name="Border" Padding="0" SnapsToDevicePixels="true" BorderBrush="Transparent" BorderThickness="1">
+                                        <ContentPresenter />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsSelected" Value="true">
+                                            <Setter TargetName="Border" Property="Background" Value="{StaticResource SelectedBackgroundBrush}"/>
+                                            <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource SelectedBorderBrush}"/>
+                                        </Trigger>
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="IsSelected" Value="false"/>
+                                                <Condition Property="IsMouseOver" Value="True"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter TargetName ="Border" Property="Background" Value="{StaticResource HoverBackgroundBrush}"/>
+                                            <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource HoverBorderBrush}"/>
+                                        </MultiTrigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+
+                    </Style>
+                </ctrl:BblListView.ItemContainerStyle>
+
+            </ctrl:BblListView>
+
+
+        </Border>
+    </Grid>
+
+</UserControl>

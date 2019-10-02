@@ -1,0 +1,149 @@
+﻿<UserControl x:Class="Bubbles3.Views.LibraryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:i="clr-namespace:System.Windows.Interactivity;assembly=System.Windows.Interactivity"
+             xmlns:cal="http://www.caliburnproject.org"
+             xmlns:controls="clr-namespace:Bubbles3.Controls"
+             
+             xmlns:bhv="clr-namespace:Bubbles3.Behaviors"  
+             xmlns:local="clr-namespace:Bubbles3.Views"
+             xmlns:bbl="clr-namespace:Bubbles3"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+
+        <Style TargetType="ListViewItem">
+            <Setter Property="OverridesDefaultStyle" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ListViewItem}">
+                        <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <SolidColorBrush x:Key="SelectedBackgroundBrush" Color="#cde4fc" />
+        <SolidColorBrush x:Key="SelectedBorderBrush" Color="#70c0e7" />
+        <SolidColorBrush x:Key="HoverBackgroundBrush" Color="#eaf8fb" />
+        <SolidColorBrush x:Key="HoverBorderBrush" Color="#dadada" />
+
+    </UserControl.Resources>
+
+    <Grid>
+
+        
+
+        <Border BorderBrush ="{StaticResource ColumnSplitterBackgroundBrush}" BorderThickness="1" >
+
+            <controls:BblListView x:Name="lv" ItemsSource="{Binding BooksCV}"  SelectedItem="{Binding SelectedBook, Mode=TwoWay}" IsSynchronizedWithCurrentItem="True" Margin="0"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.IsDeferredScrollingEnabled="True"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      cal:Message.Attach="[Event KeyDown] = [Action LV_KeyDown($executionContext )]">
+
+
+
+                <i:Interaction.Behaviors>
+                    <!--<bhv:ScrollToSelectionListViewBehavior/>-->
+                    <bhv:ListViewSelectedItemsBehavior SelectedItems="{Binding SelectedBooks}"/>
+                </i:Interaction.Behaviors>
+                <controls:BblListView.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel x:Name="ItemStackPanel" Height="172" Width="132" Orientation="Vertical" VirtualizingPanel.IsVirtualizing="True"
+                                     Background="Transparent"   ToolTipService.ToolTip="{Binding TooltipText}">
+                            <StackPanel.InputBindings>
+                                <MouseBinding Gesture="LeftDoubleClick" Command="{Binding ShowDetailsCommand}"  />
+                            </StackPanel.InputBindings>
+                            <StackPanel.ContextMenu>
+                                <ContextMenu>
+                                    <!--<MenuItem Header="Edit Tags" cal:Message.Attach="EditTags()"/>-->
+                                    <MenuItem Header="Rename" cal:Message.Attach="StartRenaming()"/>
+                                    <MenuItem Header="Delete" cal:Message.Attach="DeleteFile()"/>
+                                    <MenuItem Header="Open Containing Folder" cal:Message.Attach="OpenInExplorer()"/>
+                                    <MenuItem Header="Open In Default Application" cal:Message.Attach="OpenFile()"/>
+                                    <MenuItem Header="Show Details" Command="{Binding ShowDetailsCommand}"/>
+                                    <!--<MenuItem Header="Modify File Time Stamps" cal:Message.Attach="ModifyFileTimeStamps()"/>-->
+                                </ContextMenu>
+                            </StackPanel.ContextMenu>
+                            <Border  BorderBrush="Black" BorderThickness="1" CornerRadius="5" Width="128" Height="128">
+                                <Grid>
+                                    <Image x:Name="img" Source="{Binding Thumbnail, Mode=OneWay}" />
+                                    <!---->
+                                </Grid>
+                            </Border>
+                            <TextBlock Name="FileNameTextBlock" HorizontalAlignment="Left"  Margin="3" Text ="{Binding Name}"/>
+                            <TextBox Name="FileNameTextBox" HorizontalAlignment="Left" Margin="3" Visibility="Collapsed" TextWrapping="Wrap"
+                                     Text ="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     cal:Message.Attach="[Event LostFocus] = [RenameTextBoxLostFocus];
+                                     [Event KeyDown] = [Action RenameTextBoxKeyDown($executionContext)]">
+                                <i:Interaction.Behaviors>
+                                    <bhv:FileNameEditorTextBoxBehavior/>
+                                </i:Interaction.Behaviors>
+                            </TextBox>
+                            <TextBlock HorizontalAlignment="Center" Margin="3" Text ="{Binding PageCount}"/>
+                        </StackPanel>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding Renaming}" Value="true">
+                                <Setter TargetName="FileNameTextBlock" Property="Visibility" Value="Collapsed"/>
+                                <Setter TargetName="FileNameTextBox" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="ItemStackPanel" Property="FocusManager.FocusedElement" Value="{Binding ElementName=FileNameTextBox}" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </controls:BblListView.ItemTemplate>
+
+                <controls:BblListView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <controls:VirtualizingWrapPanel ItemHeight="172" ItemWidth="132" 
+                            ScrollToIndex="{Binding ScrollToIndex, Mode=TwoWay}"   />
+                        <!---->
+                    </ItemsPanelTemplate>
+                </controls:BblListView.ItemsPanel>
+
+                <controls:BblListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border Name="Border" Padding="0" SnapsToDevicePixels="true" BorderBrush="Transparent" BorderThickness="1">
+                                        <ContentPresenter />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsSelected" Value="true">
+                                            <Setter TargetName="Border" Property="Background" Value="{StaticResource SelectedBackgroundBrush}"/>
+                                            <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource SelectedBorderBrush}"/>
+                                        </Trigger>
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="IsSelected" Value="false"/>
+                                                <Condition Property="IsMouseOver" Value="True"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter TargetName ="Border" Property="Background" Value="{StaticResource HoverBackgroundBrush}"/>
+                                            <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource HoverBorderBrush}"/>
+                                        </MultiTrigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+
+                    </Style>
+                </controls:BblListView.ItemContainerStyle>
+
+            </controls:BblListView>
+
+            <!--
+
+            
+            -->
+        </Border>
+    </Grid>
+</UserControl>

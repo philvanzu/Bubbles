@@ -1,0 +1,326 @@
+﻿<UserControl x:Class="Bubbles3.Views.TabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:local="clr-namespace:Bubbles3.Views"
+             xmlns:fse="clr-namespace:XamlFSExplorer;assembly=XamlFSExplorer"
+             xmlns:cal="http://www.caliburnproject.org" 
+             xmlns:bhv="clr-namespace:Bubbles3.Behaviors" 
+             xmlns:i="clr-namespace:System.Windows.Interactivity;assembly=System.Windows.Interactivity"
+             >
+    <UserControl.Resources>
+        <Style x:Key="TabViewStyle" TargetType="{x:Type local:TabView}">
+            <Setter Property="PageVisible" Value="{Binding PageVisible, Mode=TwoWay}"/>
+            <Setter Property="ExplorerVisible" Value="{Binding ExplorerVisible, Mode=TwoWay}"/>
+            <Setter Property="BookVisible" Value="{Binding BookVisible, Mode=TwoWay}"/>
+            <Setter Property="TabState" Value="{Binding TabUIState, Mode=TwoWay}"/>
+        </Style>
+
+        <SolidColorBrush x:Key="TextBox.Static.Border" Color="#FFABAdB3"/>
+        <SolidColorBrush x:Key="TextBox.MouseOver.Border" Color="#FF7EB4EA"/>
+        <SolidColorBrush x:Key="TextBox.Focus.Border" Color="#FF569DE5"/>
+
+        <Style x:Key="SearchTextBox" TargetType="{x:Type TextBox}">
+            <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource TextBox.Static.Border}"/>
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="KeyboardNavigation.TabNavigation" Value="None"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="AllowDrop" Value="true"/>
+            <Setter Property="ScrollViewer.PanningMode" Value="VerticalFirst"/>
+            <Setter Property="Stylus.IsFlicksEnabled" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TextBox}">
+                        <Border x:Name="border" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                            <DockPanel LastChildFill="False">
+                                <ScrollViewer x:Name="PART_ContentHost" Focusable="false" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+
+
+                                <Button Name="StartSearchButton" Height="16" Width="16"
+                                        cal:Message.Attach ="StartSearch" 
+                                        DockPanel.Dock="Right"
+                                        Style="{StaticResource TextBoxButton}">
+                                    <Image Source="..\icons\tbsearch.png" />
+                                </Button>
+
+                                <Button x:Name="ClearButton" Height="16" Width="16"
+                                        cal:Message.Attach ="ClearFilter" 
+                                        DockPanel.Dock="Right"
+                                        Style="{StaticResource TextBoxButton}"
+                                        Visibility="Collapsed">
+
+
+                                    <Path x:Name="ButtonPath"
+                                      Margin="3"
+                                      Stroke="{StaticResource  MenuButtonBorderBrush}"
+                                      StrokeThickness="1.5"
+                                      StrokeStartLineCap="Square"
+                                      StrokeEndLineCap="Square"
+                                      Stretch="Uniform"
+                                      VerticalAlignment="Center"
+                                      HorizontalAlignment="Center">
+                                        <Path.Data>
+                                            <PathGeometry>
+                                                <PathGeometry.Figures>
+                                                    <PathFigure StartPoint="0,0">
+                                                        <LineSegment Point="25,25"/>
+                                                    </PathFigure>
+                                                    <PathFigure StartPoint="0,25">
+                                                        <LineSegment Point="25,0"/>
+                                                    </PathFigure>
+                                                </PathGeometry.Figures>
+                                            </PathGeometry>
+                                        </Path.Data>
+                                    </Path>
+                                </Button>
+                            </DockPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="false">
+                                <Setter Property="Opacity" TargetName="border" Value="0.56"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="true">
+                                <Setter Property="BorderBrush" TargetName="border" Value="{StaticResource TextBox.MouseOver.Border}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="true">
+                                <Setter Property="BorderBrush" TargetName="border" Value="{StaticResource TextBox.Focus.Border}"/>
+                            </Trigger>
+                            <DataTrigger Binding="{Binding ShowClearFilterButton}" Value="true">
+                                <Setter TargetName="ClearButton" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="StartSearchButton" Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <MultiTrigger>
+                    <MultiTrigger.Conditions>
+                        <Condition Property="IsInactiveSelectionHighlightEnabled" Value="true"/>
+                        <Condition Property="IsSelectionActive" Value="false"/>
+                    </MultiTrigger.Conditions>
+                    <Setter Property="SelectionBrush" Value="{DynamicResource {x:Static SystemColors.InactiveSelectionHighlightBrushKey}}"/>
+                </MultiTrigger>
+            </Style.Triggers>
+        </Style>
+
+    </UserControl.Resources>
+
+
+
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="27"/>
+
+        </Grid.RowDefinitions>
+
+        <Grid Background="{StaticResource TabContentBackgroundBrush}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="Navpane_Width" Width="0.66*"/>
+                <ColumnDefinition x:Name="PagePane_Splitter_Width" Width="5px" />
+                <ColumnDefinition x:Name="PagePane_Width" Width="0.33*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Whole Navigation Area on the left (3 panels) -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="24"/>
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="ExplorerPane_Width" Width="0.33*"/>
+                    <ColumnDefinition x:Name="ExplorerPane_Splitter_Width" Width="5px" />
+                    <ColumnDefinition x:Name="LibraryPane_Width" Width="0.67*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- NavBar (Nav buttons, Address DropBox, Search)-->
+                <Grid Grid.Row="0" Grid.ColumnSpan="3" >
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+
+                    </Grid.ColumnDefinitions>
+                    <Grid Grid.Column="0" Background="{StaticResource ToolBarBackgroundBrush}">
+                        <fse:FSExplorerNavbar HorizontalAlignment="Stretch" x:Name="NavBar" BorderBrush="Black" BorderThickness="0" Margin="0"
+                              Explorer="{Binding TheExplorer}" 
+                              SelectedItem="{Binding SelectedFolder}"/>
+
+                    </Grid>
+                    <DockPanel Grid.Column="1" x:Name="TabToolbar" Background="{StaticResource ToolBarBackgroundBrush}" LastChildFill="False" HorizontalAlignment="Right">
+
+                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+
+
+                        <Button x:Name="ScrollToSelected" Style="{StaticResource ToolBarButton}" Height="24" Width="24" Margin="0" ToolTipService.ToolTip="Scroll to Selected Item">
+                            <Image Source="../icons/scroll.ico" Height="22" Width="22"/>
+                        </Button>
+                        <Button x:Name="AddBookmark" Style="{StaticResource ToolBarButton}" Height="24" Margin="2,0" ToolTipService.ToolTip="Bookmark current page">
+                            <Image Source="../icons/bookmark.png" Height="22" Width="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+
+                        <ComboBox Name="CustomSorts" DisplayMemberPath="Name" BorderThickness="0" Background="Transparent"/>
+                        <ToggleButton x:Name="SortDirection" Style="{StaticResource SortDirectionButton}"/>
+                        <Button x:Name="RefreshSort"  Style="{StaticResource ToolBarButton}" Height="22" Width="22" Margin="0" ToolTipService.ToolTip="Refresh Sort">
+                            <Image Source="../icons/refresh.ico" Height="22" Width="22"/>
+                        </Button>
+
+                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+
+                        <ToggleButton x:Name="SaveToDBToggle" Style="{StaticResource ToolBarToggle}" Height="22" Width="22" Margin="0" ToolTipService.ToolTip="Save library to .bbldb file for faster loading" >
+                            <Image Source="../icons/save.ico" Height="22" Width="22"/>
+                        </ToggleButton>
+                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+
+
+                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+
+                        <TextBox x:Name="FilterTextBox" Text="{Binding Path=FilterText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  FontSize="12" Width="250" MinWidth="100"
+                             cal:Message.Attach="[Event KeyDown] = [Action ExecuteFilterView($executioncontext)]" Margin="2,3" Style="{DynamicResource SearchTextBox}">
+                            <i:Interaction.Behaviors>
+                                <bhv:ClickSelectTextBox/>
+                            </i:Interaction.Behaviors>
+                        </TextBox>
+
+                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="4" />
+
+                        <Button x:Name="ManageSettings" ToolTipService.ToolTip="Manage Tab Options" Margin="4,0,0,0">
+                            <Image Source="../icons/optionW.png" Height="22" Width="22"/>
+                        </Button>
+                        <ComboBox x:Name="WindowedSettings"  ItemsSource="{Binding SavedOptions}"  SelectedItem="{Binding WindowedOptions}" ToolTipService.ToolTip="Select saved settings" DisplayMemberPath="Name"/>
+
+                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+
+                        <Image Source="../icons/optionFS.png" Height="22" Width="22" />
+                        <ComboBox x:Name="FullscreenSettings" ItemsSource="{Binding SavedOptions}" SelectedItem="{Binding FullscreenOptions}" ToolTipService.ToolTip="Select saved settings" DisplayMemberPath="Name"/>
+
+                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+
+                    </DockPanel>
+
+                </Grid>
+
+
+                <!-- Explorer Panel -->
+                <Grid Grid.Row="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="24"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="24"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <!--<StackPanel Orientation="Horizontal">
+                           
+                        </StackPanel>-->
+                        <Button x:Name="CloseExplorerPanel"
+									                Background="Transparent"
+									                BorderThickness="1"
+									                Margin="0,4,4,0"
+									                Height="16" Width="16" 
+									                VerticalAlignment="Top" 
+									                HorizontalAlignment="Right" Grid.Column="1" >
+
+                            <Image Source="..\icons\tab_close.png"/>
+                        </Button>
+                    </Grid>
+
+                    <fse:FSExplorerTree Margin="0,0,0,0" BorderBrush="Black" BorderThickness="0" x:Name="ExplorerPanel" Grid.Row="1" Grid.Column="0" 
+                                    ShowFiles="False"
+                                    ShowCheckbox="False"  
+                                    Explorer="{Binding Path=TheExplorer}"  
+                                    SelectedItem="{Binding SelectedFolder, Mode=TwoWay, NotifyOnSourceUpdated=True, NotifyOnTargetUpdated=True}"
+                                />
+                </Grid>
+
+
+
+                <GridSplitter x:Name ="ExplorerGridSplitter" Grid.Row="1" Grid.Column="1"  ShowsPreview="false" Background="{StaticResource ColumnSplitterBackgroundBrush}" Width="5" HorizontalAlignment="Stretch"/>
+                <!--<GridSplitter.Template>
+                        <ControlTemplate TargetType="{x:Type GridSplitter}">
+                            <Grid>
+                                <Rectangle Fill="#00FFFFFF" />
+                            </Grid>
+                        </ControlTemplate>
+                    </GridSplitter.Template>
+                </GridSplitter>-->
+                <!-- Books / pages views -->
+                <Grid Grid.Row="1" Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition x:Name="LibraryPane_Height" Height="*"/>
+                        <RowDefinition x:Name="BookPane_Splitter_Height" Height="5px"/>
+                        <RowDefinition x:Name="BookPane_Height" Height="*"/>
+                    </Grid.RowDefinitions>
+                    <!-- Books Panel -->
+                    <ContentControl x:Name="Library" Grid.Row="0"/>
+
+
+                    <GridSplitter x:Name="CentralGridSplitter" Grid.Row="1"  ShowsPreview="false" Grid.Column="1"  Background="{StaticResource ColumnSplitterBackgroundBrush}" Height="5" HorizontalAlignment="Stretch" />
+                    <!-- Pages Panel -->
+                    <!--<ContentControl x:Name="SelectedBook" Content="{ Binding Library.SelectedBook, Mode=OneWay }" Grid.Row="2" />-->
+                    <ContentControl cal:View.Model="{Binding Library.SelectedBook}" Grid.Row="2" />
+
+                </Grid>
+            </Grid>
+            <!-- End nav Area-->
+
+            <GridSplitter x:Name="PageGridSplitter" Grid.Column="1" ShowsPreview="true" Background="{StaticResource ColumnSplitterBackgroundBrush}" Width="5" HorizontalAlignment="Stretch"/>
+
+            <!-- Image Area -->
+            <Grid Grid.Column="2" x:Name="ImagePanelWindowedHost" />
+        </Grid>
+        <!-- Status Bar -->
+        <Grid Background="{DynamicResource StatusBarBackgroundBrush}" Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="70"/>
+                <!--0: showhide icons-->
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="*" MinWidth="100"/>
+                <!-- 2 :page path-->
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="100"/>
+                <!-- 4 :page size-->
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="100"/>
+                <!-- 6 : books count-->
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="100"/>
+                <!-- 8 :Progress Bar-->
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="24"/>
+                <!-- 10 : showhide icon (right)-->
+            </Grid.ColumnDefinitions>
+            <!--0: showhide icons-->
+            <StackPanel Orientation="Horizontal" Grid.Column="0" HorizontalAlignment="Center" Margin="9,0">
+                <Image x:Name="Explorer_showhide" Height="16" Width="16" Margin="5,0"/>
+                <Image x:Name="Bookview_showhide" Height="16" Width="16" Margin="5,0"/>
+            </StackPanel>
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"  Grid.Column="1" />
+            <!-- 2 :page path-->
+            <TextBlock Style="{StaticResource MenuBarText}"  Name="PagePath" Width="auto" FontSize="12" VerticalAlignment="Center" Grid.Column="2" Margin="0,6,0,5" />
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"  Grid.Column="3" />
+            <!-- 4 :page size-->
+            <TextBlock Style="{StaticResource MenuBarText}"  Name="PageSize" Width="auto" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Column="4" Margin="4,4" />
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"  Grid.Column="5" />
+            <!-- 6 : books count-->
+            <StackPanel Orientation="Vertical" Grid.Column="6" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="33,4">
+                <TextBlock Style="{StaticResource MenuBarText}"  Name="BooksCount" Width="auto" FontSize="14" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            </StackPanel>
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"  Grid.Column="7" />
+            <ProgressBar Grid.Column="8"  Value="{Binding ProgressValue}" Maximum="{Binding ProgressMaximum}" IsIndeterminate="{Binding ProgressIsDeterminate}" MinWidth="50" Height="auto" Margin="4"/>
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"  Grid.Column="9" />
+            <!-- 8 : showhide icon (right)-->
+            <StackPanel Orientation="Horizontal" Grid.Column="10" HorizontalAlignment="Left" Margin="0,0,-2,0">
+                <Image x:Name="Page_showhide"  Height="16" Width="16" Margin="5,0"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

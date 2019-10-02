@@ -1,0 +1,260 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{60A00423-845F-4904-8803-7709F7A0D623}</ProjectGuid>
+    <OutputType>library</OutputType>
+    <RootNamespace>XamlFSExplorer</RootNamespace>
+    <AssemblyName>XamlFSExplorer</AssemblyName>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Windows.Interactivity, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xaml">
+      <RequiredTargetFramework>4.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="FileSystemInfoEx\FileStreamEx\FileStreamEx.cs" />
+    <Compile Include="FileSystemInfoEx\FileSystemInfoEx\DirectoryInfoEx.cs" />
+    <Compile Include="FileSystemInfoEx\FileSystemInfoEx\DriveInfoEx.cs" />
+    <Compile Include="FileSystemInfoEx\FileSystemInfoEx\ExtensionMethods.cs" />
+    <Compile Include="FileSystemInfoEx\FileSystemInfoEx\FileInfoEx.cs" />
+    <Compile Include="FileSystemInfoEx\FileSystemInfoEx\FileSystemInfoEx.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\Interfaces\IAdviseSink.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\Interfaces\IContextMenu.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\Interfaces\IDataObject.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\Interfaces\IDragSourceHelper.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\Interfaces\IDropSource.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\Interfaces\IDropTarget.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\Interfaces\IDropTargetHelper.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\Interfaces\IEnumFORMATETC.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\Interfaces\IEnumIDList.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\Interfaces\IEnumSTATSTG.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\Interfaces\IExtractImage.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\Interfaces\IShellExtInit.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\Interfaces\IShellFolder.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\Interfaces\IStorage.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\Interfaces\IStream.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\PIDL.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\ShellAPI.cs" />
+    <Compile Include="FileSystemInfoEx\Header\FileBrowser\ShellHelper.cs" />
+    <Compile Include="FileSystemInfoEx\Header\IShellFolder2.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolders.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Attributes\CsidlAttribute.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Attributes\DefaultPathAttribute.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Attributes\DisplayNameAttribute.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Attributes\KnownFolderCategoryAttribute.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Attributes\KnownFolderGuidAttribute .cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Attributes\MinVersionAttribute.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Attributes\SpecialFolderAttribute.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Enums\KnownFolderCategory.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Enums\KnownFolderDefinition.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Enums\KnownFolderDefinitionFlags.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Enums\KnownFolderFindMode.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Enums\KnownFolderIds.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Enums\KnownFolderRedirectionCapabilities.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Enums\KnownFolderRetrievalOptions.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Interfaces\IKnownFolder..cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\Interfaces\IKnownFolderManager.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\InternalKnownFolderDefinition.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\KnownFolder.cs" />
+    <Compile Include="FileSystemInfoEx\Header\KnownFolder\KnownFolderManager.cs" />
+    <Compile Include="FileSystemInfoEx\Header\PreviewHandlerWPF\Interface\IInitalizeWithFile.cs" />
+    <Compile Include="FileSystemInfoEx\Header\PreviewHandlerWPF\Interface\IInitializeWithStream.cs" />
+    <Compile Include="FileSystemInfoEx\Header\PreviewHandlerWPF\Interface\IPreviewHandler.cs" />
+    <Compile Include="FileSystemInfoEx\Header\PreviewHandlerWPF\Interface\MSG.cs" />
+    <Compile Include="FileSystemInfoEx\Header\PreviewHandlerWPF\PreviewManager.cs" />
+    <Compile Include="FileSystemInfoEx\Header\ShellAPI.cs" />
+    <Compile Include="FileSystemInfoEx\Header\ShellLink\Interface\FileIcon.cs" />
+    <Compile Include="FileSystemInfoEx\Header\ShellLink\Interface\ShellLink.cs" />
+    <Compile Include="FileSystemInfoEx\Header\VirtualFileDataObject\ShellAPI.cs" />
+    <Compile Include="FileSystemInfoEx\Header\VirtualFileDataObject\VirtualFileDataObject.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\AttributeUtils.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Comparer\ExComparer.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Dialog\ShellProgressDialog.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\DirectoryEx.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\EnumAttributeUtils.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\FileEx.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Helper.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Interface\ICustomProgressDialog.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Interface\IExWork.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Interface\ISupportDrag.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Interface\ISupportDrop.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Interface\IWork.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Interface\IWorkLogger.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Interface\OverwriteInfo.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Interface\ShellFolder.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Interface\ShellFolder2.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Interface\Storage.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\IOTools.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\PathEx.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\ThirdParty\CRC32\crc32.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\ThirdParty\IProgressDialog.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\ThirdParty\NaturalComparer.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Work\CopyWork.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Work\DeleteWork.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Work\ExWorkBase.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Work\FileWorkLogger.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Work\ListWork.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Work\MoveWork.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Work\MultiExWork.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Work\NullWorkLogger.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Work\WorkBase.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Work\WorkSpawner.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Wrappers\ContextMenu\ContextMenuHelperEx.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Wrappers\ContextMenu\ContextMenuWrapper.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Wrappers\ContextMenu\CustomMenuStructure.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Wrappers\DataObjectEx.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Wrappers\DragWrapper.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Wrappers\ExtraPropertiesProvider.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Wrappers\FileSystemWatcherEx.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Wrappers\FileTypeInfoProvider.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Wrappers\ImageExtractor.cs" />
+    <Compile Include="FileSystemInfoEx\Tools\Wrappers\Preview\PreviewerControl.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="FileSystemInfoEx\Tools\Wrappers\Preview\PreviewHelper.cs" />
+    <Compile Include="FSExplorer.cs" />
+    <Compile Include="FSExplorerItem.cs" />
+    <Compile Include="FSExplorerList.cs" />
+    <Compile Include="FSExplorerNavbar.cs" />
+    <Compile Include="FSExplorerTree.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FSExplorerBookmark.cs" />
+    <Compile Include="Internal Controls\DropdownButton.cs" />
+    <Compile Include="Internal Controls\ExplorerAddressTextBox.cs" />
+    <Compile Include="Internal Controls\ExplorerBreadCrumbItem.cs" />
+    <Compile Include="Internal Controls\ExplorerGridView.cs" />
+    <Compile Include="Internal Controls\ExplorerListView.cs" />
+    <Compile Include="Internal Controls\ExplorerTreeView.cs" />
+    <Compile Include="Internal Controls\ExplorerTreeViewItem.cs" />
+    <Compile Include="Themes\Generic.xaml.cs">
+      <DependentUpon>Generic.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Utils\AccessGeneric.cs" />
+    <Compile Include="Utils\DependencyObjectHelper.cs" />
+    <Compile Include="Utils\FileNameEditorTextBoxBehavior.cs" />
+    <Compile Include="Utils\FileSystemInfoExExtensions.cs" />
+    <Compile Include="Utils\IconExtractor.cs" />
+    <Compile Include="Utils\LeftMarginMultiplierConverter.cs" />
+    <Compile Include="Utils\LogicalDisk.cs" />
+    <Compile Include="Utils\RecycleBin.cs" />
+    <Compile Include="Utils\SystemImageList.cs" />
+    <Compile Include="Utils\Utility.cs" />
+    <Page Include="Themes\Generic.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <None Include="FileSystemInfoEx\Header\PreviewHandlerWPF\Interface\COMStream.cs.notcompile" />
+    <None Include="FileSystemInfoEx\Tools\IOTools.cs.orig" />
+    <None Include="FileSystemInfoEx\Tools\ThirdParty\CRC32\crc32.cs.orig" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="icons\parentDirectory.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <COMReference Include="Shell32">
+      <Guid>{50A7E9B0-70EF-11D1-B75A-00A0C90564FE}</Guid>
+      <VersionMajor>1</VersionMajor>
+      <VersionMinor>0</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="icons\bookmark-folder.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="icons\bookmark-star.png" />
+    <Resource Include="icons\bookmark.png" />
+    <Resource Include="icons\bookmarks-organize.png" />
+    <Resource Include="icons\folder-bookmark.png" />
+    <Resource Include="icons\user-bookmarks.png" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
