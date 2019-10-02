@@ -228,7 +228,12 @@ namespace Bubbles3.ViewModels
                 _imagePanelWindowedHost.Children.Add(_imagePanelHost);
             }
         }
-
+        public ICommand CreateTabCommand => new DelegateCommand(new Action<object>((t) => {
+            CreateTab();
+        }));
+        public ICommand ShowOptionsCommand => new DelegateCommand(new Action<object>((t) => {
+            if (ActiveTab != null) ((TabViewModel)ActiveTab).ManageSettings();
+        }));
         public ICommand FullscreenCommand => new DelegateCommand(new Action<object>((t) => 
         {
             ToggleFullscreen();

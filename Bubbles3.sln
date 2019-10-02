@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PdfiumLight", "Dependencies
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XamlFSExplorer", "Dependencies\XamlFileSystemExplorer\FSExplorer\XamlFSExplorer.csproj", "{60A00423-845F-4904-8803-7709F7A0D623}"
 EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Bubbles3Setup", "Bubbles3Setup\Bubbles3Setup.vdproj", "{A95A9D2B-1139-440C-ADC4-A414C223E63E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -55,6 +57,12 @@ Global
 		{60A00423-845F-4904-8803-7709F7A0D623}.Release|x64.Build.0 = Release|x64
 		{60A00423-845F-4904-8803-7709F7A0D623}.Release|x86.ActiveCfg = Release|Any CPU
 		{60A00423-845F-4904-8803-7709F7A0D623}.Release|x86.Build.0 = Release|Any CPU
+		{A95A9D2B-1139-440C-ADC4-A414C223E63E}.Debug|Any CPU.ActiveCfg = Debug
+		{A95A9D2B-1139-440C-ADC4-A414C223E63E}.Debug|x64.ActiveCfg = Debug
+		{A95A9D2B-1139-440C-ADC4-A414C223E63E}.Debug|x86.ActiveCfg = Debug
+		{A95A9D2B-1139-440C-ADC4-A414C223E63E}.Release|Any CPU.ActiveCfg = Release
+		{A95A9D2B-1139-440C-ADC4-A414C223E63E}.Release|x64.ActiveCfg = Release
+		{A95A9D2B-1139-440C-ADC4-A414C223E63E}.Release|x86.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

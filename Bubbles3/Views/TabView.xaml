@@ -153,17 +153,9 @@
                     </Grid>
                     <DockPanel Grid.Column="1" x:Name="TabToolbar" Background="{StaticResource ToolBarBackgroundBrush}" LastChildFill="False" HorizontalAlignment="Right">
 
+                        
                         <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-
-
-                        <Button x:Name="ScrollToSelected" Style="{StaticResource ToolBarButton}" Height="24" Width="24" Margin="0" ToolTipService.ToolTip="Scroll to Selected Item">
-                            <Image Source="../icons/scroll.ico" Height="22" Width="22"/>
-                        </Button>
-                        <Button x:Name="AddBookmark" Style="{StaticResource ToolBarButton}" Height="24" Margin="2,0" ToolTipService.ToolTip="Bookmark current page">
-                            <Image Source="../icons/bookmark.png" Height="22" Width="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Button>
-                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-
+                        <TextBlock VerticalAlignment="Center">Order By</TextBlock>
                         <ComboBox Name="CustomSorts" DisplayMemberPath="Name" BorderThickness="0" Background="Transparent"/>
                         <ToggleButton x:Name="SortDirection" Style="{StaticResource SortDirectionButton}"/>
                         <Button x:Name="RefreshSort"  Style="{StaticResource ToolBarButton}" Height="22" Width="22" Margin="0" ToolTipService.ToolTip="Refresh Sort">
@@ -172,15 +164,18 @@
 
                         <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
 
-                        <ToggleButton x:Name="SaveToDBToggle" Style="{StaticResource ToolBarToggle}" Height="22" Width="22" Margin="0" ToolTipService.ToolTip="Save library to .bbldb file for faster loading" >
-                            <Image Source="../icons/save.ico" Height="22" Width="22"/>
-                        </ToggleButton>
-                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+                        <Button x:Name="ScrollToSelected" Style="{StaticResource ToolBarButton}" Height="24" Width="24" Margin="0" ToolTipService.ToolTip="Scroll to Selected Item">
+                            <Image Source="../icons/scroll.ico" Height="22" Width="22"/>
+                        </Button>
+                        <Button x:Name="AddBookmark" Style="{StaticResource ToolBarButton}" Height="24" Margin="2,0" ToolTipService.ToolTip="Bookmark current page">
+                            <Image Source="../icons/bookmark.png" Height="22" Width="22" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+ 
 
 
                         <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
 
-                        <TextBox x:Name="FilterTextBox" Text="{Binding Path=FilterText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  FontSize="12" Width="250" MinWidth="100"
+                        <TextBox x:Name="FilterTextBox" Text="{Binding Path=FilterText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  FontSize="12" Width="200" MinWidth="100"
                              cal:Message.Attach="[Event KeyDown] = [Action ExecuteFilterView($executioncontext)]" Margin="2,3" Style="{DynamicResource SearchTextBox}">
                             <i:Interaction.Behaviors>
                                 <bhv:ClickSelectTextBox/>
@@ -192,15 +187,13 @@
                         <Button x:Name="ManageSettings" ToolTipService.ToolTip="Manage Tab Options" Margin="4,0,0,0">
                             <Image Source="../icons/optionW.png" Height="22" Width="22"/>
                         </Button>
+                        <!--
                         <ComboBox x:Name="WindowedSettings"  ItemsSource="{Binding SavedOptions}"  SelectedItem="{Binding WindowedOptions}" ToolTipService.ToolTip="Select saved settings" DisplayMemberPath="Name"/>
-
                         <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-
                         <Image Source="../icons/optionFS.png" Height="22" Width="22" />
+                        -->
                         <ComboBox x:Name="FullscreenSettings" ItemsSource="{Binding SavedOptions}" SelectedItem="{Binding FullscreenOptions}" ToolTipService.ToolTip="Select saved settings" DisplayMemberPath="Name"/>
-
                         <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-
                     </DockPanel>
 
                 </Grid>

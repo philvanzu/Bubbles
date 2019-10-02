@@ -17,6 +17,7 @@
                         [Event KeyUp] = [Action OnKeyUp($eventArgs)]" >
 
     <Window.InputBindings>
+        <KeyBinding Key="T" Modifiers="Ctrl" Command="{Binding CreateTabCommand}"/>
         <KeyBinding Key="F11" Command="{Binding FullscreenCommand}"/>
         <KeyBinding Key="Enter" Modifiers="Alt" Command="{Binding FullscreenCommand}"/>
         <KeyBinding Key="R" Modifiers="Ctrl" Command="{Binding ResetViewCommand}"/>
@@ -110,8 +111,7 @@
                     </i:Interaction.Behaviors>
                     <Button.ContextMenu>
                         <ContextMenu>
-                            <MenuItem Header="New Tab"/>
-                            <MenuItem Header="Active Tab"/>
+                            <MenuItem Header="Create Tab" Command="{Binding CreateTabCommand}" InputGestureText="Ctrl+T"/>
                             <MenuItem Header="View" >
                                 <MenuItem Header="FullScreen" IsCheckable="True" IsChecked="False" Command="{Binding FullscreenCommand}"/>
                                 <MenuItem Header="Reset" InputGestureText="Ctrl+R"/>
@@ -137,7 +137,7 @@
                                 <MenuItem Header="Auto Add book directories" InputGestureText="Ctrl+A"/>
                             </MenuItem>
                             <Separator/>
-                            <MenuItem Header="Preferences"/>
+                            <MenuItem Header="Options" Command="{Binding ShowOptionsCommand}" InputGestureText="Ctrl+O"/>
                         </ContextMenu>
                     </Button.ContextMenu>
                     <StackPanel Orientation="Horizontal">
