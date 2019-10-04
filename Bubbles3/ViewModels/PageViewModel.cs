@@ -172,7 +172,9 @@ namespace Bubbles3.ViewModels
             }
         }
         public bool CanMoveFile => Model.CanMoveFile;
-        public void DeleteFile(bool silent = false)
+
+        public void DeleteFile() { DeleteFile(false); }
+        public void DeleteFile(bool silent)
         {
             System.Windows.MessageBoxResult r = MessageBoxResult.No;
             if (!silent)

@@ -65,6 +65,7 @@ namespace Bubbles3.ViewModels
         //Load a directory when TabViewModel.SelectedFolder is changed.
         public void Open(DirectoryInfoEx dir)
         {
+            if (!Directory.Exists(dir.FullName)) return;
             if (_model != null) CloseLibrary();
 
             //open
@@ -103,7 +104,7 @@ namespace Bubbles3.ViewModels
             _model.LibraryLoaded -= OnLibraryLoaded;
             Tab.ProgressIsDeterminate = false;
 
-            if (_booksCV.CurrentPosition == -1)
+            if (_books.Count > 0 && _booksCV.CurrentPosition == -1)
             {
                 var book = (BookViewModel)_booksCV.GetItemAt(0);
                 SelectWhenPopulated(book);

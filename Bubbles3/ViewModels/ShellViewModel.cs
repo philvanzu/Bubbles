@@ -226,6 +226,8 @@ namespace Bubbles3.ViewModels
                 ImageSurface.P = ActiveTab.WindowedOptions;
                 _imagePanelFullscreenHost.Children.Remove(_imagePanelHost);
                 _imagePanelWindowedHost.Children.Add(_imagePanelHost);
+                
+                if(ActiveTab?.Library != null) ActiveTab.Library.ScrollToSelected();
             }
         }
         public ICommand CreateTabCommand => new DelegateCommand(new Action<object>((t) => {
