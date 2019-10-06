@@ -33,7 +33,7 @@ namespace Bubbles3.ViewModels
                 else if (tabstate.fullscreenOptions == o.Name) FullscreenOptions = o;
             }
 
-            TheExplorer = new XamlFSExplorer.FSExplorer(new DirectoryInfoEx[] { FSExplorer.MyComputerDirectory, FSExplorer.LibrariesDirectory })
+            TheExplorer = new XamlFSExplorer.FSExplorer(new DirectoryInfoEx[] { FSExplorer.MyComputerDirectory })
             {
                 HideAttributes = FileAttributes.Hidden | FileAttributes.System | FileAttributes.Offline,
                 ShowDisabled = true

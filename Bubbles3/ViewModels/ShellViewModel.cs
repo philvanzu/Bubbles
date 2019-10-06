@@ -414,18 +414,18 @@ namespace Bubbles3.ViewModels
                         e.Handled = true;
                     }
                     break;
-                //case Key.Add:
-                //    if(ImageSurface.Focused)
-                //    {
-                //        ImageSurface.Zoom(15f, true, true);
-                //    }
-                //    break;
-                //case Key.Subtract:
-                //    if (ImageSurface.Focused)
-                //    {
-                //        ImageSurface.Zoom(-15f, true, true);
-                //    }
-                //    break;
+                case Key.Add:
+                    if (ImageSurface.Focused)
+                    {
+                        ImageSurface.Zoom(15f, true, true);
+                    }
+                    break;
+                case Key.Subtract:
+                    if (ImageSurface.Focused)
+                    {
+                        ImageSurface.Zoom(-15f, true, true);
+                    }
+                    break;
                 default:
                     break;
             }
