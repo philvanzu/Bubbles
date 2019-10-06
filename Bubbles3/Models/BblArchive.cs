@@ -28,7 +28,10 @@ namespace Bubbles3.Models
             public bool IsValid { get; private set; }
             bool _open = false;
             IArchive _archive;
+            FileStream _file;
             Task _task;
+            public object _lock = new Object();
+
             CancellationTokenSource _cancel = null;
 
             ConcurrentQueue<BblPage> _queries = new ConcurrentQueue<BblPage>();
@@ -41,6 +44,19 @@ namespace Bubbles3.Models
             {
                 _book = book;
                 IsValid = true;
+            }
+
+            public bool IsOpen
+            {
+                get => _open;
+                set
+                {
+                    if(_open != value)
+                    {
+                        if (_open) CloseArchive();
+                        else OpenArchive();
+                    }
+                }
             }
 
             void StartTask()
@@ -61,7 +77,8 @@ namespace Bubbles3.Models
             {
                 try
                 {
-                    _archive = ArchiveFactory.Open(_book.Path);
+                    _file = new FileStream(_book.Path, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    _archive = ArchiveFactory.Open(_file);
                     if (_archive != null) _open = true;
                 }
                 catch (Exception e)
@@ -74,11 +91,16 @@ namespace Bubbles3.Models
             private void CloseArchive()
             {
                 if (!_open) return;
-                try { _archive.Dispose(); }
+                try { 
+                    _archive.Dispose();
+                    _file.Close();
+                    _file.Dispose();
+                }
                 catch (Exception e) { Console.WriteLine(e.Message); }
                 finally
                 {
                     _archive = null;
+                    _file = null;
                     _open = false;
                 }
             }
@@ -105,9 +127,11 @@ namespace Bubbles3.Models
                         if (_queries.TryDequeue(out p))
                         {
                             // dequeuing a null BblPage means we need to build the book's pages list
-                            if (p == null)  Populate();
-                            else ExtractPage(p);
-
+                            lock(_lock)
+                            {
+                                if (p == null) Populate();
+                                else ExtractPage(p);
+                            }
                             lastRequest = DateTime.Now;
                         }
                         if (!_book.Open) break;

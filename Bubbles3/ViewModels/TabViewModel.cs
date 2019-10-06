@@ -388,11 +388,22 @@ namespace Bubbles3.ViewModels
             NotifyOfPropertyChange(() => FullscreenOptions);
             NotifyOfPropertyChange(() => WindowedOptions);
         }
-
-        public void OnRequestPageDeletion(BblPage page)
+        
+        public void ProcessPromotables()
         {
-            //if (Library?.SelectedBook?.SelectedPage != null && Library.SelectedBook.SelectedPage.Model == page) Library.SelectedBook.DeleteSelectedPage();
+            if(Library?.Model?.Root != null)
+            {
+                if (Library.Model.Root.Promotables != null && Library.Model.Root.Promotables.Count > 0)
+                {
+                    IWindowManager manager = new WindowManager();
+                    manager.ShowDialog(new PromoteViewModel(Library.Model.Root.Promotables.ToList()), null, null);
+                    Library.Model.Root.Promotables.Clear();
+                }
+                else 
+                    System.Windows.MessageBox.Show("No new image folders detected.", "Add Image folders to Library", System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Exclamation);
+            }
         }
+
         public void OnRequestNextPage()
         {
             if (Library?.SelectedBook == null) return;

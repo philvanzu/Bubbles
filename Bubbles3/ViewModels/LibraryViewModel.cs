@@ -23,7 +23,7 @@ namespace Bubbles3.ViewModels
         public BblLibrary Model => _model;
         private static ObservableCollection<BookViewModel> _emptybookscollection = new ObservableCollection<BookViewModel>();
         public BookViewModelComparer comparer = new BookViewModelComparer();
-
+        
 
         public LibraryViewModel(TabViewModel tab)
         {
@@ -104,7 +104,7 @@ namespace Bubbles3.ViewModels
             _model.LibraryLoaded -= OnLibraryLoaded;
             Tab.ProgressIsDeterminate = false;
 
-            if (_books.Count > 0 && _booksCV.CurrentPosition == -1)
+             if (_books.Count > 0 && _booksCV.CurrentPosition == -1)
             {
                 var book = (BookViewModel)_booksCV.GetItemAt(0);
                 SelectWhenPopulated(book);
@@ -275,6 +275,10 @@ namespace Bubbles3.ViewModels
                     keyArgs.Handled = true;
                     b.DeleteFile();
                 }
+            }
+            if(keyArgs != null && keyArgs.Key == Key.F5)
+            {
+                SortBooks();
             }
         }
         #endregion

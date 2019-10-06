@@ -24,26 +24,30 @@ namespace Bubbles3.Models
         }
 
         HashSet<BblLibraryNode> _promotables = new HashSet<BblLibraryNode>();
-        public void AddPromotable(BblLibraryNode node)
+        public HashSet<BblLibraryNode> Promotables => _promotables;
+
+        //promotables are folders containing images and devoid of the .book extension
+        //They could be promoted to BblBookDirectory status when ProcessPromotables is called
+        //by renaming them, adding the .book extension.
+        public void AddPromotable(BblLibraryNode n)
         {
-            lock (_lock) { _promotables.Add(node); }
+            //filter out any special folder or folder within the path of an environment variable
+            //as those cannot be renamed without fucking something up.
+            foreach (string env in Environment.GetEnvironmentVariables().Values)
+                if (env.ToLowerInvariant().Contains(n.Path.ToLowerInvariant()))
+                    return;
+
+            foreach (Environment.SpecialFolder folder_type in Enum.GetValues(typeof(Environment.SpecialFolder)))
+                if (Environment.GetFolderPath(folder_type).ToLowerInvariant().Contains(n.Path.ToLowerInvariant()))
+                    return;
+
+            lock (_lock) { _promotables.Add(n); }
         }
-        public void ProcessPromotables()
-        {
-            lock(_lock)
-            {
-                while (_promotables.Count > 0)
-                {
-                    var n = _promotables.First();
-                    _promotables.Remove(n);
-                    n.PromoteToBookDirectory();
-                }
-            }
-        }
+        public List<BblLibraryNode> GetPromotables() { return _promotables.ToList(); }
         public override void Inflate()
         {
             base.Inflate();
-            ProcessPromotables();
+            //ProcessPromotables();
         }
 
         public BblLibraryNode AddDirectory(string path)

@@ -276,6 +276,14 @@ namespace Bubbles3.ViewModels
         {
             ImageSurface.RotationAngle = 270;
         }));
+        public ICommand ZoopInCommand => new DelegateCommand(new Action<object>((t) =>
+        {
+                ImageSurface.Zoom(15f, true, true);
+        }));
+        public ICommand ZoopOutCommand => new DelegateCommand(new Action<object>((t) =>
+        {
+                ImageSurface.Zoom(-15f, true, true);
+        }));
         public ICommand NextPageCommand => new DelegateCommand(new Action<object>((t) => 
         {
             if (ActiveTab != null) ActiveTab.OnRequestNextPage();
@@ -316,7 +324,7 @@ namespace Bubbles3.ViewModels
 
         }));
         public ICommand AddBookDirectoriesCommand => new DelegateCommand(new Action<object>((t) => {
-            if(ActiveTab?.Library?.Model?.Root != null) ActiveTab.Library.Model.Root.ProcessPromotables();
+            if(ActiveTab != null) ActiveTab.ProcessPromotables();
           }));
         public ICommand PredictIvpCommand => new DelegateCommand(new Action<object>((t) => {
             //if(ActiveTab?.Library?.SelectedBook != null)
@@ -406,18 +414,18 @@ namespace Bubbles3.ViewModels
                         e.Handled = true;
                     }
                     break;
-                case Key.Add:
-                    if(ImageSurface.Focused)
-                    {
-                        ImageSurface.Zoom(15f, true, true);
-                    }
-                    break;
-                case Key.Subtract:
-                    if (ImageSurface.Focused)
-                    {
-                        ImageSurface.Zoom(-15f, true, true);
-                    }
-                    break;
+                //case Key.Add:
+                //    if(ImageSurface.Focused)
+                //    {
+                //        ImageSurface.Zoom(15f, true, true);
+                //    }
+                //    break;
+                //case Key.Subtract:
+                //    if (ImageSurface.Focused)
+                //    {
+                //        ImageSurface.Zoom(-15f, true, true);
+                //    }
+                //    break;
                 default:
                     break;
             }

@@ -159,6 +159,7 @@ namespace Bubbles3.Models
                             LastWriteTime = lastWrite;
                             if(!IsBook)Root.AddPromotable(this);
                             img = true;
+                            FirstImage = path;
                         }
                         else if (IsArchiveFileExtension(ext))
                         {
@@ -335,6 +336,8 @@ namespace Bubbles3.Models
                 Console.WriteLine(e.Message);
             }
         }
+
+        public string FirstImage { get; private set; }
 
         #region static methods
         /// <summary>

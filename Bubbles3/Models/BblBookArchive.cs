@@ -88,7 +88,23 @@ namespace Bubbles3.Models
                 }
             }
         }
-        
+        public override bool RenameFile(string newName, bool silent = false)
+        {
+            if (CanRenameFile)
+            {
+                if (_archive != null && _archive.IsOpen)
+                {
+                    lock(_archive._lock)
+                    {
+                        _archive.IsOpen = false;
+                        base.RenameFile(newName, silent);
+                        _archive.IsOpen = true;
+                    }
+                }
+                else base.RenameFile(newName, silent);
+            }
+            return false;
+        }
         public override BblLibraryNode OnFileSystemEntryRenamed(FileSystemInfoEx newInfo)
         {
             string oldPath = Path;

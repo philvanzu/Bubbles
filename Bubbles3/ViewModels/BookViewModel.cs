@@ -649,6 +649,21 @@ namespace Bubbles3.ViewModels
                 Renaming = false;
             }
         }
+
+        
+        /// <summary>
+        /// UrlDecode filename then replace underscore with spaces.
+        /// </summary>
+        public void NormalizeBookName()
+        {
+            string name = System.Net.WebUtility.UrlDecode(_book.Name);
+            name = name.Replace("_", " ");
+            
+            
+            string msg = "Rename " + _book.Name + " to " + name + "?";
+            if(System.Windows.MessageBox.Show(msg, "Rename File or Folder", System.Windows.MessageBoxButton.OKCancel, System.Windows.MessageBoxImage.Exclamation) == MessageBoxResult.OK)
+                _book.RenameFile(name, false);
+        }
         #endregion
 
         #region Rename/Delete pages

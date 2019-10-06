@@ -112,29 +112,32 @@
                     <Button.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="Create Tab" Command="{Binding CreateTabCommand}" InputGestureText="Ctrl+T"/>
+                            <MenuItem Header="Toggle Fullscreen" InputGestureText="F11, Alt+Enter or double click Image View" Command="{Binding FullscreenCommand}"/>
                             <MenuItem Header="View" >
                                 <MenuItem Header="FullScreen" IsCheckable="True" IsChecked="False" Command="{Binding FullscreenCommand}"/>
-                                <MenuItem Header="Reset" InputGestureText="Ctrl+R"/>
-                                <MenuItem Header="Best Fit" InputGestureText="Ctrl+F"/>
-                                <MenuItem Header="Fit Width" InputGestureText="Ctrl+W"/>
-                                <MenuItem Header="Fit Height" InputGestureText="Ctrl+H"/>
-                                <MenuItem Header="Rotation 0" InputGestureText="NumPad 8"/>
-                                <MenuItem Header="Rotation 90" InputGestureText="NumPad 6"/>
-                                <MenuItem Header="Rotation 180" InputGestureText="NumPad 2"/>
-                                <MenuItem Header="Rotation 270" InputGestureText="NumPad 4"/>
-                                <MenuItem Header="Zoom +" InputGestureText="Numpad+"/>
-                                <MenuItem Header="Zoom -" InputGestureText="Numpad-"/>
+                                <MenuItem Header="Reset" InputGestureText="Ctrl+R" Command="{Binding ResetViewCommand}"/>
+                                <MenuItem Header="Best Fit" InputGestureText="Ctrl+F" Command="{Binding FitBestCommand}"/>
+                                <MenuItem Header="Fit Width" InputGestureText="Ctrl+W" Command="{Binding FitWCommand}"/>
+                                <MenuItem Header="Fit Height" InputGestureText="Ctrl+H" Command="{Binding FitHCommand}"/>
+                                <MenuItem Header="Rotation 0" InputGestureText="NumPad 8" Command="{Binding Rot0Command}"/>
+                                <MenuItem Header="Rotation 90" InputGestureText="NumPad 6" Command="{Binding Rot90Command}"/>
+                                <MenuItem Header="Rotation 180" InputGestureText="NumPad 2" Command="{Binding Rot180Command}"/>
+                                <MenuItem Header="Rotation 270" InputGestureText="NumPad 4" Command="{Binding Rot270Command}"/>
+                                <MenuItem Header="Zoom +" InputGestureText="Numpad+" Command="{Binding ZoomInCommand}"/>
+                                <MenuItem Header="Zoom -" InputGestureText="Numpad-" Command="{Binding ZoomOutCommand}"/>
                             </MenuItem>
                             <MenuItem Header="Navigation">
-                                <MenuItem Header="Next Page" InputGestureText="Space"/>
-                                <MenuItem Header="Previous Page" InputGestureText="BackSpace"/>
-                                <MenuItem Header="Next Book" InputGestureText="PageDown"/>
-                                <MenuItem Header="Previous Book" InputGestureText="PageUp"/>
-                                <MenuItem Header="Next Tab" InputGestureText="Ctrl+Tab"/>
-                                <MenuItem Header="Previous Tab" InputGestureText="Ctrl+Shift+Tab"/>
+                                <MenuItem Header="Next Page" InputGestureText="Space" Command="{Binding NextPageCommand}"/>
+                                <MenuItem Header="Previous Page" InputGestureText="BackSpace or Alt+Space" Command="{Binding PreviousPageCommand}"/>
+                                <MenuItem Header="Next Book" InputGestureText="PageDown" Command="{Binding NextBookCommand}"/>
+                                <MenuItem Header="Previous Book" InputGestureText="PageUp"  Command="{Binding PreviousBookCommand}"/>
+                                <MenuItem Header="First Page" InputGestureText="Home" Command="{Binding FirstPageCommand}"/>
+                                <MenuItem Header="Last Page" InputGestureText="End" Command="{Binding LastPageCommand}"/>
+                                <MenuItem Header="Next Tab" InputGestureText="Ctrl+Tab" Command="{Binding NextTabCommand}"/>
+                                <MenuItem Header="Previous Tab" InputGestureText="Ctrl+Shift+Tab" Command="{Binding PreviousTabCommand}"/>
                             </MenuItem>
                             <MenuItem Header="Tools">
-                                <MenuItem Header="Auto Add book directories" InputGestureText="Ctrl+A"/>
+                                <MenuItem Header="Add Images Folders to Library" InputGestureText="Alt+A"  Command="{Binding AddBookDirectoriesCommand}"/>
                             </MenuItem>
                             <Separator/>
                             <MenuItem Header="Options" Command="{Binding ShowOptionsCommand}" InputGestureText="Ctrl+O"/>

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Bubbles3.Views"
         mc:Ignorable="d"
-        Title="TabOptionsView" Height="325" Width="540">
+        Title="Tab Presets" Height="325" Width="540">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="auto"/>
@@ -47,7 +47,7 @@
                 </Grid>
                 <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
                 <TextBox x:Name="SaveName"/>
-                <Button x:Name="SaveButton" Content="Name and Save the current Settings" Margin="2"/>
+                <Button x:Name="SaveButton" Content="Name and Save this Preset" Margin="2"/>
             </StackPanel>
         </Border>
         <Border BorderThickness="1" BorderBrush="{StaticResource BblWindowBorderBrush}" Margin="5" Grid.Column ="1">
@@ -57,7 +57,7 @@
                 <CheckBox x:Name="AnimZoom" Content="Animate Keyboard Zooming"/>
                 <CheckBox x:Name="AnimIvp" Content="Animate IVP restoration"/>
                 <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
-                <TextBlock>Saved Settings</TextBlock>
+                <TextBlock>Saved Presets</TextBlock>
                 <ListBox x:Name ="SavedSettings" SelectedItem="{Binding SelectedSavedSettings}" Height="164" DisplayMemberPath="Name"/>
 
                 <DockPanel>

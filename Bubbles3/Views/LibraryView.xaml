@@ -63,6 +63,7 @@
                                     <MenuItem Header="Delete" cal:Message.Attach="DeleteFile()"/>
                                     <MenuItem Header="Open Containing Folder" cal:Message.Attach="OpenInExplorer()"/>
                                     <MenuItem Header="Open In Default Application" cal:Message.Attach="OpenFile()"/>
+                                    <MenuItem Header="Normalize Book Name" ToolTip="URLDecode File Name then replace Underscores with Spaces" cal:Message.Attach="NormalizeBookName()"/>
                                     <MenuItem Header="Show Details" Command="{Binding ShowDetailsCommand}"/>
                                     <!--<MenuItem Header="Modify File Time Stamps" cal:Message.Attach="ModifyFileTimeStamps()"/>-->
                                 </ContextMenu>
