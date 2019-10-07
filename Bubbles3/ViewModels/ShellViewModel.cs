@@ -276,14 +276,14 @@ namespace Bubbles3.ViewModels
         {
             ImageSurface.RotationAngle = 270;
         }));
-        public ICommand ZoopInCommand => new DelegateCommand(new Action<object>((t) =>
-        {
-                ImageSurface.Zoom(15f, true, true);
-        }));
-        public ICommand ZoopOutCommand => new DelegateCommand(new Action<object>((t) =>
-        {
-                ImageSurface.Zoom(-15f, true, true);
-        }));
+        //public ICommand ZoopInCommand => new DelegateCommand(new Action<object>((t) =>
+        //{
+        //        ImageSurface.Zoom(15f, true, true);
+        //}));
+        //public ICommand ZoopOutCommand => new DelegateCommand(new Action<object>((t) =>
+        //{
+        //        ImageSurface.Zoom(-15f, true, true);
+        //}));
         public ICommand NextPageCommand => new DelegateCommand(new Action<object>((t) => 
         {
             if (ActiveTab != null) ActiveTab.OnRequestNextPage();

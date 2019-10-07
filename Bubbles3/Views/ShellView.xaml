@@ -32,6 +32,8 @@
         <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding Rot180Command}"/>
         <KeyBinding Key="NumPad4" Modifiers="Ctrl" Command="{Binding Rot270Command}"/>
         <KeyBinding Key="Q" Modifiers="Ctrl" Command="{Binding Rot270Command}"/>
+        <!--<KeyBinding Key="Add" Command="{Binding ZoomInCommand}"/>
+        <KeyBinding Key="Subtract" Command="{Binding ZoomOutCommand}"/>-->
         <KeyBinding Key="Space" Command="{Binding NextPageCommand}"/>
         <KeyBinding Key="Space" Modifiers="Alt" Command="{Binding PreviousPageCommand}"/>
         <KeyBinding Key="Backspace" Command="{Binding PreviousPageCommand}"/>
@@ -123,8 +125,8 @@
                                 <MenuItem Header="Rotation 90" InputGestureText="NumPad 6" Command="{Binding Rot90Command}"/>
                                 <MenuItem Header="Rotation 180" InputGestureText="NumPad 2" Command="{Binding Rot180Command}"/>
                                 <MenuItem Header="Rotation 270" InputGestureText="NumPad 4" Command="{Binding Rot270Command}"/>
-                                <MenuItem Header="Zoom +" InputGestureText="Numpad+" Command="{Binding ZoomInCommand}"/>
-                                <MenuItem Header="Zoom -" InputGestureText="Numpad-" Command="{Binding ZoomOutCommand}"/>
+                                <MenuItem Header="Zoom +" InputGestureText="Numpad+"/>
+                                <MenuItem Header="Zoom -" InputGestureText="Numpad-"/>
                             </MenuItem>
                             <MenuItem Header="Navigation">
                                 <MenuItem Header="Next Page" InputGestureText="Space" Command="{Binding NextPageCommand}"/>
