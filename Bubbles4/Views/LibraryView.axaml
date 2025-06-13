@@ -1,0 +1,41 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             xmlns:vm="clr-namespace:Bubbles4.ViewModels"
+             xmlns:avaloniaControls="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls"
+             xmlns:ir="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.ItemsRepeater"
+             xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:local="clr-namespace:Bubbles4.Behaviors"
+             x:Class="Bubbles4.Views.LibraryView"
+             x:DataType="vm:LibraryViewModel">
+    
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+         to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:LibraryViewModel />
+    </Design.DataContext>
+    <ScrollViewer>
+        <ir:ItemsRepeater ItemsSource="{Binding Books}">
+            <ir:ItemsRepeater.Layout>
+                <UniformGridLayout MaximumRowsOrColumns="0" /> <!-- 0 = auto wrap -->
+            </ir:ItemsRepeater.Layout>
+            <ir:ItemsRepeater.ItemTemplate>
+                <DataTemplate>
+                    <Border BorderBrush="White" BorderThickness="1" >
+                        <i:Interaction.Behaviors>
+                            <local:InvokeOnLoadBehavior
+                                LoadedCommand="{Binding OnAttach}"
+                                UnloadedCommand="{Binding OnDetach}"/>
+                        </i:Interaction.Behaviors>
+                        <StackPanel Width="250" Margin="5" Orientation="Vertical">
+                            <Image Source="{Binding Thumbnail}" Width="240"/>
+                            <TextBlock Text="{Binding Name}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ir:ItemsRepeater.ItemTemplate>
+        </ir:ItemsRepeater>
+    </ScrollViewer>
+</UserControl>
