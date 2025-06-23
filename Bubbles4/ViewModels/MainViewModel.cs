@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
@@ -9,79 +10,207 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Input;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Bubbles4.Services;
-using CommunityToolkit.Mvvm.Input;
+using Bubbles4.Views;
+
 namespace Bubbles4.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
-    [ObservableProperty] private string _greeting = "Welcome to Avalonia!";
-    public LibraryViewModel Library { get; set; } = new();
-    private string? _configPath;
+    public AppStorage AppData { get; private set; }
+    public LibraryViewModel? Library { get; set; }
+    string? _libraryPath;
+
+    public string? LibraryPath
+    {
+        get=>_libraryPath;
+        set
+        {
+            SetProperty(ref _libraryPath, value);
+            UpdateLibraryStatus();
+        }
+    }
+
+    public SlidingImageCache _cache;
+    
+    [ObservableProperty] public BookViewModel? _selectedBook;
+    [ObservableProperty] private ViewerData? _currentViewerData;
+    
+    private PageViewModel? _currentPageViewModel;
+    public PageViewModel? CurrentPageViewModel
+    {
+        get => _currentPageViewModel;
+        set => SetProperty(ref _currentPageViewModel, value);
+    }
+    
+    private bool _isFullscreen;
+    public bool IsFullscreen
+    {
+        get => _isFullscreen;
+        set => SetProperty(ref _isFullscreen, value);   
+    }
+
+    public ICommand ToggleFullscreenCommand { get; }
+
+
+    private readonly IDialogService _dialogService;
+    
     private LibraryConfig? _config;
+    private LibraryConfig _defaultConfig = new LibraryConfig();
     public LibraryConfig Config
     {
         get
         {
-            return (_config == null)? DefaultConfig : _config;
+            return (_isFullscreen && _config != null)? _config : _defaultConfig;
+        } 
+        set
+        {
+            SetProperty(ref _config, value);
         }
-        private set =>_config = value;
     }
 
+    private SortPreferences _sortPrefererences = new();
     
-    public LibraryConfig DefaultConfig { get; private set; }
-    string? _libraryPath;
-    public string? LibraryPath { get=>_libraryPath; set=>SetProperty(ref _libraryPath, value); }
-    
-    
-    private bool _isFullscreen;
-    
-    public bool IsFullscreen
+    //toolbar
+    public SortPreferences.SortOptions[] SortOptions => Enum.GetValues<SortPreferences.SortOptions>();
+
+    private SortPreferences.SortOptions _librarySortOption;
+    public SortPreferences.SortOptions LibrarySortOption
     {
-        get => _isFullscreen;
-        set => SetProperty(ref _isFullscreen, value);
+        get => _librarySortOption;
+        set
+        {
+            SetProperty(ref _librarySortOption, value);
+            Library.ChangeSort(value, LibrarySortDirection);
+            _sortPrefererences.LibrarySortOption = value;
+            _sortPrefererences.LibrarySortDirection = _librarySortDirection? 
+                SortPreferences.SortDirection.Ascending : 
+                SortPreferences.SortDirection.Descending;
+        }
     }
-
-    public ICommand ToggleFullscreenCommand { get; }
-    private readonly IDialogService _dialogService;
+    private bool _librarySortDirection;
+    public bool LibrarySortDirection
+    {
+        get => _librarySortDirection;
+        set
+        {
+            if(value != _librarySortDirection)Library.ReverseSortOrder();
+            SetProperty(ref _librarySortDirection, value);
+            _sortPrefererences.LibrarySortDirection = value? 
+                SortPreferences.SortDirection.Ascending : 
+                SortPreferences.SortDirection.Descending;
+        } 
+    }
     
-    public MainViewModel(string? arg, IDialogService dialogService)
+    private SortPreferences.SortOptions _bookSortOption;
+    public SortPreferences.SortOptions BookSortOption
+    {
+        get => _bookSortOption;
+        set
+        {
+            SetProperty(ref _bookSortOption, value);
+            if (SelectedBook != null)
+                SelectedBook.ChangeSort(value, BookSortDirection);
+
+            _sortPrefererences.BookSortOption = value;
+            _sortPrefererences.BookSortDirection = _bookSortDirection?
+                SortPreferences.SortDirection.Ascending :
+                SortPreferences.SortDirection.Descending;
+        }
+    }
+    private bool _bookSortDirection;
+    public bool BookSortDirection
+    {
+        get => _bookSortDirection;
+        set
+        {
+            if(value != _bookSortDirection && SelectedBook != null)
+                SelectedBook.ReverseSortOrder();
+            
+            SetProperty(ref _bookSortDirection, value);
+            _sortPrefererences.BookSortOption = _bookSortOption;
+            _sortPrefererences.BookSortDirection = value?
+                SortPreferences.SortDirection.Ascending :
+                SortPreferences.SortDirection.Descending;
+        }
+    }
+    
+    //status bar
+    [ObservableProperty] private string? _imageStatus;
+    [ObservableProperty] private string? _pageNameStatus;
+    [ObservableProperty] private string? _pageCreatedStatus;
+    [ObservableProperty] private string? _bookStatus;
+    [ObservableProperty] private string? _libraryStatus;
+    [ObservableProperty] private string? _pagingStatus;
+    public MainViewModel(IDialogService dialogService)
     {
         _dialogService = dialogService;
-        
-        
-        DefaultConfig = new LibraryConfig();
-        ToggleFullscreenCommand = new RelayCommand(() => IsFullscreen = !IsFullscreen);
-        if (arg != null && Directory.Exists(arg))
+        _cache = new SlidingImageCache(this);
+        Library = new LibraryViewModel(this, LibraryPath);
+        ToggleFullscreenCommand = new RelayCommand(() =>
         {
-            
-            LibraryPath = arg;
-            _configPath = arg;
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                _configPath += "\\.bblconfig";
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                _configPath += "/.bblconfig";
-            }            
-            
-            
-            if (File.Exists(_configPath))
-            {
-                string configJson = File.ReadAllText(_configPath);
-                if(!string.IsNullOrEmpty(configJson) ) _config = LibraryConfig.Deserialize(configJson);
-            }
+            IsFullscreen = !IsFullscreen;
+            var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+                ? desktop.MainWindow : null;
+            (window as MainWindow)?.ToggleFullscreen();
+            OnPropertyChanged(nameof(Config));
+        });
+        
+        AppData = AppStorage.Load();
+    }
+
+
+    
+    public async Task InitializeAsync(string? libraryPath)
+    {
+        OnPropertyChanged(nameof(Config));
+        await OpenLibrary(libraryPath);
+    }
+
+    public void OnClose()
+    {
+        if (!string.IsNullOrEmpty(LibraryPath) && _config != null)
+        {
+            _config.SortPreferences = _sortPrefererences;
+            AppData.AddOrUpdate(LibraryPath, _config.Serialize());
+            AppData.Save();    
         }
+            
     }
     
-    public async Task InitializeAsync()
+    async Task OpenLibrary(string? libraryPath)
     {
-        if (LibraryPath != null)
+        if (!string.IsNullOrEmpty(libraryPath) && Directory.Exists(libraryPath))
         {
-            await StartParsingLibraryAsync(LibraryPath);
+            LibraryPath = libraryPath;
+            string? json;
+            AppData.Data.TryGetValue(LibraryPath, out json);
+        
+            if (!string.IsNullOrEmpty(json))
+                _config = LibraryConfig.Deserialize(json);
+
+            if (_config != null)
+            {
+                _sortPrefererences = _config.SortPreferences;
+                LibrarySortOption = _sortPrefererences.LibrarySortOption;
+                LibrarySortDirection = _sortPrefererences.LibrarySortDirection == SortPreferences.SortDirection.Ascending;
+                BookSortOption = _sortPrefererences.BookSortOption;
+                BookSortDirection = _sortPrefererences.BookSortDirection == SortPreferences.SortDirection.Ascending;
+            }
+                
+
+            await Library.StartParsingLibraryAsync(LibraryPath);
         }
+    }
+
+    partial void OnCurrentViewerDataChanged(ViewerData? data)
+    {
+        UpdatePageNameStatus();
+        UpdatePagingStatus();
+        UpdateImageStatus();
     }
     
     [RelayCommand]
@@ -94,46 +223,204 @@ public partial class MainViewModel : ViewModelBase
         if (window != null)
         {
             var selectedPath = await _dialogService.PickDirectoryAsync(window);
-            if (!string.IsNullOrEmpty(selectedPath) && Directory.Exists(selectedPath))
-            {
-                LibraryPath = selectedPath;
-                await StartParsingLibraryAsync(selectedPath);
-            }
+            await OpenLibrary(selectedPath);
         }
     }
-    
-    
 
-    private CancellationTokenSource? _parsingCts;
-
-    async Task StartParsingLibraryAsync(string path)
+    [RelayCommand]
+    public async Task ConfigureLibraryAsync()
     {
-        // Cancel previous parsing run if active
-        _parsingCts?.Cancel();
-        _parsingCts = new CancellationTokenSource();
-        var token = _parsingCts.Token;
-
-        Library.Clear();
-
-        try
+        var dialogVm = new LibraryConfigViewModel(new LibraryConfig());
+        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow
+            : null;
+        if (window != null)
         {
-            await LibraryParserService.ParseLibraryAsync(path, batch =>
+            var result = await _dialogService.ShowDialogAsync<LibraryConfig>(window, dialogVm);
+            if (result != null)
             {
-                // Marshal to UI thread
-                Dispatcher.UIThread.Post(() =>
+                Config = result;
+            }    
+        }
+        
+    }
+    [RelayCommand] public void ExitFullScreenCommand()
+    {
+        IsFullscreen = false;
+        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow : null;
+        (window as MainWindow)?.ExitFullscreen();
+        OnPropertyChanged(nameof(Config));
+    }
+
+
+    #region input
+    [RelayCommand]
+    public async Task Next()
+    {
+        if (Library.Books.Count > 0)
+        {
+            //determine current book
+            var book = Library.Books[0];
+            if (SelectedBook != null) book = SelectedBook;
+            bool more;
+            do
+            {
+                //load book pages, 
+                if (! book!.IsSelected)
+                    book.IsSelected = true;
+                
+                if (book.LoadingTask != null)
+                    //wait for the pages list loading task to complete.
+                    await book.LoadingTask;
+                
+                //todo scroll to book in library view
+
+                //select next page
+                more = !book.NextPage();
+                
+                if(more == true) 
                 {
-                    Library.AddBatch(batch);
-                });
-            }, cancellationToken: token);
+                    // if next page doesn't exist in the selected book
+                    Library.NextBook();
+                    book = SelectedBook;
+                }
+            } while (more);
         }
-        catch (OperationCanceledException)
+    }
+    [RelayCommand]
+    public async Task Previous()
+    {
+        if (Library.Books.Count > 0)
         {
-            // Optional: handle cancellation gracefully
+            //determine current book
+            var book = Library.Books[Library.Books.Count - 1];
+            if (SelectedBook != null) book = SelectedBook;
+            bool more;
+            do
+            {
+                //load book pages, 
+                if (! book!.IsSelected)
+                    book.IsSelected = true;
+                
+                if (book.LoadingTask != null)
+                    //wait for the pages list loading task to complete.
+                    await book.LoadingTask;
+                
+                //todo scroll to book in library view
+
+                //select previous page
+                more = !book.PreviousPage();
+                
+                if(more == true) 
+                {
+                    // if next page doesn't exist in the selected book
+                    Library.PreviousBook();
+                    book = SelectedBook;
+                }
+            } while (more);
         }
     }
 
-    public void CancelParsing()
+    [RelayCommand]
+    public async Task NextBook()
     {
-        _parsingCts?.Cancel();
+        if (Library.Books.Count > 0)
+        {
+            var book = SelectedBook;
+            if (book == null)
+            {
+                book = Library.Books[0];
+                book.IsSelected = true;
+            }
+            else
+            {
+                Library.NextBook();
+                book = SelectedBook;    
+            }
+            if (book!.LoadingTask != null)
+                //wait for the pages list loading task to complete.
+                await book.LoadingTask;
+            
+            await Next();
+        }
+        
     }
+
+    [RelayCommand]
+    public async Task PreviousBook()
+    {
+
+        if (Library.Books.Count > 0)
+        {
+            var book = SelectedBook;
+            if (book == null)
+            {
+                book = Library.Books[Library.Books.Count - 1];
+            }
+            else
+            {
+                Library.PreviousBook();
+                book = SelectedBook;    
+            }
+            if (book!.LoadingTask != null)
+                //wait for the pages list loading task to complete.
+                await book.LoadingTask;
+            
+            await Previous();
+        }
+        
+    }
+    #endregion
+    
+    
+    
+
+    
+
+    #region status    
+    //Status Bar
+    public void UpdateLibraryStatus()
+    {
+        if(!string.IsNullOrEmpty(LibraryPath))
+        {
+            LibraryStatus = String.Format("Library Path : {0} | BookCount : {1}", LibraryPath, Library.Count);    
+        }
+        else LibraryStatus = "No Library Loaded"; 
+    }
+    public void UpdateBookStatus()
+    {
+        if (Library?.SelectedItem != null)
+            BookStatus = Library.SelectedItem.Path;
+        else BookStatus = "";
+    }
+    public void UpdatePageNameStatus()
+    {
+        if (Library.SelectedItem?.SelectedPage != null)
+        {
+            PageNameStatus = String.Format("{0} ", Library.SelectedItem.SelectedPage.Name);
+            PageCreatedStatus = String.Format("Created : {0}", Library.SelectedItem.SelectedPage.Created);
+        }
+    }
+    public void UpdateImageStatus()
+    {
+        if(CurrentViewerData != null)
+            ImageStatus = String.Format("{0}px X {1}px", CurrentViewerData.Image.PixelSize.Width, CurrentViewerData.Image.PixelSize.Height);
+        else ImageStatus = "";
+    }
+
+    public void UpdatePagingStatus()
+    {
+        if (SelectedBook == null || CurrentPageViewModel == null)
+        {
+            PagingStatus = "";
+            return;
+        }
+        
+        int idx = SelectedBook.GetPageIndex(CurrentPageViewModel)+1;
+        int total = SelectedBook.PageCount;
+        PagingStatus = String.Format("{0} / {1}", idx, total);
+    }
+    #endregion
+
 }

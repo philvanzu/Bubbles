@@ -28,8 +28,8 @@ public partial class App : Application
             var dialogService = new DialogService();
             if (desktop.Args != null)
             {
-                string? arg = desktop.Args.FirstOrDefault();
-                var mvm = new MainViewModel(arg, dialogService);
+                string? libraryPath = desktop.Args.FirstOrDefault();
+                var mvm = new MainViewModel(dialogService);
                 desktop.MainWindow = new MainWindow
                 {
                     DataContext = mvm
@@ -39,7 +39,7 @@ public partial class App : Application
                 {
                     try
                     {
-                        await mvm.InitializeAsync();
+                        await mvm.InitializeAsync(libraryPath);
                     }
                     catch (Exception ex)
                     {
