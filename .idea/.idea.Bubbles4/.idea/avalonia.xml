@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AvaloniaProject">
+    <option name="projectPerEditor">
+      <map>
+        <entry key="Bubbles4/App.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Styles/CustomStyles.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/BblLibraryView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/BookView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/LibraryConfigWindow.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/LibraryTreeView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/LibraryView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/MainView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/MainWindow.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/OKCancelView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/OkCancelView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/OkCancelWindow.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+      </map>
+    </option>
+  </component>
+</project>

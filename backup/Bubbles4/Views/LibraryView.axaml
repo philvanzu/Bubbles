@@ -1,0 +1,95 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             xmlns:vm="clr-namespace:Bubbles4.ViewModels"
+             xmlns:avaloniaControls="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls"
+             xmlns:ir="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.ItemsRepeater"
+             xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:converters="clr-namespace:Bubbles4.Converters"
+             xmlns:local="clr-namespace:Bubbles4.Behaviors"
+             x:Class="Bubbles4.Views.LibraryView"
+             x:DataType="vm:LibraryViewModel">
+    
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+         to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:LibraryViewModel />
+    </Design.DataContext>
+    <ScrollViewer>
+        <ir:ItemsRepeater ItemsSource="{Binding Books}">
+            <i:Interaction.Behaviors>
+                <local:InvokeItemLifecycleBehavior
+                    ItemPreparedCommand="{Binding HandleItemPrepared}"
+                    ItemClearingCommand="{Binding HandleItemClearing}" />
+            </i:Interaction.Behaviors>
+            <ir:ItemsRepeater.Layout>
+                <UniformGridLayout MaximumRowsOrColumns="0"/> <!-- 0 = auto wrap -->
+            </ir:ItemsRepeater.Layout>
+            <ir:ItemsRepeater.ItemTemplate>
+                <DataTemplate>
+                    <!--
+                    <Border BorderBrush="White" BorderThickness="1" >
+                        <StackPanel Width="250" Margin="5" Orientation="Vertical">
+                            <Image Source="{Binding Thumbnail}" Width="240"/>
+                            <TextBlock Text="{Binding Name}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                    -->
+                    <UserControl>
+                        <UserControl.Resources>
+                            <converters:BoolToBrushConverter x:Key="BoolToBrushConverter"
+                                                             TrueBrush="LightBlue"
+                                                             FalseBrush="Transparent"/>
+                        </UserControl.Resources>
+                        <StackPanel Width="132" Height="152"
+                                    Orientation="Vertical"
+                                    Background="{Binding IsSelected, Converter={StaticResource BoolToBrushConverter}}"
+                                    ToolTip.Tip="{Binding Path}">
+
+                            <i:Interaction.Behaviors>
+                                <local:PointerPressedCommandBehavior Command="{Binding OnSelection}" />
+                            </i:Interaction.Behaviors>
+                            <!--    
+                            <StackPanel.InputBindings>
+                                <MouseBinding Gesture="LeftDoubleClick" Command="{Binding ShowDetailsCommand}" />
+                            </StackPanel.InputBindings>
+    -->
+                            <StackPanel.ContextMenu>
+                                <ContextMenu>
+                                    <!-- You can use Interactions or Command bindings depending on how you handle viewmodel logic -->
+                                    <MenuItem Header="Rename" Command="{Binding StartRenamingCommand}" />
+                                    <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+                                    <MenuItem Header="Open Containing Folder" Command="{Binding OpenInExplorerCommand}" />
+                                    <MenuItem Header="Open In Default Application" Command="{Binding OpenFileCommand}" />
+                                    <MenuItem Header="Show Details" Command="{Binding ShowDetailsCommand}" />
+                                </ContextMenu>
+                            </StackPanel.ContextMenu>
+
+                            <Border BorderBrush="White" BorderThickness="1" CornerRadius="5" Width="128" Height="128">
+                                <Grid>
+                                    <Image Source="{Binding Thumbnail}" Stretch="Uniform"/>
+                                </Grid>
+                            </Border>
+
+                            <TextBlock Name="FileNameTextBlock" HorizontalAlignment="Left" Margin="3" Text="{Binding Name}" />
+    <!-- Implement FileNameEditorTextBoxBehavior in Avalonia via attached behavior if needed -->
+    <!--
+                            <TextBox Name="FileNameTextBox"
+                                     HorizontalAlignment="Left"
+                                     Margin="3"
+                                     TextWrapping="Wrap"
+                                     Visibility="{Binding IsRenaming, Converter={StaticResource BoolToVisibilityConverter}}"
+                                     Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                            </TextBox>
+    
+                            <TextBlock HorizontalAlignment="Center" Margin="3" Text="{Binding PageCount}" />
+-->                            
+                        </StackPanel>
+                    </UserControl>
+                </DataTemplate>
+            </ir:ItemsRepeater.ItemTemplate>
+        </ir:ItemsRepeater>
+    </ScrollViewer>
+</UserControl>
