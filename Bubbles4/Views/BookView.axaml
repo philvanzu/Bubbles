@@ -38,7 +38,7 @@
                                                              TrueBrush="LightBlue"
                                                              FalseBrush="Transparent"/>
                         </UserControl.Resources>
-                        <StackPanel Width="132" Height="172"
+                        <StackPanel Width="132" Height="152"
                                     Orientation="Vertical"
                                     Background="{Binding IsSelected, Converter={StaticResource BoolToBrushConverter}}">
 
@@ -65,8 +65,9 @@
                             </Border>
 
                             <TextBlock Name="FileNameTextBlock" HorizontalAlignment="Left" Margin="3" Text="{Binding Name}" />
-
+                            <!--
                             <TextBlock HorizontalAlignment="Center" Margin="3" Text="{Binding Index}" />
+                            -->
                         </StackPanel>
                     </UserControl>
                 </DataTemplate>

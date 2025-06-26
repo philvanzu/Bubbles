@@ -7,76 +7,93 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Bubbles4.Views.LibraryConfigWindow"
         x:DataType="vm:LibraryConfigViewModel"
-        Width="400"
-        Height="680"
+        Width="540"
+        Height="632"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         Background="#505050"
         Title="Library Config">
    
-    <StackPanel Margin="10">
-        
-        <CheckBox IsChecked="{Binding IncludeSubdirectories}">Include Subdirectories</CheckBox>
+    <StackPanel Margin="10" HorizontalAlignment="Center">
+        <TextBlock HorizontalAlignment="Center" FontSize="16" Text="{Binding Path}"/>
+        <Border Height="8"/>
+        <Separator Width="400" />
+        <Border Height="8"/>
+        <TextBlock VerticalAlignment="Center" FontSize="16">Library Navigation Type:</TextBlock>
+        <Border Height="8"/>
+        <StackPanel Orientation="Horizontal">
+            <ToggleButton IsChecked="{Binding Recursive, Mode=TwoWay}" Width="250" Height="75" HorizontalAlignment="Left" > 
+                <TextBlock TextWrapping="Wrap" Text="Recursive : All albums, including those found in subdirectories are presented in one large view"/>
+            </ToggleButton>
+            
+            <ToggleButton IsChecked="{Binding Navtree, Mode=TwoWay}"  Width="250" Height="75" HorizontalAlignment="Left" >
+                <TextBlock TextWrapping="Wrap" Text="NavTree : Directory structure is navigable, only albums within the selected directory are shown"/> 
+            </ToggleButton>
+        </StackPanel>
+        <Border Height="8"/>
+        <TextBlock VerticalAlignment="Center" FontSize="16">Look and Feel in Fullscreen mode:</TextBlock>
+        <Border Height="8"/>
+        <StackPanel Orientation="Horizontal">
+            <ToggleButton IsChecked="{Binding Viewer, Mode=TwoWay}" Width="250" Height="75" HorizontalAlignment="Left" > 
+                <TextBlock TextWrapping="Wrap" Text="Image Viewer : Best fit / Mouse wheel turns pages"/>
+            </ToggleButton>
+            
+            <ToggleButton IsChecked="{Binding Reader, Mode=TwoWay}"  Width="250" Height="75" HorizontalAlignment="Left" >
+                <TextBlock TextWrapping="Wrap" Text="Comics Reader : Wide fit / Mouse wheel scrolls "/> 
+            </ToggleButton>
+        </StackPanel>
         <Border Height="16"/>
-        <Grid  ColumnDefinitions="120, Auto" HorizontalAlignment="Left">
+        
+        <CheckBox IsChecked="{Binding UseIVPs}" IsEnabled="{Binding Viewer}">
+            Save Image Viewing Parameters : Remember last Pan and Zoom when revisiting an image
+        </CheckBox>
+        <CheckBox IsChecked="{Binding AnimateIVPs}" IsEnabled="{Binding Viewer}">
+            Animate Image Viewing Parameters restoration.
+        </CheckBox>
+        <Border Height="8"/>
+        <Separator Width="400" />
+        <Border Height="8"/>
+        <TextBlock VerticalAlignment="Center" FontSize="16">Status Overlay Times in Fullscreen</TextBlock>
+        
+        <Border Height="16"/>
+        <TextBlock TextWrapping="Wrap">Show info for x seconds - (zero means persistent, negative number means don't show )</TextBlock>
+        <Border Height="16"/>
+        <Grid ColumnDefinitions="*,*">
             <StackPanel>
-                <TextBlock Text="Fit Type :"  Height="32"/>
-                <TextBlock Text="Scroll Action :" Height="32"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock TextWrapping="Wrap" Text="Show Paging " 
+                               Width="150" HorizontalAlignment="Left"/>
+                    <TextBox Text="{Binding ShowPagingInfo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="60" HorizontalAlignment="Left"/>
+                </StackPanel>
+                <Border Height="16"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock TextWrapping="Wrap" Text="Show Book Title" 
+                               Width="150" HorizontalAlignment="Left"/>
+                    <TextBox Text="{Binding ShowAlbumPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="60" HorizontalAlignment="Left"/>
+                </StackPanel>
             </StackPanel>
             <StackPanel Grid.Column="1">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock TextWrapping="Wrap" Text="Show Page Title" 
+                               Width="150" HorizontalAlignment="Left"/>
 
-                <ComboBox SelectedItem="{Binding Fit}"
-                          ItemsSource="{Binding FitTypes, Mode = TwoWay}"/>
-                <ComboBox SelectedItem="{Binding ScrollAction}"
-                          ItemsSource="{Binding ScrollActions, Mode = TwoWay}"/>
+                    <TextBox Text="{Binding ShowPageName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="60" HorizontalAlignment="Left"/>
+                </StackPanel>
+                <Border Height="16"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock TextWrapping="Wrap" Text="Show Pixel Size" 
+                               Width="150" HorizontalAlignment="Left"/>
+                    <TextBox Text="{Binding ShowImageSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="60" HorizontalAlignment="Left"/>
+                </StackPanel>
             </StackPanel>
         </Grid>
-        <Border Height="16"/>            
-        <CheckBox IsChecked="{Binding UseIVPs}">Use IVP's</CheckBox>
-        <CheckBox IsChecked="{Binding AnimateIVPs}">Animate IVP's</CheckBox>
+        
         <Border Height="16"/>
-        <TextBlock VerticalAlignment="Center" FontSize="16">Fullscreen Overlay</TextBlock>
-        <Border Height="16"/>
-        <TextBlock TextWrapping="Wrap" Text="Show Paging info for x seconds - (zero means persistent, negative number means don't show )" 
-                   Width="400" HorizontalAlignment="Left"/>
+        <Separator Width="400" />
         <Border Height="8"/>
-        <StackPanel Orientation="Horizontal">
-        <TextBox Text="{Binding ShowPagingInfo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="100" HorizontalAlignment="Left"/>
-        <!--
-        <Border Width="8"/><TextBlock VerticalAlignment="Center">Font size </TextBlock><Border Width="8"/>
-        <TextBox Text="{Binding ShowPagingInfoFontSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="64" HorizontalAlignment="Left"/> -->
-        </StackPanel>
-        <Border Height="16"/>
-        <TextBlock TextWrapping="Wrap" Text="Show Book Title for x seconds - (zero means persistent, negative number means don't show )" 
-                   Width="400" HorizontalAlignment="Left"/>
-        <Border Height="8"/>
-        <StackPanel Orientation="Horizontal">
-        <TextBox Text="{Binding ShowAlbumPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="100" HorizontalAlignment="Left"/>
-        <!--
-        <Border Width="8"/><TextBlock VerticalAlignment="Center">Font size </TextBlock><Border Width="8"/>
-        <TextBox Text="{Binding ShowPagingInfoFontSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="64" HorizontalAlignment="Left"/>-->
-        </StackPanel>
-        <Border Height="16"/>
-        <TextBlock TextWrapping="Wrap" Text="Show Page Title for x seconds - (zero means persistent, negative number means don't show )" 
-                   Width="400" HorizontalAlignment="Left"/>
-        <Border Height="8"/>
-        <StackPanel Orientation="Horizontal">
-        <TextBox Text="{Binding ShowPageName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="100" HorizontalAlignment="Left"/>
-        <!--
-        <Border Width="8"/><TextBlock VerticalAlignment="Center">Font size </TextBlock><Border Width="8"/>
-        <TextBox Text="{Binding ShowPagingInfoFontSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="64" HorizontalAlignment="Left"/>-->
-        </StackPanel>
-        <Border Height="16"/>
-        <TextBlock TextWrapping="Wrap" Text="Show Pixel Size - (zero means persistent, negative number means don't show )" 
-                   Width="400" HorizontalAlignment="Left"/>
-        <Border Height="8"/>
-        <StackPanel Orientation="Horizontal">
-        <TextBox Text="{Binding ShowImageSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="100" HorizontalAlignment="Left"/>
-        <!--
-        <Border Width="8"/><TextBlock VerticalAlignment="Center">Font size </TextBlock><Border Width="8"/>
-        <TextBox Text="{Binding ShowPagingInfoFontSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="64" HorizontalAlignment="Left"/>-->
-        </StackPanel>
-        <Border Height="16"/>
+        
+        
+        
         <Button Content="OK" Command="{Binding OkCommand}" Margin="0,10,0,0" HorizontalAlignment="Center"/>
     </StackPanel>
 </Window>

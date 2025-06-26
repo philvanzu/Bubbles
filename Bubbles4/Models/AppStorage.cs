@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -7,7 +8,7 @@ using Microsoft.Win32;
 
 namespace Bubbles4.Models;
 
-public class AppStorage
+public class AppStorage 
 {
     private Dictionary<string, string> _data;
 
@@ -23,8 +24,21 @@ public class AppStorage
         this._data = data;
     }
 
+    public ObservableCollection<string> LibrariesList => new ObservableCollection<string>(Data.Keys);
+    
+    public LibraryConfig? GetConfig(string libraryPath)
+    {
+        if (Data.TryGetValue(libraryPath, out var json))
+        {
+            return LibraryConfig.Deserialize(json);
+        }    
+        return null;
+    }
+    
     public void AddOrUpdate(string libraryPath, string libraryConfig)
     {
+        libraryPath = libraryPath.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+        libraryPath += System.IO.Path.DirectorySeparatorChar;
         if(_data.ContainsKey(libraryPath))_data[libraryPath] = libraryConfig;
         else _data.Add(libraryPath, libraryConfig);
     }

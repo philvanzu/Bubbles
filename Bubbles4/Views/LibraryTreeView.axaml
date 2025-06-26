@@ -1,0 +1,94 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:converters="clr-namespace:Bubbles4.Converters"
+             xmlns:vm="clr-namespace:Bubbles4.ViewModels"
+             xmlns:views="clr-namespace:Bubbles4.Views"
+             xmlns:controls="clr-namespace:Bubbles4.Controls"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:DataType="vm:MainViewModel"
+             x:Class="Bubbles4.Views.LibraryTreeView"
+             x:Name="RootControl">
+    <UserControl.Resources>
+        <converters:BoolToGridLengthConverter x:Key="BoolToGridLengthConverter" />
+    </UserControl.Resources>
+   
+    <Grid >
+        <Grid.RowDefinitions>
+           <RowDefinition Height="Auto"/> 
+           <RowDefinition Height="Auto"/>
+           <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <!--list of libraries-->
+        <StackPanel >
+            <TextBlock Height="32" FontSize="16">Libraries</TextBlock>
+            <ItemsControl Grid.Row="1" ItemsSource="{Binding LibrariesList}" HorizontalAlignment="Stretch">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="Auto, *, Auto">
+                            <Button Grid.Column="0"
+                                    Content="{Binding}" 
+                                    Command="{Binding DataContext.OnOpenLibraryPressed, ElementName=RootControl}"
+                                    CommandParameter="{Binding}" 
+                                    Margin="2" 
+                                    HorizontalAlignment="Right"/>
+                            <Border Grid.Column="1"/>
+                            <Button Grid.Column="2" Width="24" Height="24" Padding="2" Background="Transparent" BorderBrush="Transparent"
+                                    Command="{Binding DataContext.OnDeleteLibraryPressed, ElementName=RootControl}"
+                                    CommandParameter="{Binding}">
+                                <Path Stroke="White" StrokeThickness="1.5" Fill="Transparent" Stretch="Uniform" 
+                                      Data="M6,7 L6,19 C6,20.1046 6.89543,21 8,21 L16,21 C17.1046,21 18,20.1046 18,19 L18,7 M9,7 L9,4 C9,3.44772 9.44772,3 10,3 L14,3 C14.5523,3 15,3.44772 15,4 L15,7 M10,10 L10,17 M14,10 L14,17"/>
+                            </Button>    
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+
+                <!-- Optional: horizontal or wrap layout -->
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+        </StackPanel>
+        <!--Splitter-->
+        <GridSplitter IsVisible="{Binding ShowLibraryTree}"
+                      Grid.Row="1"
+                      Height="5"
+                      HorizontalAlignment="Stretch"
+                      Background="DarkGray"
+                      ShowsPreview="True"/>
+        <Border Grid.Row="2" IsVisible="{Binding ShowLibraryTree}">
+            <Grid RowDefinitions="Auto, *">
+                <TextBlock>Library Tree View</TextBlock>
+                <!-- TreeView pane -->
+                <ScrollViewer Grid.Row="1">
+                    <TreeView Width="250" 
+                              ItemsSource="{Binding LibraryRoot.Children}" 
+                              SelectedItem="{Binding SelectedLibraryNode, Mode=TwoWay}">
+                        <TreeView.DataTemplates>
+                            <TreeDataTemplate DataType="{x:Type vm:LibraryNodeViewModel}" 
+                                              ItemsSource="{Binding Children}">
+                                
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" />
+                                    </StackPanel>
+                                
+                            </TreeDataTemplate>
+                        </TreeView.DataTemplates>
+
+                    </TreeView>
+                </ScrollViewer>
+            </Grid>
+            
+        </Border>
+    </Grid>
+    
+    
+
+
+    
+
+
+</UserControl>

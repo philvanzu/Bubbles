@@ -15,9 +15,10 @@ public class LibraryParserService
 
     public static async Task<bool> ParseLibraryNodeAsync(
     LibraryNodeViewModel node,
+    CancellationToken cancellationToken,
+    Action<BookBase>? bookToParent = null,
     int batchSize = 32,
-    int maxParallelism = 4,
-    CancellationToken cancellationToken = default)
+    int maxParallelism = 4 )
     {
         if (!Directory.Exists(node.Path)) return false;
 
@@ -27,49 +28,6 @@ public class LibraryParserService
 
         var bookList = new List<BookBase>();
         var imageCount = 0;
-
-        // Analyze files
-        foreach (var file in files)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            BookBase? book = null;
-
-            if (FileTypes.IsImage(file.Extension))
-            {
-                imageCount++;
-                continue;
-            }
-            else if (FileTypes.IsArchive(file.Extension))
-            {
-                if (file.DirectoryName != null)
-                    book = new BookArchive(file.FullName, file.DirectoryName, -1, file.CreationTime, file.LastWriteTime);
-            }
-            else if (FileTypes.IsPdf(file.Extension))
-            {
-                if (file.DirectoryName != null)
-                    book = new BookPdf(file.FullName, file.DirectoryName, -1, file.CreationTime, file.LastWriteTime);
-            }
-
-            if (book != null)
-                bookList.Add(book);
-        }
-
-        // Treat this folder as a book if it contains images
-        if (imageCount > 0)
-        {
-            var dirBook = new BookDirectory(dirInfo.FullName, dirInfo.Name, imageCount, dirInfo.CreationTimeUtc, dirInfo.LastWriteTimeUtc);
-            bookList.Add(dirBook);
-        }
-
-        // Add books to this node
-        if (bookList.Count > 0)
-        {
-            await Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                node.AddBatch(bookList);
-            });
-        }
 
         // Recursively parse subdirectories
         var subTasks = new List<Task<bool>>();
@@ -81,12 +39,7 @@ public class LibraryParserService
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var subNode = new LibraryNodeViewModel(node.MainVM, subDir.FullName)
-            {
-                Parent = node,
-                Name = subDir.Name
-            };
-
+            var subNode = new LibraryNodeViewModel(node.MainVM, subDir.FullName, subDir.Name, node.Root, node);
             childNodes.Add(subNode);
 
             await throttler.WaitAsync(cancellationToken);
@@ -95,7 +48,7 @@ public class LibraryParserService
             {
                 try
                 {
-                    return await ParseLibraryNodeAsync(subNode, batchSize, maxParallelism, cancellationToken);
+                    return await ParseLibraryNodeAsync(subNode, cancellationToken, (BookBase) => { bookList.Add(BookBase); }, batchSize, maxParallelism);
                 }
                 finally
                 {
@@ -118,6 +71,51 @@ public class LibraryParserService
             }
         }
 
+        // Analyze files
+        foreach (var file in files)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            BookBase? book = null;
+
+            if (FileTypes.IsImage(file.Extension))
+            {
+                imageCount++;
+                continue;
+            }
+            else if (FileTypes.IsArchive(file.Extension))
+            {
+                if (file.DirectoryName != null)
+                    book = new BookArchive(file.FullName, file.Name, -1, file.CreationTime, file.LastWriteTime);
+            }
+            else if (FileTypes.IsPdf(file.Extension))
+            {
+                if (file.DirectoryName != null)
+                    book = new BookPdf(file.FullName, file.Name, -1, file.CreationTime, file.LastWriteTime);
+            }
+
+            if (book != null)
+                bookList.Add(book);
+        }
+
+        // Treat this folder as a book if it contains images
+        if (imageCount > 0)
+        {
+            var dirBook = new BookDirectory(dirInfo.FullName, dirInfo.Name, imageCount, dirInfo.CreationTimeUtc, dirInfo.LastWriteTimeUtc);
+            if(node.Parent == null) bookList.Add(dirBook);
+            else if(bookToParent != null) 
+                await Dispatcher.UIThread.InvokeAsync(() => { bookToParent(dirBook); });
+        }
+
+        // Add books to this node
+        if (bookList.Count > 0)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                node.AddBatch(bookList);
+            });
+        }
+        
         node.IsLoaded = true;
 
         // Return true if this node or any of its children has books
@@ -162,12 +160,12 @@ public class LibraryParserService
                             else if (FileTypes.IsArchive(file.Extension))
                             {
                                 if (file.DirectoryName != null)
-                                    result = new BookArchive(file.FullName, file.DirectoryName, -1, file.CreationTime,
+                                    result = new BookArchive(file.FullName, file.Name, -1, file.CreationTime,
                                         file.LastWriteTime);
                             }
                             else if (FileTypes.IsPdf(file.Extension))
                                 if (file.DirectoryName != null)
-                                    result = new BookPdf(file.FullName, file.DirectoryName, -1, file.CreationTime,
+                                    result = new BookPdf(file.FullName, file.Name, -1, file.CreationTime,
                                         file.LastWriteTime);
 
                             if (result != null)

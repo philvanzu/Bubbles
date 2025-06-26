@@ -13,12 +13,66 @@ public partial class LibraryConfigViewModel : ObservableObject
 {
     private LibraryConfig _libraryConfig;
     
-    public LibraryConfig.FitTypes[] FitTypes => Enum.GetValues<LibraryConfig.FitTypes>();
-    public LibraryConfig.ScrollActions[] ScrollActions => Enum.GetValues<LibraryConfig.ScrollActions>();
+    public string Path => _libraryConfig.Path;
+
+
+    private bool _recursive = true;
+    public bool Recursive
+    {
+        get => _recursive;
+        set
+        {
+            SetProperty(ref _recursive, value);
+            _navtree = !value;
+            OnPropertyChanged(nameof(Navtree));
+        }
+    }
+
+    private bool _navtree = false;
+    public bool Navtree
+    {
+        get => _navtree;
+        set
+        {
+            SetProperty(ref _navtree, value);
+            _recursive = !value;
+            OnPropertyChanged(nameof(Recursive));
+        }
+    }
     
-    [ObservableProperty]bool _includeSubdirectories;
-    [ObservableProperty]LibraryConfig.FitTypes _fit;
-    [ObservableProperty]LibraryConfig.ScrollActions _scrollAction;
+    private bool _viewer = false;
+    public bool Viewer
+    {
+        get => _viewer;
+        set
+        {
+            SetProperty(ref _viewer, value);
+            _reader = !value;
+            OnPropertyChanged(nameof(Reader));
+            if (value)
+            {
+                UseIVPs = value;
+                AnimateIVPs = value;    
+            }
+        }
+    }
+    private bool _reader = false;
+    public bool Reader
+    {
+        get => _reader;
+        set
+        {
+            SetProperty(ref _reader, value);
+            _viewer = !value;
+            OnPropertyChanged(nameof(Viewer));
+            if (value)
+            {
+                UseIVPs = !value;
+                AnimateIVPs = !value;    
+            }
+        }
+    }
+    
     [ObservableProperty]bool _useIVPs;
     [ObservableProperty]bool _animateIVPs;
     [ObservableProperty]int _showPagingInfo;
@@ -32,39 +86,30 @@ public partial class LibraryConfigViewModel : ObservableObject
     
     public LibraryConfigViewModel(LibraryConfig config)
     {
-        IncludeSubdirectories = config.IncludeSubdirectories;
+        Recursive = config.Recursive;
 
-        Fit = config.Fit;
-        ScrollAction = config.ScrollAction;
+        Viewer = config.LookAndFeel == LibraryConfig.LookAndFeels.Viewer;
+        Reader = !Viewer;
         UseIVPs = config.UseIVPs;
         AnimateIVPs = config.AnimateIVPs;
         ShowPagingInfo = config.ShowPagingInfo;
-        ShowPagingInfoFontSize = config.ShowPagingInfoFontSize;
         ShowAlbumPath = config.ShowAlbumPath;
-        ShowAlbumPathFontSize = config.ShowAlbumPathFontSize;
         ShowPageName = config.ShowPageName;
-        ShowPageNameFontSize = config.ShowPageNameFontSize;
         ShowImageSize = config.ShowImageSize;
-        ShowImageSizeFontSize = config.ShowImageSizeFontSize;
         _libraryConfig = config;
     }
 
     [RelayCommand]
     public void OkCommand()
     {
-        _libraryConfig.IncludeSubdirectories = IncludeSubdirectories;
-        _libraryConfig.Fit = Fit;
-        _libraryConfig.ScrollAction = ScrollAction;
+        _libraryConfig.Recursive = Recursive;
+        _libraryConfig.LookAndFeel = Viewer? LibraryConfig.LookAndFeels.Viewer : LibraryConfig.LookAndFeels.Reader;
         _libraryConfig.UseIVPs = UseIVPs;
         _libraryConfig.AnimateIVPs = AnimateIVPs;
         _libraryConfig.ShowPagingInfo = ShowPagingInfo;
-        _libraryConfig.ShowPagingInfoFontSize = ShowPagingInfoFontSize;
         _libraryConfig.ShowAlbumPath = ShowAlbumPath;
-        _libraryConfig.ShowAlbumPathFontSize = ShowAlbumPathFontSize;
         _libraryConfig.ShowPageName = ShowPageName;
-        _libraryConfig.ShowPageNameFontSize = ShowPageNameFontSize;
         _libraryConfig.ShowImageSize = ShowImageSize;
-        _libraryConfig.ShowImageSizeFontSize = ShowImageSizeFontSize;
         
         // Close the window with a result
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime app)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
@@ -21,7 +22,38 @@ namespace Bubbles4.ViewModels;
 public partial class MainViewModel : ViewModelBase
 {
     public AppStorage AppData { get; private set; }
-    public LibraryViewModel? Library { get; set; }
+    public ObservableCollection<string> LibrariesList => AppData?.LibrariesList;
+    private LibraryViewModel _library;
+    public LibraryViewModel Library
+    {
+        get => _library;
+        set
+        {
+            SetProperty(ref _library, value);
+            if (value is LibraryNodeViewModel node)
+            {
+                if (node.Parent == null && LibraryRoot != node) LibraryRoot = node;
+                if (node.Parent != null && SelectedLibraryNode != node) SelectedLibraryNode = node;
+            }
+            else
+            {
+                LibraryRoot = null;
+            }
+            OnPropertyChanged(nameof(ShowLibraryTree));
+        } 
+    }
+    [ObservableProperty] private LibraryNodeViewModel? _libraryRoot;
+    
+    private LibraryNodeViewModel? _selectedLibraryNode;
+    public LibraryNodeViewModel? SelectedLibraryNode
+    {
+        get => _selectedLibraryNode;
+        set
+        {
+            SetProperty(ref _selectedLibraryNode, value);
+            if(value != null && value != Library) Library = value;
+        }
+    }
     string? _libraryPath;
 
     public string? LibraryPath
@@ -34,6 +66,26 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    private bool _showNavPane;
+
+    public bool ShowNavPane
+    {
+        get => _showNavPane;
+        set
+        {
+            SetProperty(ref _showNavPane, value);
+            if(value)
+                OnPropertyChanged(nameof(LibrariesList));
+            if (Config != null)
+            {
+                Config.ShowNavPane = value;
+            }
+        }
+    }
+
+    public bool ShowLibraryTree => LibraryRoot != null;
+    
+    
     public SlidingImageCache _cache;
     
     [ObservableProperty] public BookViewModel? _selectedBook;
@@ -58,37 +110,24 @@ public partial class MainViewModel : ViewModelBase
 
     private readonly IDialogService _dialogService;
     
-    private LibraryConfig? _config;
-    private LibraryConfig _defaultConfig = new LibraryConfig();
-    public LibraryConfig Config
-    {
-        get
-        {
-            return (_isFullscreen && _config != null)? _config : _defaultConfig;
-        } 
-        set
-        {
-            SetProperty(ref _config, value);
-        }
-    }
+    [ObservableProperty]private LibraryConfig? _config = new LibraryConfig("");
 
-    private SortPreferences _sortPrefererences = new();
     
     //toolbar
-    public SortPreferences.SortOptions[] SortOptions => Enum.GetValues<SortPreferences.SortOptions>();
+    public LibraryConfig.SortOptions[] SortOptions => Enum.GetValues<LibraryConfig.SortOptions>();
 
-    private SortPreferences.SortOptions _librarySortOption;
-    public SortPreferences.SortOptions LibrarySortOption
+    private LibraryConfig.SortOptions _librarySortOption;
+    public LibraryConfig.SortOptions LibrarySortOption
     {
         get => _librarySortOption;
         set
         {
             SetProperty(ref _librarySortOption, value);
             Library.ChangeSort(value, LibrarySortDirection);
-            _sortPrefererences.LibrarySortOption = value;
-            _sortPrefererences.LibrarySortDirection = _librarySortDirection? 
-                SortPreferences.SortDirection.Ascending : 
-                SortPreferences.SortDirection.Descending;
+            Config.LibrarySortOption = value;
+            Config.LibrarySortDirection = _librarySortDirection? 
+                LibraryConfig.SortDirection.Ascending : 
+                LibraryConfig.SortDirection.Descending;
         }
     }
     private bool _librarySortDirection;
@@ -98,15 +137,15 @@ public partial class MainViewModel : ViewModelBase
         set
         {
             if(value != _librarySortDirection)Library.ReverseSortOrder();
-            SetProperty(ref _librarySortDirection, value);
-            _sortPrefererences.LibrarySortDirection = value? 
-                SortPreferences.SortDirection.Ascending : 
-                SortPreferences.SortDirection.Descending;
+            SetProperty(ref _librarySortDirection, value); 
+            Config.LibrarySortDirection = value? 
+                LibraryConfig.SortDirection.Ascending : 
+                LibraryConfig.SortDirection.Descending;
         } 
     }
     
-    private SortPreferences.SortOptions _bookSortOption;
-    public SortPreferences.SortOptions BookSortOption
+    private LibraryConfig.SortOptions _bookSortOption;
+    public LibraryConfig.SortOptions BookSortOption
     {
         get => _bookSortOption;
         set
@@ -115,10 +154,10 @@ public partial class MainViewModel : ViewModelBase
             if (SelectedBook != null)
                 SelectedBook.ChangeSort(value, BookSortDirection);
 
-            _sortPrefererences.BookSortOption = value;
-            _sortPrefererences.BookSortDirection = _bookSortDirection?
-                SortPreferences.SortDirection.Ascending :
-                SortPreferences.SortDirection.Descending;
+            Config.BookSortOption = value;
+            Config.BookSortDirection = _bookSortDirection?
+                LibraryConfig.SortDirection.Ascending :
+                LibraryConfig.SortDirection.Descending;
         }
     }
     private bool _bookSortDirection;
@@ -131,10 +170,10 @@ public partial class MainViewModel : ViewModelBase
                 SelectedBook.ReverseSortOrder();
             
             SetProperty(ref _bookSortDirection, value);
-            _sortPrefererences.BookSortOption = _bookSortOption;
-            _sortPrefererences.BookSortDirection = value?
-                SortPreferences.SortDirection.Ascending :
-                SortPreferences.SortDirection.Descending;
+            Config.BookSortOption = _bookSortOption;
+            Config.BookSortDirection = value?
+                LibraryConfig.SortDirection.Ascending :
+                LibraryConfig.SortDirection.Descending;
         }
     }
     
@@ -159,50 +198,73 @@ public partial class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(Config));
         });
         
-        AppData = AppStorage.Load();
     }
 
 
     
     public async Task InitializeAsync(string? libraryPath)
     {
-        OnPropertyChanged(nameof(Config));
+        AppData = AppStorage.Load();
+
+            
+        OnPropertyChanged(nameof(LibrariesList));            
         await OpenLibrary(libraryPath);
     }
 
     public void OnClose()
     {
-        if (!string.IsNullOrEmpty(LibraryPath) && _config != null)
-        {
-            _config.SortPreferences = _sortPrefererences;
-            AppData.AddOrUpdate(LibraryPath, _config.Serialize());
-            AppData.Save();    
-        }
-            
+        if(!string.IsNullOrEmpty(LibraryPath))
+            CloseLibrary();
+        else AppData.Save();
     }
     
     async Task OpenLibrary(string? libraryPath)
     {
+        if(Library.Path != "")
+            CloseLibrary();
+        
         if (!string.IsNullOrEmpty(libraryPath) && Directory.Exists(libraryPath))
         {
-            LibraryPath = libraryPath;
-            string? json;
-            AppData.Data.TryGetValue(LibraryPath, out json);
-        
-            if (!string.IsNullOrEmpty(json))
-                _config = LibraryConfig.Deserialize(json);
-
-            if (_config != null)
+            LibraryPath = libraryPath.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+            LibraryPath += System.IO.Path.DirectorySeparatorChar;
+            
+            Config = AppData.GetConfig(libraryPath);
+            bool saveConfig = false;
+            if (Config == null)
             {
-                _sortPrefererences = _config.SortPreferences;
-                LibrarySortOption = _sortPrefererences.LibrarySortOption;
-                LibrarySortDirection = _sortPrefererences.LibrarySortDirection == SortPreferences.SortDirection.Ascending;
-                BookSortOption = _sortPrefererences.BookSortOption;
-                BookSortDirection = _sortPrefererences.BookSortDirection == SortPreferences.SortDirection.Ascending;
-            }
+                saveConfig = true;
+                Config  = new LibraryConfig(libraryPath);
                 
+            }
+            OnPropertyChanged(nameof(Config));
+            LibrarySortOption = Config.LibrarySortOption;
+            LibrarySortDirection = Config.LibrarySortDirection == LibraryConfig.SortDirection.Ascending;
+            BookSortOption = Config.BookSortOption;
+            BookSortDirection = Config.BookSortDirection == LibraryConfig.SortDirection.Ascending;
+            ShowNavPane = Config.ShowNavPane;            
+
+            if (saveConfig)
+            {
+                AppData.AddOrUpdate(libraryPath, Config.Serialize());
+                AppData.Save();
+                OnPropertyChanged(nameof(LibrariesList));
+            }
+
+            Library = Config.Recursive ? 
+                new LibraryViewModel(this, LibraryPath) : 
+                new LibraryNodeViewModel(this, LibraryPath, Path.GetDirectoryName(LibraryPath)??"???_wtf_???");
+
 
             await Library.StartParsingLibraryAsync(LibraryPath);
+        }
+    }
+
+    public void CloseLibrary()
+    {
+        if (!string.IsNullOrEmpty(LibraryPath) && _config != null)
+        {
+            AppData.AddOrUpdate(LibraryPath, _config.Serialize());
+            AppData.Save();
         }
     }
 
@@ -212,7 +274,41 @@ public partial class MainViewModel : ViewModelBase
         UpdatePagingStatus();
         UpdateImageStatus();
     }
-    
+
+    public void UpdateTreeView()
+    {
+        OnPropertyChanged(nameof(LibraryRoot));
+        OnPropertyChanged(nameof(SelectedLibraryNode));
+    }
+
+    [RelayCommand]
+    public async Task CreateLibraryAsync()
+    {
+        string? selectedPath = null;
+        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow
+            : null;
+
+        if (window != null)
+            selectedPath = await _dialogService.PickDirectoryAsync(window);
+
+        if (!string.IsNullOrEmpty(selectedPath) && Directory.Exists(selectedPath))
+        {
+            selectedPath = selectedPath.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+            selectedPath += System.IO.Path.DirectorySeparatorChar;
+            
+            var dialogVm = new LibraryConfigViewModel(new LibraryConfig(selectedPath));
+            var result = await _dialogService.ShowDialogAsync<LibraryConfig>(window, dialogVm);
+            if (result != null)
+            {
+                AppData.AddOrUpdate(result.Path, result.Serialize());
+                AppData.Save();
+                OnPropertyChanged(nameof(LibrariesList));     
+            }    
+            await OpenLibrary(selectedPath);
+            
+        }
+    }
     [RelayCommand]
     private async Task PickDirectoryAsync()
     {
@@ -230,19 +326,59 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     public async Task ConfigureLibraryAsync()
     {
-        var dialogVm = new LibraryConfigViewModel(new LibraryConfig());
-        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
-        if (window != null)
+        if (!string.IsNullOrEmpty(LibraryPath))
         {
-            var result = await _dialogService.ShowDialogAsync<LibraryConfig>(window, dialogVm);
-            if (result != null)
+            var config  = AppData.GetConfig(LibraryPath);
+            if (config == null) config = Config;
+            if (config == null) config = new LibraryConfig(LibraryPath);
+            var dialogVm = new LibraryConfigViewModel(config);
+            var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+                ? desktop.MainWindow
+                : null;
+            if (window != null)
             {
-                Config = result;
-            }    
+                var result = await _dialogService.ShowDialogAsync<LibraryConfig>(window, dialogVm);
+                if (result != null)
+                {
+                    Config = result;
+                    AppData.AddOrUpdate(Config.Path, Config.Serialize());
+                    AppData.Save();
+                }    
+            }
         }
-        
+    }
+    [RelayCommand]
+    public void OnOpenLibraryPressed(string? path)
+    {
+        OpenLibrary(path);
+    }
+
+    [RelayCommand]
+    public async Task OnDeleteLibraryPressed(string? path)
+    {
+        if (path == LibraryPath)
+        {
+            
+        }
+        else
+        {
+            var dialog = new OkCancelViewModel
+            {
+                Content = $"Do you want to delete the recorded setting for the library at [{path}] ?"
+            };
+            var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+                ? desktop.MainWindow
+                : null;
+            if (window != null)
+            {
+                var result = await _dialogService.ShowDialogAsync<bool>(window, dialog);
+                if (result == true)
+                {
+                    // proceed
+                }    
+            }
+            
+        }
     }
     [RelayCommand] public void ExitFullScreenCommand()
     {
@@ -371,6 +507,8 @@ public partial class MainViewModel : ViewModelBase
         }
         
     }
+
+
     #endregion
     
     
@@ -391,7 +529,7 @@ public partial class MainViewModel : ViewModelBase
     public void UpdateBookStatus()
     {
         if (Library?.SelectedItem != null)
-            BookStatus = Library.SelectedItem.Path;
+            BookStatus = Library.SelectedItem.Name;
         else BookStatus = "";
     }
     public void UpdatePageNameStatus()

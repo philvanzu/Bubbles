@@ -19,13 +19,13 @@ public class StatusOverlay : Control
         set => SetValue(PagingStatusProperty, value);
     }
 
-    public static readonly StyledProperty<string?> BookPathProperty =
-        AvaloniaProperty.Register<StatusOverlay, string?>(nameof(BookPath));
+    public static readonly StyledProperty<string?> BookNameProperty =
+        AvaloniaProperty.Register<StatusOverlay, string?>(nameof(BookName));
 
-    public string? BookPath
+    public string? BookName
     {
-        get => GetValue(BookPathProperty);
-        set => SetValue(BookPathProperty, value);
+        get => GetValue(BookNameProperty);
+        set => SetValue(BookNameProperty, value);
     }
 
     public static readonly StyledProperty<string?> PageNameProperty =
@@ -52,6 +52,15 @@ public class StatusOverlay : Control
     {
         get => GetValue(ConfigProperty);
         set => SetValue(ConfigProperty, value);
+    }
+    
+    public static readonly StyledProperty<bool> IsFullscreenProperty =
+        AvaloniaProperty.Register<StatusOverlay, bool>(nameof(IsFullscreen));
+
+    public bool IsFullscreen
+    {
+        get => GetValue(IsFullscreenProperty);
+        set => SetValue(IsFullscreenProperty, value);
     }
 
     private double _pagingOpacity; // 0 = invisible, 1 = fully visible
@@ -185,7 +194,7 @@ public class StatusOverlay : Control
                 InvalidateVisual();
                 break;
             
-            case nameof(BookPath):
+            case nameof(BookName):
                 if (Config == null) return;
                 _bookTime = null;
                 
@@ -236,7 +245,7 @@ public class StatusOverlay : Control
                 PagingStatus = PagingStatus;
                 PageName = PageName;
                 ImageSize = ImageSize;
-                BookPath = BookPath;
+                BookName = BookName;
                 break;
 
         } 
@@ -246,48 +255,51 @@ public class StatusOverlay : Control
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        var bounds = Bounds;
-        Tuple<string?, Point, double>[] arr = new[]
+        if (IsFullscreen)
         {
-            new Tuple<string?, Point, double>(PagingStatus, new Point(bounds.Width - 8, 8), _pagingOpacity),
-            new Tuple<string?, Point, double>(BookPath, new Point(8, 8), _bookOpacity),
-            new Tuple<string?, Point, double>(PageName, new Point(8, bounds.Height - 24), _pageOpacity),
-            new Tuple<string?, Point, double>(ImageSize, new Point(bounds.Width - 8, bounds.Height - 24), _imageSizeOpacity),
-        };
-        
-        int i = 0;
-        double pageNameWidth = 0;
-        
-        foreach (var tuple in arr)
-        {
-            var text = tuple.Item1;
-            if (string.IsNullOrEmpty(text)) continue;
-            var pos = tuple.Item2;
-            var opacity = tuple.Item3;
-            
-            if (!string.IsNullOrEmpty(text))
+            var bounds = Bounds;
+            Tuple<string?, Point, double>[] arr = new[]
             {
-                var formattedText = new FormattedText(text, culture, flow, typeface, fontSize, Brushes.White);
-                if (i==0) pos = new Point(pos.X - formattedText.Width, pos.Y);
-                if (i==2) pageNameWidth = formattedText.Width;
-                //if (i==3) pos = new Point(pos.X + pageNameWidth + 48, pos.Y);
-                if (i==3) pos = new Point(pos.X -formattedText.Width, pos.Y);
-                
-                using (context.PushOpacity(opacity))
+                new Tuple<string?, Point, double>(PagingStatus, new Point(bounds.Width - 8, 8), _pagingOpacity),
+                new Tuple<string?, Point, double>(BookName, new Point(8, 8), _bookOpacity),
+                new Tuple<string?, Point, double>(PageName, new Point(8, bounds.Height - 24), _pageOpacity),
+                new Tuple<string?, Point, double>(ImageSize, new Point(bounds.Width - 8, bounds.Height - 24), _imageSizeOpacity),
+            };
+        
+            int i = 0;
+            double pageNameWidth = 0;
+        
+            foreach (var tuple in arr)
+            {
+                var text = tuple.Item1;
+                if (string.IsNullOrEmpty(text)) continue;
+                var pos = tuple.Item2;
+                var opacity = tuple.Item3;
+            
+                if (!string.IsNullOrEmpty(text))
                 {
-                    var outlineText = new FormattedText(text, culture, flow, typeface, fontSize, Brushes.Black);
+                    var formattedText = new FormattedText(text, culture, flow, typeface, fontSize, Brushes.White);
+                    if (i==0) pos = new Point(pos.X - formattedText.Width, pos.Y);
+                    if (i==2) pageNameWidth = formattedText.Width;
+                    //if (i==3) pos = new Point(pos.X + pageNameWidth + 48, pos.Y);
+                    if (i==3) pos = new Point(pos.X -formattedText.Width, pos.Y);
+                
+                    using (context.PushOpacity(opacity))
+                    {
+                        var outlineText = new FormattedText(text, culture, flow, typeface, fontSize, Brushes.Black);
 
-                    // Draw outline in black
-                    foreach (var offset in _offsets)
-                        context.DrawText(outlineText, pos + offset);
+                        // Draw outline in black
+                        foreach (var offset in _offsets)
+                            context.DrawText(outlineText, pos + offset);
 
-                    // Draw main white text
-                    context.DrawText(formattedText, pos);
+                        // Draw main white text
+                        context.DrawText(formattedText, pos);
+                    }
                 }
-            }
 
-            i++;
-        }            
+                i++;
+            }    
+        }
     }
     
     double Lerp(double from, double to, double t)

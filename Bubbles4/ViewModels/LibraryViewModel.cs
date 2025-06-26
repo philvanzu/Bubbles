@@ -44,7 +44,7 @@ public partial class LibraryViewModel: ViewModelBase
     private SortExpressionComparer<BookViewModel> _currentSort
         = SortExpressionComparer<BookViewModel>.Ascending(x => x.Name);
     */
-    private SortPreferences.SortOptions _currentSortOption = SortPreferences.SortOptions.Path;
+    private LibraryConfig.SortOptions _currentSortOption = LibraryConfig.SortOptions.Path;
     private bool _currentSortDirection = true;
     public int Count => Books.Count;
     protected MainViewModel _mainViewModel;
@@ -72,9 +72,9 @@ public partial class LibraryViewModel: ViewModelBase
     }
 
     
-    private CancellationTokenSource? _parsingCts;
+    protected CancellationTokenSource? _parsingCts;
 
-    public async Task StartParsingLibraryAsync(string path)
+    public virtual async Task StartParsingLibraryAsync(string path)
     {
         // Cancel previous parsing run if active
         _parsingCts?.Cancel();
@@ -107,7 +107,7 @@ public partial class LibraryViewModel: ViewModelBase
         _parsingCts?.Dispose();
         _parsingCts = null;
     }
-    public void AddBatch(List<BookBase> batch)
+    public virtual void AddBatch(List<BookBase> batch)
     {
         foreach (var book in batch)
         {
@@ -117,7 +117,7 @@ public partial class LibraryViewModel: ViewModelBase
             //Console.WriteLine(book.Name + " has been added to the library");
         }
     }
-    public void ChangeSort(SortPreferences.SortOptions sort, bool direction)
+    public void ChangeSort(LibraryConfig.SortOptions sort, bool direction)
     {
         // Dispose the previous connection
         _booksConnection?.Dispose();
@@ -127,31 +127,31 @@ public partial class LibraryViewModel: ViewModelBase
         IObservable<IChangeSet<BookViewModel>> sorted=null;
         switch (sort)
         {
-            case SortPreferences.SortOptions.Path:
+            case LibraryConfig.SortOptions.Path:
                 sorted = (direction) ? 
                     conn.Sort(SortExpressionComparer<BookViewModel>.Ascending(x => x.Path)):
                     conn.Sort(SortExpressionComparer<BookViewModel>.Descending(x => x.Path));
                 break;
-            case SortPreferences.SortOptions.Alpha:
+            case LibraryConfig.SortOptions.Alpha:
                 sorted = (direction) ? 
                     conn.Sort(SortExpressionComparer<BookViewModel>.Ascending(x => x.Name)):
                     conn.Sort(SortExpressionComparer<BookViewModel>.Descending(x => x.Name));
                 break;
-            case SortPreferences.SortOptions.Created:
+            case LibraryConfig.SortOptions.Created:
                 sorted = (direction) ? 
                     conn.Sort(SortExpressionComparer<BookViewModel>.Ascending(x => x.Created)):
                     conn.Sort(SortExpressionComparer<BookViewModel>.Descending(x => x.Created));
                 break;
-            case SortPreferences.SortOptions.Modified:
+            case LibraryConfig.SortOptions.Modified:
                 sorted = (direction) ? 
                     conn.Sort(SortExpressionComparer<BookViewModel>.Ascending(x => x.LastModified)):
                     conn.Sort(SortExpressionComparer<BookViewModel>.Descending(x => x.LastModified));
                 break;
-            case SortPreferences.SortOptions.Natural:
+            case LibraryConfig.SortOptions.Natural:
                 sorted = conn.Sort(new BookViewModelNaturalComparer(direction));
                 break;
             
-            case SortPreferences.SortOptions.Random:
+            case LibraryConfig.SortOptions.Random:
                 var rng = new Random();
                 foreach (var book in _bookSource.Items)
                     book.RandomIndex = CryptoRandom.NextInt();

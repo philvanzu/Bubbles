@@ -30,6 +30,7 @@ public partial class BookViewModel: ViewModelBase
     [ObservableProperty] private IvpCollection? _imageViewingParamsCollection;
 
     MainViewModel _mainViewModel;
+    public MainViewModel MainViewModel => _mainViewModel;
     Bitmap? _thumbnail;
     public Bitmap? Thumbnail
     {
@@ -48,7 +49,7 @@ public partial class BookViewModel: ViewModelBase
     
     private readonly SourceList<PageViewModel> _pageSource = new();
     private IDisposable? _pagesConnection;
-    private SortPreferences.SortOptions _currentSortOption = SortPreferences.SortOptions.Natural;
+    private LibraryConfig.SortOptions _currentSortOption = LibraryConfig.SortOptions.Natural;
     private bool _currentSortDirection = true; //ascending
     
     public BookViewModel(BookBase book, LibraryViewModel library, MainViewModel mainViewModel)
@@ -70,7 +71,7 @@ public partial class BookViewModel: ViewModelBase
     }
     
     
-    public void ChangeSort(SortPreferences.SortOptions sort, bool direction)
+    public void ChangeSort(LibraryConfig.SortOptions sort, bool direction)
     {
         // Dispose the previous connection
         _pagesConnection?.Dispose();
@@ -80,31 +81,31 @@ public partial class BookViewModel: ViewModelBase
         IObservable<IChangeSet<PageViewModel>> sorted=null;
         switch (sort)
         {
-            case SortPreferences.SortOptions.Path:
+            case LibraryConfig.SortOptions.Path:
                 sorted = (direction) ? 
                     conn.Sort(SortExpressionComparer<PageViewModel>.Ascending(x => x.Path)):
                     conn.Sort(SortExpressionComparer<PageViewModel>.Descending(x => x.Path));
                 break;
-            case SortPreferences.SortOptions.Alpha:
+            case LibraryConfig.SortOptions.Alpha:
                 sorted = (direction) ? 
                     conn.Sort(SortExpressionComparer<PageViewModel>.Ascending(x => x.Name)):
                     conn.Sort(SortExpressionComparer<PageViewModel>.Descending(x => x.Name));
                 break;
-            case SortPreferences.SortOptions.Created:
+            case LibraryConfig.SortOptions.Created:
                 sorted = (direction) ? 
                     conn.Sort(SortExpressionComparer<PageViewModel>.Ascending(x => x.Created)):
                     conn.Sort(SortExpressionComparer<PageViewModel>.Descending(x => x.Created));
                 break;
-            case SortPreferences.SortOptions.Modified:
+            case LibraryConfig.SortOptions.Modified:
                 sorted = (direction) ? 
                     conn.Sort(SortExpressionComparer<PageViewModel>.Ascending(x => x.LastModified)):
                     conn.Sort(SortExpressionComparer<PageViewModel>.Descending(x => x.LastModified));
                 break;
-            case SortPreferences.SortOptions.Natural:
+            case LibraryConfig.SortOptions.Natural:
                 sorted = conn.Sort(new PageViewModelNaturalComparer(direction));
                 break;
             
-            case SortPreferences.SortOptions.Random:
+            case LibraryConfig.SortOptions.Random:
                 var rng = new Random();
                 foreach (var page in _pageSource.Items)
                     page.RandomIndex = CryptoRandom.NextInt();

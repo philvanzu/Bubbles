@@ -40,7 +40,9 @@ public partial class MainView : UserControl
         };
         _imgViewerContainer.PointerWheelChanged += (s, e) =>
         {
-            if (DataContext is MainViewModel vm && vm.Config.ScrollAction == LibraryConfig.ScrollActions.TurnPage)
+            if (DataContext is MainViewModel vm && 
+                ( vm.Config.ScrollAction == LibraryConfig.ScrollActions.TurnPage ||
+                  vm.IsFullscreen == false) )
             {
                 if (Math.Abs(e.Delta.Y - (-1.0)) < 0.01f) vm.Next();
                 

@@ -3,8 +3,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
-using Bubbles4.Views; // <- replace with your actual Views namespace
-using Bubbles4.ViewModels; // <- replace with your actual ViewModels namespace
+using Bubbles4.Views; 
+using Bubbles4.ViewModels;
 
 namespace Bubbles4.Services;
 
@@ -34,7 +34,16 @@ public class DialogService : IDialogService
         window.DataContext = viewModel;
         window.Show(owner);
     }
-
+    private Window CreateWindowForViewModel(object viewModel)
+    {
+        return viewModel switch
+        {
+            LibraryConfigViewModel vm => new LibraryConfigWindow(vm),
+            OkCancelViewModel vm => new OkCancelWindow(vm), // <-- Add this line
+            _ => throw new NotImplementedException($"No view mapped for view model: {viewModel.GetType().Name}")
+        };
+    }
+    /*
     private Window CreateWindowForViewModel(object viewModel)
     {
         var vm = viewModel as LibraryConfigViewModel;
@@ -45,4 +54,5 @@ public class DialogService : IDialogService
             _ => throw new NotImplementedException($"No view mapped for view model: {viewModel.GetType().Name}")
         };
     }
+    */
 }
