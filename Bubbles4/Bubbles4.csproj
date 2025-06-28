@@ -5,7 +5,13 @@
         <LangVersion>latest</LangVersion>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     </PropertyGroup>
-
+    <!-- Enable Debug Symbols in Release
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <DebugType>portable</DebugType>
+        <DebugSymbols>true</DebugSymbols>
+        <Optimize>true</Optimize>
+    </PropertyGroup>
+-->
     <ItemGroup>
         <AvaloniaResource Include="Assets\**" />
     </ItemGroup>
@@ -30,7 +36,9 @@
         <PackageReference Include="CommunityToolkit.Mvvm" />
         <PackageReference Include="DynamicData" />
         <PackageReference Include="NaturalSort.Extension" />
+        <PackageReference Include="PDFiumSharp.NativeBinaries" />
         <PackageReference Include="SharpCompress" />
+        <PackageReference Include="PDFiumSharp" />
         <PackageReference Include="SkiaSharp" />
         <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
         

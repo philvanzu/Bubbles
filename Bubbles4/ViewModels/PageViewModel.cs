@@ -3,11 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using Bubbles4.Models;
-using Bubbles4.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using DynamicData;
-using DynamicData.Binding;
 
 namespace Bubbles4.ViewModels;
 
@@ -16,7 +13,7 @@ public partial class PageViewModel:ViewModelBase
     public BookViewModel Book { get; private set; }
     private Page _page;
     public Page Model => _page;
-    public CancellationTokenSource? ImgLoadCts { get; set; } = null;
+    public CancellationTokenSource? ImgLoadCts { get; set; }
     private Bitmap? _thumbnail;
      
     public Bitmap? Thumbnail

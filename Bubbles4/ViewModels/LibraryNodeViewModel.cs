@@ -1,17 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Input;
-using Avalonia.Threading;
 using Bubbles4.Models;
 using Bubbles4.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 
 namespace Bubbles4.ViewModels;
 
@@ -32,11 +26,11 @@ public partial class LibraryNodeViewModel : LibraryViewModel
         } 
     }
     public MainViewModel MainVM => _mainViewModel;
-    public LibraryNodeViewModel? Root { get; private set; } = null;
-    public LibraryNodeViewModel? Parent { get; private set; } = null;
+    public LibraryNodeViewModel? Root { get; private set; } 
+    public LibraryNodeViewModel? Parent { get; private set; }
 
     [ObservableProperty] private ObservableCollection<LibraryNodeViewModel> _children = new();
-    public bool HasChildren => Children != null && Children.Count > 0;
+    public bool HasChildren => Children.Count > 0;
 
     private bool _isExpanded;
     public bool IsExpanded
@@ -58,7 +52,7 @@ public partial class LibraryNodeViewModel : LibraryViewModel
     : base(mainViewModel, path)
     {
         if(root == null && parent != null)
-            throw new ArgumentNullException("Parent provided without a matching Root argument");
+            throw new ArgumentException("parent provided without a matching Root argument");
         
         Root = parent == null ? this : root;
         Parent = parent;
@@ -73,12 +67,17 @@ public partial class LibraryNodeViewModel : LibraryViewModel
         _parsingCts?.Dispose();
         _parsingCts = new CancellationTokenSource();
         var token = _parsingCts.Token;
-
+        int progressCount = 0;
+        var progress = new Progress<int>(_ =>
+        {
+            progressCount++;
+            Console.WriteLine(($"Scanning... ({progressCount} folders)"));
+        });
         Clear();
 
         try
         {
-            await LibraryParserService.ParseLibraryNodeAsync(this, token );
+            await LibraryParserService.ParseLibraryNodeAsync(this, token, progress: progress);
         }
         catch (OperationCanceledException)
         {
@@ -104,7 +103,7 @@ public partial class LibraryNodeViewModel : LibraryViewModel
             count += child.CountBooks();
         return count + Books.Count;
     }
-    public int BookCount => Root.CountBooks();
+    public int BookCount => Root != null ? Root.CountBooks():-1;
 
     public override void AddBatch(List<BookBase> batch)
     {
@@ -122,7 +121,7 @@ public partial class LibraryNodeViewModel : LibraryViewModel
             foreach (var child in Children)
                 if(child.HasBooks ) hasBooks = true;
             
-            if (Books?.Count > 0) hasBooks = true;
+            if (Books.Count > 0) hasBooks = true;
             
             return hasBooks;
         }

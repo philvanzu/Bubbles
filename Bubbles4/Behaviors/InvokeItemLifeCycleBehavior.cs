@@ -29,14 +29,21 @@ public class InvokeItemLifecycleBehavior : Behavior<ItemsRepeater>
     protected override void OnAttached()
     {
         base.OnAttached();
-        AssociatedObject.ElementPrepared += OnElementPrepared;
-        AssociatedObject.ElementClearing += OnElementClearing;
+        if (AssociatedObject != null)
+        {
+            AssociatedObject.ElementPrepared += OnElementPrepared;
+            AssociatedObject.ElementClearing += OnElementClearing;
+        }
     }
 
     protected override void OnDetaching()
     {
-        AssociatedObject.ElementPrepared -= OnElementPrepared;
-        AssociatedObject.ElementClearing -= OnElementClearing;
+        if (AssociatedObject != null)
+        {
+            AssociatedObject.ElementPrepared -= OnElementPrepared;
+            AssociatedObject.ElementClearing -= OnElementClearing;
+        }
+
         base.OnDetaching();
     }
 

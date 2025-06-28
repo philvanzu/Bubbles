@@ -12,7 +12,7 @@ namespace Bubbles4.Models;
 
 public class BookDirectory:BookBase
 {
-    public BookDirectory (string? path, string name, int pageCount, DateTime lastModified, DateTime created)
+    public BookDirectory (string path, string name, int pageCount, DateTime lastModified, DateTime created)
         :base(path, name, lastModified, pageCount, created)
     {
     }
@@ -32,7 +32,7 @@ public class BookDirectory:BookBase
     }
     
     
-    public override async Task LoadThumbnailAsync(Action<Bitmap> callback)
+    public override async Task LoadThumbnailAsync(Action<Bitmap?> callback)
     {
         
         if (string.IsNullOrEmpty(_thumbnailPath))
@@ -49,6 +49,7 @@ public class BookDirectory:BookBase
         try {
             await FileIOThrottler.WaitAsync(ThumbnailCts.Token); // respects cancellation
             //All inner LoadThumbnail exceptions are internally handled, no need to atomically try it 
+
             var thmb = await Task.Run(()=>ThumbnailService.LoadThumbnail(_thumbnailPath, 240), ThumbnailCts.Token);
             FileIOThrottler.Release();
             await Dispatcher.UIThread.InvokeAsync(() => { callback(thmb); });
@@ -57,8 +58,9 @@ public class BookDirectory:BookBase
         {
             
         }
+        catch (Exception ex) {Console.WriteLine(ex.ToString());}
     }
-    public override async Task LoadThumbnailAsync(Action<Bitmap> callback, string key)
+    public override async Task LoadThumbnailAsync(Action<Bitmap?> callback, string key)
     {
         if(!PagesCts.ContainsKey(key)) 
             throw new ArgumentException($"Path {key} is not a valid PageCts key");
@@ -66,7 +68,7 @@ public class BookDirectory:BookBase
         PagesCts[key]?.Cancel();
         PagesCts[key]?.Dispose();
         PagesCts[key] = new CancellationTokenSource();
-        Bitmap thmb = null;
+        Bitmap? thmb = null;
         try
         {
             await FileIOThrottler.WaitAsync(PagesCts[key]!.Token); // respects cancellation
@@ -81,7 +83,6 @@ public class BookDirectory:BookBase
             if (thmb != null)
             {
                 thmb.Dispose();
-                callback(null);
             }
         }
     }
@@ -127,19 +128,20 @@ public class BookDirectory:BookBase
         try
         {
             await FileIOThrottler.WaitAsync(token);
+            token.ThrowIfCancellationRequested();
             try
             {
                 bmp = await Task.Run(() => new Bitmap(page.Path), token);
             }
             catch (OperationCanceledException) { }
-            catch (Exception e){ Console.WriteLine($"Could not decode image file : {e.ToString()}"); }
+            catch (Exception e){ Console.WriteLine($"Could not decode image file : {e}"); }
             finally { FileIOThrottler.Release(); }
 
             await Dispatcher.UIThread.InvokeAsync(() => callback(bmp));
         }
         catch (Exception e)
         {
-            Console.WriteLine(e.ToString());
+            Console.WriteLine(e);
             bmp?.Dispose();
         }
     }

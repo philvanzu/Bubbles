@@ -1,7 +1,5 @@
-using System;
 using System.Linq;
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Bubbles4.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -28,7 +26,7 @@ public partial class LibraryConfigViewModel : ObservableObject
         }
     }
 
-    private bool _navtree = false;
+    private bool _navtree;
     public bool Navtree
     {
         get => _navtree;
@@ -40,7 +38,7 @@ public partial class LibraryConfigViewModel : ObservableObject
         }
     }
     
-    private bool _viewer = false;
+    private bool _viewer;
     public bool Viewer
     {
         get => _viewer;
@@ -56,7 +54,7 @@ public partial class LibraryConfigViewModel : ObservableObject
             }
         }
     }
-    private bool _reader = false;
+    private bool _reader;
     public bool Reader
     {
         get => _reader;
@@ -115,7 +113,7 @@ public partial class LibraryConfigViewModel : ObservableObject
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime app)
         {
             var window = app.Windows.FirstOrDefault(w => w.DataContext == this);
-            (window as Window)?.Close(_libraryConfig); // Return the result from ShowDialog
+            window?.Close(_libraryConfig); // Return the result from ShowDialog
         }
     }
 }

@@ -8,9 +8,9 @@ namespace Bubbles4.Models;
 public class ImageViewingParams
 {
     public string filename { get; set; } = "";
-    public double zoom { get; set; } = 0;
-    public double centerX { get; set; } = 0;
-    public double centerY { get; set; } = 0;
+    public double zoom { get; set; } 
+    public double centerX { get; set; }
+    public double centerY { get; set; }
 
     public ImageViewingParams()
     {
@@ -54,7 +54,7 @@ public class IvpCollection
         if (File.Exists(path))
         {
             var json = File.ReadAllText(path);
-            return (IvpCollection)JsonSerializer.Deserialize<IvpCollection>(json)!;    
+            return JsonSerializer.Deserialize<IvpCollection>(json)!;    
         }
         return null;
     }

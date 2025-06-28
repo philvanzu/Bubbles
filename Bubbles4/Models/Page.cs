@@ -1,5 +1,4 @@
 using System;
-using System.Threading;
 
 namespace Bubbles4.Models;
 
@@ -11,8 +10,5 @@ public class Page
     public required DateTime LastModified { get; init; }
     
     public int Index { get; set; }
-    
-    public bool IsCoverPage { get; set; }
-    
 }
 

@@ -1,6 +1,5 @@
 using System.Linq;
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.Input;
 
@@ -21,7 +20,7 @@ public partial class OkCancelViewModel: ViewModelBase
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime app)
         {
             var window = app.Windows.FirstOrDefault(w => w.DataContext == this);
-            (window as Window)?.Close(true); // Return the result from ShowDialog
+            window?.Close(true); // Return the result from ShowDialog
         }
     }
     
@@ -32,7 +31,7 @@ public partial class OkCancelViewModel: ViewModelBase
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime app)
         {
             var window = app.Windows.FirstOrDefault(w => w.DataContext == this);
-            (window as Window)?.Close(false); // Return the result from ShowDialog
+            window?.Close(false); // Return the result from ShowDialog
         }
 
     }

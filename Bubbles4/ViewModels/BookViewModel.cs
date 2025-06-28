@@ -78,7 +78,7 @@ public partial class BookViewModel: ViewModelBase
 
         // Rebuild the pipeline with the new sort
         var conn = _pageSource.Connect();
-        IObservable<IChangeSet<PageViewModel>> sorted=null;
+        IObservable<IChangeSet<PageViewModel>>? sorted=null;
         switch (sort)
         {
             case LibraryConfig.SortOptions.Path:
@@ -106,7 +106,6 @@ public partial class BookViewModel: ViewModelBase
                 break;
             
             case LibraryConfig.SortOptions.Random:
-                var rng = new Random();
                 foreach (var page in _pageSource.Items)
                     page.RandomIndex = CryptoRandom.NextInt();
                 // Use identity sort or no sort (or a no-op comparer)
@@ -187,13 +186,14 @@ public partial class BookViewModel: ViewModelBase
     public async Task LoadPagesListAsync()
     {
         var list = new List<PageViewModel>();
-        await _book.LoadPagesList((List<Page> pgs) =>
+        await _book.LoadPagesList(pgs =>
         {
-            foreach (var page in pgs)
-            {
-                list.Add(new PageViewModel(this, page));
-                _book.PagesCts.TryAdd(page.Path, null);
-            }
+            if (pgs != null)
+                foreach (var page in pgs)
+                {
+                    list.Add(new PageViewModel(this, page));
+                    _book.PagesCts.TryAdd(page.Path, null);
+                }
         });
         _pageSource.Clear();
         foreach( var p in list)
@@ -278,7 +278,7 @@ public partial class BookViewModel: ViewModelBase
             //else Console.WriteLine("Not a page");
         }
         ,
-        item => item is PageViewModel vm, 
+        item => item is PageViewModel, 
         options: AsyncRelayCommandOptions.AllowConcurrentExecutions
     );
 

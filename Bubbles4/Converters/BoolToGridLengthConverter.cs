@@ -7,10 +7,10 @@ namespace Bubbles4.Converters;
 
 public class BoolToGridLengthConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         bool show = value is bool b && b;
-        string param = parameter as string;
+        string? param = parameter as string;
 
         // Customize behavior based on parameter
         return param switch
@@ -21,7 +21,7 @@ public class BoolToGridLengthConverter : IValueConverter
         };
     }
 
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
 

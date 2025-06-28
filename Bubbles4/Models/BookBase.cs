@@ -9,14 +9,14 @@ namespace Bubbles4.Models;
 
 public abstract class BookBase
 {
-    public string? Path;
+    public string Path;
     public string Name;
     public int PageCount;
     public DateTime LastModified;
     public DateTime Created;
     
     
-    protected BookBase (string? path, string name, DateTime lastModified, int pageCount, DateTime created)
+    protected BookBase (string path, string name, DateTime lastModified, int pageCount, DateTime created)
     {
         this.Path = path;
         this.Name = name;
@@ -29,8 +29,8 @@ public abstract class BookBase
     protected CancellationTokenSource? ThumbnailCts;
     public ConcurrentDictionary<string, CancellationTokenSource?> PagesCts = new();
     
-    public abstract Task LoadThumbnailAsync(Action<Bitmap> callback);
-    public abstract Task LoadThumbnailAsync(Action<Bitmap> callback, string key);
+    public abstract Task LoadThumbnailAsync(Action<Bitmap?> callback);
+    public abstract Task LoadThumbnailAsync(Action<Bitmap?> callback, string key);
     public abstract Task LoadFullImageAsync(Page page, Action<Bitmap?> callback, CancellationToken token);
 
     public void CancelThumbnailLoad()
@@ -41,7 +41,7 @@ public abstract class BookBase
     }
 
     protected CancellationTokenSource? PagesListCts;
-    public abstract Task LoadPagesList(Action<List<Page>> callback);
+    public abstract Task LoadPagesList(Action<List<Page>?> callback);
     public virtual void UnloadPagesList() { }
 
     public void CancelPagesListLoad()

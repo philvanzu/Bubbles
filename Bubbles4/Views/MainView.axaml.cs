@@ -1,7 +1,9 @@
 using System;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Threading;
 using Bubbles4.Controls;
 using Bubbles4.Models;
@@ -15,6 +17,7 @@ public partial class MainView : UserControl
     private ContentControl? _imgViewerContainer;
     private Panel? _originalParent;
     private int _originalIndex;
+    private IInputElement? _previousFocusedElement;
 
     public MainView()
     {
@@ -23,6 +26,7 @@ public partial class MainView : UserControl
         // Find your controls by name, assuming you have x:Name on them
         _fullscreenOverlay = this.FindControl<Panel>("FullscreenOverlay");
         _imgViewerContainer = this.FindControl<ContentControl>("ImageViewerContainer");
+        if(_imgViewerContainer!= null) _imgViewerContainer.Focusable = true;
         var fastImageViewer = this.FindControl<FastImageViewer>("ImageViewer");
 
         // Remember original parent and index to restore later
@@ -31,7 +35,7 @@ public partial class MainView : UserControl
 
         // Subscribe to DataContext changes to watch IsFullscreen property
         this.DataContextChanged += MainView_DataContextChanged;
-        _imgViewerContainer!.DoubleTapped += (s, e) =>
+        _imgViewerContainer!.DoubleTapped += (_, _) =>
         {
             if (DataContext is MainViewModel vm)
             { 
@@ -40,18 +44,76 @@ public partial class MainView : UserControl
         };
         _imgViewerContainer.PointerWheelChanged += (s, e) =>
         {
-            if (DataContext is MainViewModel vm && 
+            if (DataContext is MainViewModel vm &&
+                vm.Config != null &&
                 ( vm.Config.ScrollAction == LibraryConfig.ScrollActions.TurnPage ||
                   vm.IsFullscreen == false) )
             {
-                if (Math.Abs(e.Delta.Y - (-1.0)) < 0.01f) vm.Next();
+                if (Math.Abs(e.Delta.Y - (-1.0)) < 0.01f) _ = vm.Next();
                 
-                else if (Math.Abs(e.Delta.Y - 1.0) < 0.01f) vm.Previous();
+                else if (Math.Abs(e.Delta.Y - 1.0) < 0.01f) _ = vm.Previous(); 
             }
-            else fastImageViewer!.OnScroll(s, e);
+            else fastImageViewer!.OnMouseWheel(s, e);
+        };
+        _imgViewerContainer.PointerPressed += (s, e) =>
+        {
+            if (fastImageViewer != null)
+                fastImageViewer.OnPointerPressed(s, e);
+        };
+        _imgViewerContainer.PointerReleased += (s, e) =>
+        {
+            if (fastImageViewer != null)
+                fastImageViewer.OnPointerReleased(s, e);
+        };
+        _imgViewerContainer.PointerMoved += (s, e) =>
+        {
+            if (fastImageViewer != null)
+            {
+                fastImageViewer.OnPointerMoved(s, e);
+            }
         };
         
-        
+        _imgViewerContainer.KeyUp += (_, e) =>
+        {
+            if (fastImageViewer != null)
+            {
+                switch (e.Key)
+                {
+                    case Key.H :
+                        e.Handled = true;
+                        fastImageViewer.FitHeight();
+                        break;
+                    case  Key.W:
+                        e.Handled = true;
+                        fastImageViewer.FitWidth();
+                        break;
+                    case Key.F:
+                        e.Handled = true;
+                        fastImageViewer.Fit();
+                        break;
+                    case Key.Down :
+                        e.Handled = true;
+                        fastImageViewer.OnDownArrowPressed();
+                        break;
+                    case Key.Up :
+                        e.Handled = true;
+                        fastImageViewer.OnUpArrowPressed();
+                        break;
+                    case Key.Add:
+                        e.Handled = true;
+                        fastImageViewer.Zoom(1);
+                        break;
+                    case Key.Subtract:
+                        e.Handled = true;
+                        fastImageViewer.Zoom(-1);
+                        break;
+                }
+                    
+            }
+            
+        };
+
+
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -83,12 +145,16 @@ public partial class MainView : UserControl
 
     private void ToggleFullscreen(bool fullscreen)
     {
+        if(_fullscreenOverlay==null || _imgViewerContainer == null || _originalParent==null) return;
         if (fullscreen)
         {
+            _previousFocusedElement = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
             // Move ImageViewer to fullscreen overlay
             _originalParent.Children.Remove(_imgViewerContainer);
             _fullscreenOverlay.Children.Add(_imgViewerContainer);
             _fullscreenOverlay.IsVisible = true;
+            //save reference to the control who currently has focus
+            _imgViewerContainer.Focus();
         }
         else
         {
@@ -96,6 +162,8 @@ public partial class MainView : UserControl
             _fullscreenOverlay.Children.Remove(_imgViewerContainer);
             _originalParent.Children.Insert(_originalIndex, _imgViewerContainer);
             _fullscreenOverlay.IsVisible = false;
+            //restore focus to saved control
+            _previousFocusedElement?.Focus();
         }
     }
   

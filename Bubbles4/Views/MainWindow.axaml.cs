@@ -3,7 +3,6 @@ using Avalonia.Controls;
 using Avalonia;
 using System.Runtime.InteropServices;
 using Avalonia.Input;
-using Avalonia.Platform;
 using Avalonia.Threading;
 using Bubbles4.Services;
 
@@ -13,7 +12,7 @@ public partial class MainWindow : Window
 {
     private static Cursor? _invisibleCursor;
 
-    private bool _isFullscreen = false;
+    private bool _isFullscreen;
     private WindowState _previousState;
     private SystemDecorations _previousStyle;
     private PixelPoint _previousPosition;
@@ -27,13 +26,15 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        PointerEntered += (sender, args) => _hovered = true;
-        PointerExited += (sender, args) => _hovered = false;
-        PointerMoved += (sender, args) =>
+        PointerEntered += (_, _) => _hovered = true;
+        PointerExited += (_, _) => _hovered = false;
+        PointerMoved += (_, _) =>
         {
             _lastMove = DateTime.Now;
             if (!_cursorVisible) ShowCursor();
         };
+        
+        
         
         _cursorTimer = new DispatcherTimer
         {
@@ -83,7 +84,7 @@ private static Cursor GetInvisibleCursor()
             _invisibleCursor = new Cursor(bitmap, new PixelPoint(0, 0));
         }
 
-        return _invisibleCursor!;
+        return _invisibleCursor;
     }
     public void ToggleFullscreen()
     {
@@ -147,10 +148,11 @@ private static Cursor GetInvisibleCursor()
             Win32.SetWindowLong(hwnd, Win32.GWL_STYLE,
                 Win32.GetWindowLong(hwnd, Win32.GWL_STYLE) & ~Win32.WS_OVERLAPPEDWINDOW);
 
-            Win32.SetWindowPos(hwnd, IntPtr.Zero, 0, 0,
-                (int)Screens.Primary.WorkingArea.Width,
-                (int)Screens.Primary.WorkingArea.Height,
-                Win32.SWP_NOZORDER | Win32.SWP_FRAMECHANGED);
+            if (Screens.Primary != null)
+                Win32.SetWindowPos(hwnd, IntPtr.Zero, 0, 0,
+                    Screens.Primary.WorkingArea.Width,
+                    Screens.Primary.WorkingArea.Height,
+                    Win32.SWP_NOZORDER | Win32.SWP_FRAMECHANGED);
         }
         else
         {
@@ -161,4 +163,7 @@ private static Cursor GetInvisibleCursor()
                 Win32.SWP_NOZORDER | Win32.SWP_FRAMECHANGED);
         }
     }
+    
+    
+
 }

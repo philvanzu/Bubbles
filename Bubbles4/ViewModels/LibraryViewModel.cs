@@ -1,9 +1,6 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -14,9 +11,6 @@ using Bubbles4.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DynamicData;
 using DynamicData.Binding;
-
-using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Reactive;
 using System.Reactive.Linq;
 
@@ -45,7 +39,7 @@ public partial class LibraryViewModel: ViewModelBase
         = SortExpressionComparer<BookViewModel>.Ascending(x => x.Name);
     */
     private LibraryConfig.SortOptions _currentSortOption = LibraryConfig.SortOptions.Path;
-    private bool _currentSortDirection = true;
+    private bool _currentSortDirection;
     public int Count => Books.Count;
     protected MainViewModel _mainViewModel;
     public LibraryViewModel(MainViewModel mainViewModel, string path)
@@ -54,16 +48,16 @@ public partial class LibraryViewModel: ViewModelBase
         this.Path = path;
         _books = new ReadOnlyObservableCollection<BookViewModel>(new ObservableCollection<BookViewModel>());
         
-        
-        _booksConnection = _bookSource
-            .Connect()
-            //.Sort(SortExpressionComparer<BookViewModel>.Ascending(x => x.Name))
-            .Bind(out _books)
-            .AutoRefreshOnObservable(_ => Observable.Return(Unit.Default)) // Optional: can use to refresh view
-            .Subscribe();
-        
-        
-        
+        if (path != "dummy path")
+        {
+            _currentSortDirection = _mainViewModel.Config?.LibrarySortDirection == LibraryConfig.SortDirection.Ascending;
+            _booksConnection = _bookSource
+                .Connect()
+                //.Sort(SortExpressionComparer<BookViewModel>.Ascending(x => x.Name))
+                .Bind(out _books)
+                .AutoRefreshOnObservable(_ => Observable.Return(Unit.Default)) // Optional: can use to refresh view
+                .Subscribe();    
+        }
     }
     public void Clear()
     {
@@ -81,7 +75,10 @@ public partial class LibraryViewModel: ViewModelBase
         _parsingCts?.Dispose();
         _parsingCts = new CancellationTokenSource();
         var token = _parsingCts.Token;
-
+        var progress = new Progress<double>(p =>
+        {
+            Console.WriteLine($"Loading : {p:P1}");
+        });
         Clear();
 
         try
@@ -93,7 +90,7 @@ public partial class LibraryViewModel: ViewModelBase
                 {
                     AddBatch(batch);
                 });
-            }, cancellationToken: token);
+            }, cancellationToken: token, progress:progress);
         }
         catch (OperationCanceledException)
         {
@@ -124,13 +121,13 @@ public partial class LibraryViewModel: ViewModelBase
 
         // Rebuild the pipeline with the new sort
         var conn = _bookSource.Connect();
-        IObservable<IChangeSet<BookViewModel>> sorted=null;
+        IObservable<IChangeSet<BookViewModel>>? sorted=null;
         switch (sort)
         {
             case LibraryConfig.SortOptions.Path:
                 sorted = (direction) ? 
-                    conn.Sort(SortExpressionComparer<BookViewModel>.Ascending(x => x.Path)):
-                    conn.Sort(SortExpressionComparer<BookViewModel>.Descending(x => x.Path));
+                    conn.Sort(SortExpressionComparer<BookViewModel>.Ascending(x => x.Path??"")):
+                    conn.Sort(SortExpressionComparer<BookViewModel>.Descending(x => x.Path??""));
                 break;
             case LibraryConfig.SortOptions.Alpha:
                 sorted = (direction) ? 
@@ -152,7 +149,6 @@ public partial class LibraryViewModel: ViewModelBase
                 break;
             
             case LibraryConfig.SortOptions.Random:
-                var rng = new Random();
                 foreach (var book in _bookSource.Items)
                     book.RandomIndex = CryptoRandom.NextInt();
                 // Use identity sort or no sort (or a no-op comparer)
@@ -207,7 +203,7 @@ public partial class LibraryViewModel: ViewModelBase
         {
             //load book in bookview
             value.LoadingTask = value.LoadPagesListAsync()
-                .ContinueWith(t => value.LoadingTask = null
+                .ContinueWith(_ => value.LoadingTask = null
                 , TaskScheduler.FromCurrentSynchronizationContext());
         }
         _mainViewModel.UpdateBookStatus();

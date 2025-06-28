@@ -10,7 +10,7 @@ public class BoolToBrushConverter : IValueConverter
     public IBrush? TrueBrush { get; set; }
     public IBrush? FalseBrush { get; set; }
 
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
         return (value is true) ? TrueBrush : FalseBrush;
     }

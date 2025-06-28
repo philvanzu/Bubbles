@@ -24,6 +24,8 @@
     <PackageVersion Include="DynamicData" Version="9.4.1" />
     <PackageVersion Include="Eremex.Avalonia.Controls" Version="1.1.142" />
     <PackageVersion Include="NaturalSort.Extension" Version="4.3.0" />
+    <PackageVersion Include="PDFiumSharp" Version="1.4660.0-alpha1" />
+    <PackageVersion Include="PDFiumSharp.NativeBinaries" Version="1.4660.0" />
     <PackageVersion Include="SharpCompress" Version="0.40.0" />
     <PackageVersion Include="SkiaSharp" Version="3.119.0" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="3.119.0" />

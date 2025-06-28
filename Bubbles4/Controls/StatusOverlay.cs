@@ -100,10 +100,10 @@ public class StatusOverlay : Control
 
     private class FadeField
     {
-        public Func<int> GetDisplayTime;
-        public Func<DateTime?> GetStartTime;
-        public Action<DateTime?> SetStartTime;
-        public Action<double> SetOpacity;
+        public required Func<int> GetDisplayTime;
+        public required Func<DateTime?> GetStartTime;
+        public required Action<DateTime?> SetStartTime;
+        public required Action<double> SetOpacity;
     }
     private void OnAnimTick(object? sender, EventArgs e)
     {

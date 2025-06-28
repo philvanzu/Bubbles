@@ -24,6 +24,7 @@
                 <KeyBinding Gesture="Left" Command="{Binding PreviousCommand}" />
                 <KeyBinding Gesture="PageDown" Command="{Binding NextBookCommand}" />
                 <KeyBinding Gesture="PageUp" Command="{Binding PreviousBookCommand}" />
+                <!-- See other input events sent directly to the viewer in mainview codebehind and FastImageViewer.cs-->
         </Window.KeyBindings>
         
         <views:MainView />

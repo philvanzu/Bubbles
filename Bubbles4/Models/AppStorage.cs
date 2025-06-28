@@ -11,13 +11,17 @@ namespace Bubbles4.Models;
 public class AppStorage 
 {
     private Dictionary<string, string> _data;
+    
+    
 
     public IReadOnlyDictionary<string, string> Data => _data;
+    public double Mouse_sensitivity { get; set; }
+    
     
     private const string RegistryPath = @"Software\Bubbles4\AppStorage";
     private const string RegistryValueName = "Storage";
     private static readonly string LinuxFilePath =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".bubbles4", "storage.json");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local/share/bubbles4", "storage.json");
 
     private AppStorage(Dictionary<string, string> data)
     {
@@ -37,10 +41,9 @@ public class AppStorage
     
     public void AddOrUpdate(string libraryPath, string libraryConfig)
     {
-        libraryPath = libraryPath.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
-        libraryPath += System.IO.Path.DirectorySeparatorChar;
-        if(_data.ContainsKey(libraryPath))_data[libraryPath] = libraryConfig;
-        else _data.Add(libraryPath, libraryConfig);
+        libraryPath = libraryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        libraryPath += Path.DirectorySeparatorChar;
+        _data[libraryPath] = libraryConfig;
     }
 
     public void Remove(string libraryPath)
@@ -55,7 +58,7 @@ public class AppStorage
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             using var key = Registry.CurrentUser.CreateSubKey(RegistryPath);
-            key?.SetValue(RegistryValueName, json);
+            key.SetValue(RegistryValueName, json);
         }
         else
         {

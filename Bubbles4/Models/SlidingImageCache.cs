@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using Bubbles4.ViewModels;
 
 namespace Bubbles4.Models;
@@ -38,7 +37,6 @@ public class SlidingImageCache : IDisposable
                 if (_currentPage != null) UpdateState();
                 else _mainViewModel.CurrentViewerData = null;
                 break;
-            default: break;
         }
     }
 
@@ -108,7 +106,6 @@ public class SlidingImageCache : IDisposable
     private async Task ProcessLoadQueueAsync()
     {
         List<Task> loadTasks = new();
-        var token = CancellationToken.None;
 
         while (_loadQueue.Count > 0)
         {
@@ -150,10 +147,6 @@ public class SlidingImageCache : IDisposable
         var token = pg.ImgLoadCts.Token;
         try
         {
-            token.ThrowIfCancellationRequested();
-
-            var path = pg.Path;
-
             // Load bitmap off UI thread
             await pg.Book.Model.LoadFullImageAsync(
                 pg.Model, 

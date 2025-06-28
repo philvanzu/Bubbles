@@ -3,12 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using Avalonia.Rendering;
 using System;
-using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
-using Avalonia.VisualTree;
-using Avalonia.Xaml.Interactions.Custom;
 using Bubbles4.Models;
 using Bubbles4.ViewModels;
 
@@ -27,8 +23,10 @@ namespace Bubbles4.Controls {
         private Bitmap? _image;
         private Point _lastPointerPosition;
         private Size _lastViewportSize = new Size(0, 0);
-        private PageViewModel? _page = null;  
-        private BookViewModel? _previousBook = null;
+        private PageViewModel? _page;  
+        private BookViewModel? _previousBook;
+        private IvpRect? _ivpRect;
+        private IvpAnimation? _ivpAnim;
         
         private readonly DispatcherTimer turnPageTimer;
         private bool _topHit, _bottomHit, _turnPageOnScrollUp, _turnPageOnScrollDown, _noScrolling;
@@ -61,7 +59,7 @@ namespace Bubbles4.Controls {
         public bool IsFullscreen
         {
             get => GetValue(IsFullscreenProperty);
-            set => SetValue(IsFullscreenProperty!, value);
+            set => SetValue(IsFullscreenProperty, value);
         }
         bool UseIvp => IsFullscreen && Config != null && Config.UseIVPs;
         bool InScrollMode => IsFullscreen && Config?.ScrollAction == LibraryConfig.ScrollActions.Scroll;
@@ -72,10 +70,8 @@ namespace Bubbles4.Controls {
         {
             Focusable = true;
             this.Focus();
-            this.PointerPressed += (s, e) => _lastPointerPosition = e.GetPosition(this);
-            this.PointerMoved += OnPointerMoved;
+
             this.LayoutUpdated += OnLayoutUpdated;
-            this.KeyUp += OnKeyUp;
             
             turnPageTimer = new DispatcherTimer();
             turnPageTimer.Tick += OnTurnPageTick;
@@ -86,12 +82,19 @@ namespace Bubbles4.Controls {
 
 
 
+
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
         {
             base.OnPropertyChanged(change);
             switch (change.Property.Name)
             {
                 case nameof(Data):
+                    if (_ivpAnim?.IsRunning == true)
+                    {
+                        _ivpAnim.Stop(); 
+                        _ivpAnim = null;
+                    }
+                    
                     if (BookChanged) _previousBook = _page?.Book;
                     var data = change.NewValue as ViewerData;
                     
@@ -114,7 +117,14 @@ namespace Bubbles4.Controls {
                             {
                                 var ivp = _page?.Ivp;
                                 if (ivp != null && UseIvp)
-                                    RestoreFromIVP(ivp);
+                                {
+                                    if (Config?.AnimateIVPs == true)
+                                    {
+                                        AnimateIVP(ivp, Config.Fit);
+                                    }
+                                    else RestoreFromIVP(ivp);
+                                }
+
                                 else if (KeepZoom)
                                 {
                                     ZoomTo(_zoom);
@@ -170,6 +180,17 @@ namespace Bubbles4.Controls {
             context.DrawImage(_image, sourceRect, destRect);
             if (InScrollMode)
                 DrawVerticalScrollIndicator(context);
+
+            if (_ivpRect != null && _ivpRect.IsValid)
+            {
+                var selectionRect = _ivpRect.ToRect();
+
+                context.DrawRectangle(
+                    brush: new SolidColorBrush(Color.FromArgb(64, 0, 120, 215)), // semi-transparent fill
+                    pen: new Pen(Brushes.Blue),                                // solid blue border
+                    rect: selectionRect
+                );
+            }
         }
         private void DrawVerticalScrollIndicator(DrawingContext context)
         {
@@ -196,7 +217,7 @@ namespace Bubbles4.Controls {
             var brush = Brushes.White;
             if(_topHit || _bottomHit) brush = Brushes.Red;
             else if(_turnPageOnScrollDown || _turnPageOnScrollUp) brush = Brushes.Green;    
-            var pen = new Pen(Brushes.Black, 1);
+            var pen = new Pen(Brushes.Black);
 
             var rect = new Rect(center.X - radius, center.Y - radius, radius * 2, radius * 2);
             context.DrawGeometry(brush, pen, new EllipseGeometry(rect));
@@ -304,7 +325,6 @@ namespace Bubbles4.Controls {
             _zoom = Math.Clamp(zoomfactor, _minZoom, _maxZoom);
 
             var centerBefore = anchor ?? new Point(Bounds.Width / 2, Bounds.Height / 2);
-            var offset = panOffset ?? _panOffset;
             
             var imageCenterBefore = (centerBefore - _panOffset) / oldZoom;
             _panOffset = centerBefore - imageCenterBefore * _zoom;
@@ -314,26 +334,125 @@ namespace Bubbles4.Controls {
             InvalidateVisual();
         }
 
+        public void Scroll(double deltaX, double deltaY)
+        {
+            if (_image == null) return;
+            if ((_turnPageOnScrollDown || _noScrolling) && deltaY < 0)
+            {
+                _turnPageOnScrollDown = false;
+                this.MainViewModel?.Next();
+                return;
+            }
+            else if ((_turnPageOnScrollUp || _noScrolling) && deltaY > 0)
+            {
+                _turnPageOnScrollUp = false;
+                this.MainViewModel?.Previous();
+                return;
+            }
+            // Sensitivity factor — tune this
+            const double scrollSpeed = 40.0;
 
+            // Adjust pan offset
+            var newPan = _panOffset + new Point(deltaX * scrollSpeed, deltaY * scrollSpeed);
+
+            _panOffset = newPan;
+            AdjustPanOffset();
+
+            InvalidateVisual();
+
+            // Notify scroll edge hits
+            var ih = _image.PixelSize.Height * _zoom;
+            var ch = Bounds.Height;
+
+            bool hitTop = ih >= ch && _panOffset.Y >= 0;
+            bool hitBottom = ih >= ch && _panOffset.Y <= ch - ih;
+            /*
+            bool hitLeft = iw >= cw && _panOffset.X >= 0;
+            bool hitRight = iw >= cw && _panOffset.X <= cw - iw;
+            */
+            
+            if (hitTop) OnScrollEdgeHit(Edge.Top);
+            else if (_topHit) CancelTurnPageTimer(Edge.Top);
+            else if (_turnPageOnScrollUp)
+            {
+                //was greenlit for turning page up, but scroll down reset everything
+                _turnPageOnScrollUp = false;
+                InvalidateVisual();
+            }
+            
+            if (hitBottom) OnScrollEdgeHit(Edge.Bottom);
+            else if (_bottomHit) CancelTurnPageTimer(Edge.Bottom);
+            else if (_turnPageOnScrollDown) 
+            {
+                //was greenlit for turning page down, but scroll up reset everything
+                _turnPageOnScrollDown = false;
+                InvalidateVisual();
+            }
+/*
+            if (hitLeft) OnScrollEdgeHit(Edge.Left);
+            else if (hitRight) OnScrollEdgeHit(Edge.Right);
+*/
+        }
+        
         // Restore from IVP parameters
-         public void RestoreFromIVP(ImageViewingParams ivp)
-           {
-               if (_image == null || Bounds.Width == 0 || Bounds.Height == 0)
-                   return;
+        public void RestoreFromIVP(ImageViewingParams ivp)
+        {
 
-               var viewCenterX = Bounds.Width / 2.0;
-               var viewCenterY = Bounds.Height / 2.0;
+            if (_image == null || Bounds.Width == 0 || Bounds.Height == 0)
+                return;
 
-               _zoom = ivp.zoom;
+            var viewCenterX = Bounds.Width / 2.0;
+            var viewCenterY = Bounds.Height / 2.0;
 
-               _panOffset = new Point(
-                   viewCenterX - ivp.centerX * _zoom,
-                   viewCenterY - ivp.centerY * _zoom
-               );
+            _zoom = ivp.zoom;
 
-               AdjustPanOffset();
-               InvalidateVisual();
-           }
+            _panOffset = new Point(
+                viewCenterX - ivp.centerX * _zoom,
+                viewCenterY - ivp.centerY * _zoom
+            );
+
+                
+            AdjustPanOffset();
+            InvalidateVisual();
+        }
+
+        
+        public void AnimateIVP(ImageViewingParams end, LibraryConfig.FitTypes? startFit = null)
+        {
+            if(_ivpAnim?.IsRunning == true)_ivpAnim.Stop();
+            
+            if (_page == null || _image == null) return;
+            if (startFit != null)
+            {
+                switch (startFit)
+                {
+                    case LibraryConfig.FitTypes.Height:
+                        FitHeight();
+                        break;
+                    case LibraryConfig.FitTypes.Width:
+                        FitWidth();
+                        break;
+                    case LibraryConfig.FitTypes.Stock:
+                        FitStock();
+                        break;
+                    default:
+                        Fit();
+                        break;
+                }
+            }
+            var start = SaveToIVP(_page.Name);
+            if (start == null) return;
+            
+            _ivpAnim = new IvpAnimation(start, end,
+                (ivp) =>
+                {
+                    RestoreFromIVP(ivp);
+                    if (_ivpAnim?.IsRunning == false) _ivpAnim = null;
+                    Console.WriteLine("animation tick");
+                }, 
+                500.0);
+        }
+
         public ImageViewingParams? SaveToIVP(string filename)
         {
             if (_image == null || Bounds.Width == 0 || Bounds.Height == 0)
@@ -348,7 +467,16 @@ namespace Bubbles4.Controls {
             return new ImageViewingParams(filename, _zoom, centerXpx, centerYpx);
         }
 
-        
+        private ImageViewingParams ClampIvpToZoomLimits(ImageViewingParams ivp)
+        {
+            double clampedZoom = Math.Clamp(ivp.zoom, _minZoom, _maxZoom);
+
+            if (Math.Abs(clampedZoom - ivp.zoom) < 0.0001)
+                return ivp; // zoom is already within limits, no change
+
+            return new ImageViewingParams(ivp.filename, clampedZoom, ivp.centerX, ivp.centerY);
+        }
+
 
         private void OnLayoutUpdated(object? sender, EventArgs e)
         {
@@ -379,7 +507,7 @@ namespace Bubbles4.Controls {
             AdjustPanOffset();
             InvalidateVisual();
         }
-        private void OnPointerMoved(object? sender, PointerEventArgs e)
+        public void OnPointerMoved(object? sender, PointerEventArgs e)
         {
             if (_image == null) return;
 
@@ -396,95 +524,55 @@ namespace Bubbles4.Controls {
             {
                 ZoomTo(_zoom * Math.Pow(1.01, -delta.Y));
             }
-        }
-
-        private void OnKeyUp(object? sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.H)
+            else if (pointerProperties.IsRightButtonPressed)
             {
-                e.Handled = true;
-                FitHeight();
-            }
-            else if (e.Key == Key.W)
-            {
-                e.Handled = true;
-                FitWidth();
-            }
-            else if (e.Key == Key.F)
-            {
-                e.Handled = true;
-                Fit();
+                if (UseIvp)
+                {
+                    if (_ivpRect == null)
+                    {
+                        _ivpRect = new IvpRect() { Start = current, End = current };
+                    }
+                    else
+                    {
+                        _ivpRect.End = current;
+                        InvalidateVisual();
+                    }    
+                }
             }
         }
-
-        public void OnScroll(object? sender, PointerWheelEventArgs e)
+        public void OnPointerPressed(object? sender, PointerPressedEventArgs e)
         {
-            
+            _lastPointerPosition = e.GetPosition(this);
+        }
+
+        public void OnPointerReleased(object? sender, PointerEventArgs e)
+        {
+            if (_page != null &&  UseIvp && _ivpRect != null)
+            {
+                if ( e.GetCurrentPoint(this).Properties.PointerUpdateKind == PointerUpdateKind.RightButtonReleased)
+                    _ivpRect.End = e.GetPosition(this);
+                var ivp = _ivpRect?.ToIvp(_page.Name, _panOffset, _zoom, Bounds.Size);
+                //var ivp = _ivpRect?.ToIvpFit(_page.Name, Bounds.Size, _panOffset);
+                if (ivp != null)
+                {
+                    ivp = ClampIvpToZoomLimits(ivp);
+                    if (Config?.AnimateIVPs==true) AnimateIVP(ivp);
+                    else RestoreFromIVP(ivp);
+                }
+                _ivpRect = null;
+            }    
+        }
+        public void OnMouseWheel(object? sender, PointerWheelEventArgs e)
+        {
             if (_image == null || !InScrollMode)
                 return;
             
-            
-
             // Scrolling deltas (usually Y for vertical scrolling, but X can be used for shift+wheel or trackpads)
             var delta = e.Delta;
             
-            if ((_turnPageOnScrollDown || _noScrolling) && e.Delta.Y < 0)
-            {
-                _turnPageOnScrollDown = false;
-                this.MainViewModel?.Next();
-                return;
-            }
-            else if ((_turnPageOnScrollUp || _noScrolling) && e.Delta.Y > 0)
-            {
-                _turnPageOnScrollUp = false;
-                this.MainViewModel?.Previous();
-                return;
-            }
-            // Sensitivity factor — tune this
-            const double scrollSpeed = 40.0;
-
-            // Adjust pan offset
-            var newPan = _panOffset + new Point(delta.X * scrollSpeed, delta.Y * scrollSpeed);
-
-            var oldPan = _panOffset;
-            _panOffset = newPan;
-            AdjustPanOffset();
-
-            InvalidateVisual();
-
-            // Notify scroll edge hits
-            var iw = _image.PixelSize.Width * _zoom;
-            var ih = _image.PixelSize.Height * _zoom;
-            var cw = Bounds.Width;
-            var ch = Bounds.Height;
-
-            bool hitTop = ih >= ch && _panOffset.Y >= 0;
-            bool hitBottom = ih >= ch && _panOffset.Y <= ch - ih;
-            bool hitLeft = iw >= cw && _panOffset.X >= 0;
-            bool hitRight = iw >= cw && _panOffset.X <= cw - iw;
-
-            if (hitTop) OnScrollEdgeHit(Edge.Top);
-            else if (_topHit) CancelTurnPageTimer(Edge.Top);
-            else if (_turnPageOnScrollUp)
-            {
-                //was greenlit for turning page up, but scroll down reset everything
-                _turnPageOnScrollUp = false;
-                InvalidateVisual();
-            }
-            
-            if (hitBottom) OnScrollEdgeHit(Edge.Bottom);
-            else if (_bottomHit) CancelTurnPageTimer(Edge.Bottom);
-            else if (_turnPageOnScrollDown) 
-            {
-                //was greenlit for turning page down, but scroll up reset everything
-                _turnPageOnScrollDown = false;
-                InvalidateVisual();
-            }
-/*
-            if (hitLeft) OnScrollEdgeHit(Edge.Left);
-            else if (hitRight) OnScrollEdgeHit(Edge.Right);
-*/           
+            Scroll(delta.X, delta.Y);           
         }
+
 
         
         private void OnTurnPageTick(object? sender, EventArgs e)
@@ -514,42 +602,146 @@ namespace Bubbles4.Controls {
         public void FitHeight()
         {
             if (_image == null) return;
-            var ih = (double)_image.PixelSize.Height;  // image height
-            var ch = Bounds.Height;
-            _zoom  = ch/ih;
+            _zoom  = _fitHZoom;
             AdjustPanOffset();
             InvalidateVisual();
         }
         public void FitWidth()
         {
             if (_image == null) return;
-            var iw = (double)_image.PixelSize.Width;   // image width
-            var cw = Bounds.Width;              // client width
-            _zoom  = cw/iw;
+            _zoom  = _fitWZoom;
             AdjustPanOffset();
             InvalidateVisual();
         }
 
         public void Fit()
         {
-            var iw = (double)_image.PixelSize.Width;   // image width
-            var ih = (double)_image.PixelSize.Height;  // image height
-            var cw = Bounds.Width;              // client width
-            var ch = Bounds.Height;             // client height
-            
-            var ratio = (iw/ih) * (ch/cw);
-                    
-            if (ratio < 1) FitHeight();
-            else FitWidth();
+            if (_image == null) return;
+            _zoom  = _fitZoom;
+            AdjustPanOffset();
+            InvalidateVisual();
         }
 
         public void FitStock()
         {
+            if (_image == null) return;
             _zoom = 1;
             AdjustPanOffset();
             InvalidateVisual();
         }
-        
 
+        public void OnDownArrowPressed()
+        {
+            Scroll(0, -1.0);
+        }
+
+        public void OnUpArrowPressed()
+        {
+            Scroll(0.0, 1.0);
+        }
+
+        public void Zoom(int delta)
+        {
+            const double zoomStepFactor = 0.1; // 10% zoom step
+            double zoomDelta = _zoom * zoomStepFactor * Math.Sign(delta);
+            ZoomTo(_zoom + zoomDelta);
+        }
+
+        private class IvpRect
+        {
+            public Point Start { get; init; }
+            public Point End { get; set; }
+
+            double top => Math.Min(Start.Y, End.Y);
+            double left => Math.Min(Start.X, End.X);
+            double right => Math.Max(Start.X, End.X);
+            double bottom => Math.Max(Start.Y, End.Y);
+            double width => right - left;
+            double height => bottom - top;
+
+            public bool IsValid => Math.Abs(Start.Y - End.Y) > 2.0 
+                                   && Math.Abs(Start.X - End.X) > 2.0;
+            public Rect ToRect()
+            {
+                return new Rect(left, top, width, height);
+            }
+
+            public ImageViewingParams ToIvp(string filename, Point panOffset, double zoom, Size clientSize)
+            {
+                double leftPx = left-panOffset.X;
+                double topPx = top-panOffset.Y;
+                double centerXpx = (leftPx + width / 2.0) / zoom;
+                double centerYpx = (topPx + height / 2.0) / zoom;
+                
+                var zoomX = clientSize.Width / width;
+                var zoomY = clientSize.Height / height;
+                var newZoom = Math.Min(zoomX, zoomY) * zoom;
+                
+                return new ImageViewingParams(filename, newZoom, centerXpx, centerYpx);          
+            }
+        }
+
+        private class IvpAnimation
+        {
+            private ImageViewingParams _startIvp;
+            private ImageViewingParams _endIvp;
+            private double _duration;
+            private DispatcherTimer? _timer;
+            private Action<ImageViewingParams> _onTick;
+            private DateTime _startTime;
+            private bool _running = true;
+            public bool IsRunning => _running;
+            
+            //duration in milliseconds
+            public IvpAnimation(ImageViewingParams startIvp, ImageViewingParams endIvp, Action<ImageViewingParams> onTick, double duration)
+            {
+                _startIvp = startIvp;
+                _endIvp = endIvp;
+                _onTick = onTick;
+                _duration = duration;
+                _timer = new DispatcherTimer(DispatcherPriority.Render);
+                _timer.Interval = TimeSpan.FromMilliseconds(16); // 60fps
+                _startTime = DateTime.Now;
+                _timer.Tick += OnTick;
+                _timer.Start();
+            }
+
+            private void OnTick(object? sender, EventArgs e)
+            {
+                var elapsed = DateTime.Now - _startTime;
+                var tLinear = Math.Clamp(elapsed.TotalMilliseconds / _duration, 0, 1);
+                var t = EaseInOutQuad(tLinear);
+                if (t >= 1.0)
+                {
+                    Stop();
+                    _onTick(_endIvp); 
+                }
+                double zoom = Lerp(_startIvp.zoom, _endIvp.zoom, t);
+                double centerX = Lerp(_startIvp.centerX, _endIvp.centerX, t);
+                double centerY = Lerp(_startIvp.centerY, _endIvp.centerY, t);
+                _onTick(new ImageViewingParams(_startIvp.filename, zoom, centerX, centerY));
+            }
+
+            public void Stop()
+            {
+                if (_timer != null)
+                {
+                    _timer.Stop();
+                    _timer.Tick -= OnTick;
+                    _timer = null;
+                    _running = false;
+                }
+            }
+            
+            static double Lerp(double from, double to, double t)
+            {
+                return from + (to - from) * t;
+            }
+            
+            private static double EaseInOutQuad(double t)
+            {
+                return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+            }
+        }
     }
 }
