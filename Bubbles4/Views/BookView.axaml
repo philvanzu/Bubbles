@@ -53,8 +53,8 @@
                             <StackPanel.ContextMenu>
                                 <ContextMenu>
                                     <!-- You can use Interactions or Command bindings depending on how you handle viewmodel logic -->
+                                    <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}" />
                                     <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
-                                    <MenuItem Header="Show Details" Command="{Binding ShowDetailsCommand}" />
                                 </ContextMenu>
                             </StackPanel.ContextMenu>
 

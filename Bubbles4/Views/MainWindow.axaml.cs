@@ -3,8 +3,10 @@ using Avalonia.Controls;
 using Avalonia;
 using System.Runtime.InteropServices;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Bubbles4.Services;
+using Bubbles4.ViewModels;
 
 namespace Bubbles4.Views;
 
@@ -164,6 +166,7 @@ private static Cursor GetInvisibleCursor()
         }
     }
     
+
     
 
 }

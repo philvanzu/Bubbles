@@ -37,10 +37,12 @@ public class LibraryConfig
     public enum SortDirection { Ascending, Descending }
     //library sort
     public SortOptions LibrarySortOption { get; set; } = SortOptions.Natural;
-    public SortDirection LibrarySortDirection { get; set; } = SortDirection.Ascending;
+    public bool LibrarySortAscending { get; set; } = true;
+
     //Book Sort
     public SortOptions BookSortOption { get; set; } = SortOptions.Natural;
-    public SortDirection BookSortDirection { get; set; } = SortDirection.Ascending;
+    public bool BookSortAscending { get; set; } =true;
+
     
     public bool ShowNavPane { get; set; } 
 

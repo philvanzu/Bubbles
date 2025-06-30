@@ -1,6 +1,11 @@
 using System;
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
 using Bubbles4.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -34,14 +39,19 @@ public partial class PageViewModel:ViewModelBase
     {
         get
         {
-            if (_ivp == null) _ivp = Book.ImageViewingParamsCollection?.Get(Name);
-            if(_ivp != null && !_ivp.IsValid) _ivp = null;
+            if (_ivp == null) 
+                _ivp = Book.ImageViewingParamsCollection?.Get(Name);
+            
+            if(_ivp != null && !_ivp.IsValid) 
+                _ivp = null;
+            
             return _ivp; 
         }
         set
         {
             SetProperty(ref _ivp, value);
-            if(value != null && value.IsValid) Book.ImageViewingParamsCollection?.Update(value);
+            if(value != null && value.IsValid) 
+                Book.ImageViewingParamsCollection?.AddOrUpdate(value);
         }
     }
     
@@ -57,9 +67,60 @@ public partial class PageViewModel:ViewModelBase
     public int RandomIndex {get; set;}
     
     [RelayCommand] public void PointerPressed()=>IsSelected = true;
-    [RelayCommand] private void DeleteCommand(){}
-    [RelayCommand] private void ShowDetailsCommand(){}
+    [RelayCommand]
+    private void OpenInExplorer()
+    {
+        try
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{Path}\"") { UseShellExecute = true });
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                // Try with xdg-open (common across most Linux desktop environments)
+                Process.Start(new ProcessStartInfo("xdg-open", $"\"{Path}\"") { UseShellExecute = true });
+            }
+            else
+            {
+                throw new PlatformNotSupportedException("Only Windows and Linux are supported.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Failed to open path: {ex.Message}");
+        }
+    }
+
     
+    [RelayCommand]
+    private async Task Delete()
+    {
+        var dialog = new OkCancelViewModel
+        {
+            Content = $"Do you want to delete [{Path}] permanently?"
+        };
+        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow
+            : null;
+        if (window != null)
+        {
+            var result = await Book.MainViewModel.DialogService.ShowDialogAsync<bool>(window, dialog);
+            if (result)
+            {
+                try
+                {
+                    if (File.Exists(Path)) File.Delete(Path);
+                    else Console.Error.WriteLine($"Path not found: {Path}");
+
+                    // Wait a tick in case the OS needs to release file handles
+                    await Task.Yield();
+                }
+                catch (Exception ex) { Console.Error.WriteLine($"Hard delete failed: {ex.Message}"); }
+            }    
+        }
+    }
+    private bool CanDelete => Book.Model is BookDirectory;
     [ObservableProperty] bool _isSelected;
     
 

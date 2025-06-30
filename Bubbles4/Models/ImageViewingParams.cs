@@ -39,7 +39,7 @@ public class IvpCollection
         return Collection.FirstOrDefault(x => x.filename == filename);
     }
 
-    public void Update(ImageViewingParams ivp)
+    public void AddOrUpdate(ImageViewingParams ivp)
     {
         Remove(ivp.filename);
         Collection.Add(ivp);

@@ -1,9 +1,9 @@
 using System;
 using System.ComponentModel;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Bubbles4.Controls;
 using Bubbles4.Models;
@@ -79,7 +79,7 @@ public partial class MainView : UserControl
             {
                 switch (e.Key)
                 {
-                    case Key.H :
+                    case Key.H:
                         e.Handled = true;
                         fastImageViewer.FitHeight();
                         break;
@@ -87,9 +87,13 @@ public partial class MainView : UserControl
                         e.Handled = true;
                         fastImageViewer.FitWidth();
                         break;
-                    case Key.F:
+                    case Key.B:
                         e.Handled = true;
                         fastImageViewer.Fit();
+                        break;
+                    case Key.F:
+                        e.Handled = true;
+                        fastImageViewer.FitStock();
                         break;
                     case Key.Down :
                         e.Handled = true;
@@ -108,11 +112,61 @@ public partial class MainView : UserControl
                         fastImageViewer.Zoom(-1);
                         break;
                 }
-                    
             }
-            
         };
-
+        /*
+         relocation of
+           <KeyBinding Gesture="PageDown" Command="{Binding NextBookCommand}" />
+           <KeyBinding Gesture="PageUp" Command="{Binding PreviousBookCommand}" />
+           <KeyBinding Gesture="Escape" Command="{Binding ExitFullScreenCommand}" />
+           <KeyBinding Gesture="Space" Command="{Binding NextCommand}" />
+           <KeyBinding Gesture="Alt+Space" Command="{Binding PreviousCommand}" />
+           <KeyBinding Gesture="Right" Command="{Binding NextCommand}" />
+           <KeyBinding Gesture="Back" Command="{Binding PreviousCommand}" />
+           <KeyBinding Gesture="Left" Command="{Binding PreviousCommand}" />
+         */
+        KeyUp += ((sender, e) =>
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                switch (e.Key)
+                {
+                    case Key.PageDown :
+                        e.Handled = true;
+                        vm.NextBookCommand.Execute(null);
+                        break;
+                    case Key.PageUp :
+                        e.Handled = true;
+                        vm.PreviousBookCommand.Execute(null);
+                        break;
+                    case Key.Home:
+                        e.Handled = true;
+                        vm.FirstPageCommand.Execute(null);
+                        break;
+                    case Key.End:
+                        vm.LastPageCommand.Execute(null);
+                        e.Handled = true;
+                        break;
+                    case Key.Space:
+                    case Key.Right:
+                        if(e.KeyModifiers.HasFlag(KeyModifiers.Alt))
+                            vm.PreviousCommand.Execute(null);
+                        else vm.NextCommand.Execute(null);
+                        e.Handled = true;
+                        break;
+                    case Key.Left:
+                    case Key.Back:
+                        vm.PreviousCommand.Execute(null);
+                        e.Handled = true;
+                        break;
+                    case Key.Escape:
+                        if(vm.IsFullscreen)
+                            vm.ToggleFullscreenCommand.Execute(null);
+                        e.Handled = true;
+                        break;
+                }
+            }
+        });
 
     }
 
@@ -166,5 +220,11 @@ public partial class MainView : UserControl
             _previousFocusedElement?.Focus();
         }
     }
-  
+    private void SearchBox_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            SearchButton.Command?.Execute(SearchButton.CommandParameter);
+        }
+    }
 }

@@ -25,8 +25,10 @@ public partial class LibraryNodeViewModel : LibraryViewModel
             return s;
         } 
     }
+    public DateTime Created { get; set; }
+    public DateTime Modified { get; set; }
     public MainViewModel MainVM => _mainViewModel;
-    public LibraryNodeViewModel? Root { get; private set; } 
+    public LibraryNodeViewModel Root { get; private set; } 
     public LibraryNodeViewModel? Parent { get; private set; }
 
     [ObservableProperty] private ObservableCollection<LibraryNodeViewModel> _children = new();
@@ -48,13 +50,10 @@ public partial class LibraryNodeViewModel : LibraryViewModel
     
 
     
-    public LibraryNodeViewModel(MainViewModel mainViewModel, string path, string name, LibraryNodeViewModel? root=null, LibraryNodeViewModel? parent = null)
+    public LibraryNodeViewModel(MainViewModel mainViewModel, string path, string name, LibraryNodeViewModel? parent = null)
     : base(mainViewModel, path)
     {
-        if(root == null && parent != null)
-            throw new ArgumentException("parent provided without a matching Root argument");
-        
-        Root = parent == null ? this : root;
+        Root = (parent == null) ? this : parent.Root;
         Parent = parent;
         _name = name;
     }
@@ -108,6 +107,7 @@ public partial class LibraryNodeViewModel : LibraryViewModel
     public override void AddBatch(List<BookBase> batch)
     {
         base.AddBatch(batch);
+        
         OnPropertyChanged(nameof(BookCount));
         OnPropertyChanged(nameof(Name));
     }
@@ -126,5 +126,9 @@ public partial class LibraryNodeViewModel : LibraryViewModel
             return hasBooks;
         }
     }
-    
+
+    public void SortChildren(LibraryConfig.SortOptions sortOptions, bool asc)
+    {
+        
+    }
 }

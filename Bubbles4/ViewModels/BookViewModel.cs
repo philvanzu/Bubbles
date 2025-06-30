@@ -1,10 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Reactive;
-using System.Reactive.Linq;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
 using Bubbles4.Models;
 using Bubbles4.Services;
@@ -21,7 +25,7 @@ public partial class BookViewModel: ViewModelBase
     private BookBase _book;
     public BookBase Model => _book;
     
-    public string? Path => _book.Path;
+    public string Path => _book.Path;
     public string Name => _book.Name;
     public int PageCount => _book.PageCount;
     public DateTime LastModified => _book.LastModified;
@@ -40,17 +44,12 @@ public partial class BookViewModel: ViewModelBase
     private bool _isThumbnailLoading;
     public Task? LoadingTask { get; set; }
     
-    ReadOnlyObservableCollection<PageViewModel> _pages;
-    public ReadOnlyObservableCollection<PageViewModel> Pages
-    {
-        get => _pages;
-        set => SetProperty(ref _pages, value); 
-    } 
+    List<PageViewModel> _pages = new ();
+    ObservableCollection<PageViewModel> _pagesMutable = new ();
+    public ReadOnlyObservableCollection<PageViewModel> Pages { get; }
     
-    private readonly SourceList<PageViewModel> _pageSource = new();
-    private IDisposable? _pagesConnection;
-    private LibraryConfig.SortOptions _currentSortOption = LibraryConfig.SortOptions.Natural;
-    private bool _currentSortDirection = true; //ascending
+    private LibraryConfig.SortOptions _currentSortOption;
+    private bool _currentSortAscending; //ascending
     
     public BookViewModel(BookBase book, LibraryViewModel library, MainViewModel mainViewModel)
     {
@@ -58,74 +57,80 @@ public partial class BookViewModel: ViewModelBase
         this._book = book;
         this._library = library;
         
-        _pages = new ReadOnlyObservableCollection<PageViewModel>(new ObservableCollection<PageViewModel>());
-        
-        
-        _pagesConnection = _pageSource
-        .Connect()
-        //.Sort(SortExpressionComparer<BookViewModel>.Ascending(x => x.Name))
-        .Bind(out _pages)
-        .AutoRefreshOnObservable(_ => Observable.Return(Unit.Default)) // Optional: can use to refresh view
-        .Subscribe();
-
+        Pages = new ReadOnlyObservableCollection<PageViewModel>(_pagesMutable);
+        _currentSortOption = _mainViewModel.Config?.BookSortOption ?? LibraryConfig.SortOptions.Path;
+        _currentSortAscending = _mainViewModel.Config?.BookSortAscending ?? true;
     }
     
-    
-    public void ChangeSort(LibraryConfig.SortOptions sort, bool direction)
+    private IComparer<PageViewModel> GetComparer(LibraryConfig.SortOptions sort, bool ascending)
     {
-        // Dispose the previous connection
-        _pagesConnection?.Dispose();
-
-        // Rebuild the pipeline with the new sort
-        var conn = _pageSource.Connect();
-        IObservable<IChangeSet<PageViewModel>>? sorted=null;
-        switch (sort)
+        return sort switch
         {
-            case LibraryConfig.SortOptions.Path:
-                sorted = (direction) ? 
-                    conn.Sort(SortExpressionComparer<PageViewModel>.Ascending(x => x.Path)):
-                    conn.Sort(SortExpressionComparer<PageViewModel>.Descending(x => x.Path));
-                break;
-            case LibraryConfig.SortOptions.Alpha:
-                sorted = (direction) ? 
-                    conn.Sort(SortExpressionComparer<PageViewModel>.Ascending(x => x.Name)):
-                    conn.Sort(SortExpressionComparer<PageViewModel>.Descending(x => x.Name));
-                break;
-            case LibraryConfig.SortOptions.Created:
-                sorted = (direction) ? 
-                    conn.Sort(SortExpressionComparer<PageViewModel>.Ascending(x => x.Created)):
-                    conn.Sort(SortExpressionComparer<PageViewModel>.Descending(x => x.Created));
-                break;
-            case LibraryConfig.SortOptions.Modified:
-                sorted = (direction) ? 
-                    conn.Sort(SortExpressionComparer<PageViewModel>.Ascending(x => x.LastModified)):
-                    conn.Sort(SortExpressionComparer<PageViewModel>.Descending(x => x.LastModified));
-                break;
-            case LibraryConfig.SortOptions.Natural:
-                sorted = conn.Sort(new PageViewModelNaturalComparer(direction));
-                break;
-            
-            case LibraryConfig.SortOptions.Random:
-                foreach (var page in _pageSource.Items)
-                    page.RandomIndex = CryptoRandom.NextInt();
-                // Use identity sort or no sort (or a no-op comparer)
-                sorted = conn.Sort(SortExpressionComparer<PageViewModel>.Ascending(x => x.RandomIndex));
-                break;
+            LibraryConfig.SortOptions.Path => ascending
+                ? SortExpressionComparer<PageViewModel>.Ascending(x => x.Path)
+                : SortExpressionComparer<PageViewModel>.Descending(x => x.Path),
+
+            LibraryConfig.SortOptions.Alpha => ascending
+                ? SortExpressionComparer<PageViewModel>.Ascending(x => x.Name)
+                : SortExpressionComparer<PageViewModel>.Descending(x => x.Name),
+
+            LibraryConfig.SortOptions.Created => ascending
+                ? SortExpressionComparer<PageViewModel>.Ascending(x => x.Created)
+                : SortExpressionComparer<PageViewModel>.Descending(x => x.Created),
+
+            LibraryConfig.SortOptions.Modified => ascending
+                ? SortExpressionComparer<PageViewModel>.Ascending(x => x.LastModified)
+                : SortExpressionComparer<PageViewModel>.Descending(x => x.LastModified),
+
+            LibraryConfig.SortOptions.Natural => new PageViewModelNaturalComparer(ascending),
+
+            LibraryConfig.SortOptions.Random => RandomizeAndReturnComparer(),
+
+            _ => SortExpressionComparer<PageViewModel>.Ascending(x => x.Name)
+        };
+    }
+    private IComparer<PageViewModel> RandomizeAndReturnComparer()
+    {
+        int seed = CryptoRandom.NextInt();
+
+        int Hash(string input)
+        {
+            unchecked
+            {
+                int hash = 17;
+                foreach (char c in input)
+                    hash = hash * 31 + c;
+                return hash;
+            }
         }
 
-        _pagesConnection = 
-            sorted!.Bind(out _pages)
-            .Subscribe();
+        return Comparer<PageViewModel>.Create((x, y) =>
+        {
+            int xHash = Hash(x.Path) ^ seed;
+            int yHash = Hash(y.Path) ^ seed;
+            return xHash.CompareTo(yHash);
+        });
+    }
+    public void Sort(LibraryConfig.SortOptions? sort=null, bool? ascending=null)
+    {
+        if(sort == null) sort  = _mainViewModel.Config?.BookSortOption ?? LibraryConfig.SortOptions.Path;
+        if(ascending == null) ascending = _mainViewModel.Config?.BookSortAscending ?? true;
+        _currentSortOption = sort.Value;
+        _currentSortAscending = ascending.Value;
+        
+        var comparer = GetComparer(_currentSortOption, _currentSortAscending);
+        var sorted = _pages.OrderBy(p => p, comparer);
+
+        _pagesMutable.Clear();
+        _pagesMutable.AddRange(sorted);
 
         OnPropertyChanged(nameof(Pages));
-        _currentSortOption = sort;
-        _currentSortDirection = direction;
     }
-    
+
     public void ReverseSortOrder()
     {
-        _currentSortDirection = !_currentSortDirection;
-        ChangeSort(_currentSortOption, _currentSortDirection);
+        _currentSortAscending = !_currentSortAscending;
+        Sort(_currentSortOption, _currentSortAscending);
     }
     
     public async Task PrepareThumbnailAsync()
@@ -185,35 +190,43 @@ public partial class BookViewModel: ViewModelBase
     
     public async Task LoadPagesListAsync()
     {
-        var list = new List<PageViewModel>();
         await _book.LoadPagesList(pgs =>
         {
             if (pgs != null)
+            {
                 foreach (var page in pgs)
                 {
-                    list.Add(new PageViewModel(this, page));
+                    _pages.Add(new PageViewModel(this, page));
                     _book.PagesCts.TryAdd(page.Path, null);
                 }
+                Sort();
+                
+                ImageViewingParamsCollection = IvpCollection.Load(_book.IvpPath);
+                if (ImageViewingParamsCollection == null && _mainViewModel.Config?.UseIVPs == true)
+                {
+                    ImageViewingParamsCollection = new();
+                }
+                    
+            }
         });
-        _pageSource.Clear();
-        foreach( var p in list)
-            _pageSource.Add(p);
-            
-        OnPropertyChanged(nameof(Pages));
-        ImageViewingParamsCollection = IvpCollection.Load(_book.IvpPath);
+        
+        
     }
 
     public void UnloadPagesList()
     {
         _book.CancelPagesListLoad();
-        if (ImageViewingParamsCollection != null)
+        if (ImageViewingParamsCollection != null && _mainViewModel.Config?.UseIVPs == true)
         {
-            
-            //ImageViewingParamsCollection.Save(_book.IvpPath);
+            ImageViewingParamsCollection.Save(_book.IvpPath);
             ImageViewingParamsCollection = null;
         }
         foreach (var page in Pages) page.Unload();
-        if(Pages.Count > 0)_pageSource.Clear();
+        if (Pages.Count > 0)
+        {
+            _pages.Clear();
+            _pagesMutable.Clear();
+        }
         
         if (_book.PagesCts.Count > 0)
         {
@@ -238,17 +251,60 @@ public partial class BookViewModel: ViewModelBase
         if(SelectedPage != null) SelectedPage.IsSelected = false;
         await _mainViewModel.Next();
     }
+
     [RelayCommand]
-    private void StartRenamingCommand(){}
+    private async Task Delete()
+    {
+        var dialog = new OkCancelViewModel
+        {
+            Content = $"Do you want to delete [{Path}] permanently?"
+        };
+        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow
+            : null;
+        if (window != null)
+        {
+            var result = await _mainViewModel.DialogService.ShowDialogAsync<bool>(window, dialog);
+            if (result)
+            {
+                try
+                {
+                    if (File.Exists(Path)) File.Delete(Path);
+                    else if (Directory.Exists(Path)) Directory.Delete(Path, true);
+                    else Console.Error.WriteLine($"Path not found: {Path}");
+
+                    // Wait a tick in case the OS needs to release file handles
+                    await Task.Yield();
+                }
+                catch (Exception ex) { Console.Error.WriteLine($"Hard delete failed: {ex.Message}"); }
+            }    
+        }
+    }
     
     [RelayCommand]
-    private void DeleteCommand(){}
-    [RelayCommand]
-    private void OpenInExplorerCommand(){}
-    [RelayCommand]
-    private void OpenFileCommand(){}
-    [RelayCommand]
-    private void ShowDetailsCommand(){}
+    private void OpenInExplorer()
+    {
+        try
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{Path}\"") { UseShellExecute = true });
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                // Try with xdg-open (common across most Linux desktop environments)
+                Process.Start(new ProcessStartInfo("xdg-open", $"\"{Path}\"") { UseShellExecute = true });
+            }
+            else
+            {
+                throw new PlatformNotSupportedException("Only Windows and Linux are supported.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Failed to open path: {ex.Message}");
+        }
+    }
 
     [ObservableProperty] bool _isSelected;
     partial void OnIsSelectedChanged(bool oldValue, bool newValue)
@@ -343,8 +399,17 @@ public partial class BookViewModel: ViewModelBase
         return true;
     }
 
+    public bool FirstPage()
+    {
+        if (Pages.Count <= 0) return false;
+        Pages.First().IsSelected = true;
+        return true;
+    }
 
-
-
-
+    public bool LastPage()
+    {
+        if (Pages.Count <= 0) return false;
+        Pages.Last().IsSelected = true;
+        return true;
+    }
 }

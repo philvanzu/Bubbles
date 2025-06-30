@@ -196,4 +196,5 @@ public class SlidingImageCache : IDisposable
 
         _mainViewModel.PropertyChanged -= OnPropertyChanged;
     }
+
 }

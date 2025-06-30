@@ -34,19 +34,16 @@ public partial class App : Application
                 {
                     DataContext = mvm
                 };
-                // Fire-and-forget safely
-                _ = Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        await mvm.InitializeAsync(libraryPath);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Optional: handle/log any init errors
-                        Console.WriteLine($"Initialization failed: {ex.Message}");
-                    }
-                });
+                    mvm.InitializeAsync(libraryPath);
+                }
+                catch (Exception ex)
+                {
+                    // Optional: handle/log any init errors
+                    Console.WriteLine($"Initialization failed: {ex}");
+                }
+                
             }
 
             

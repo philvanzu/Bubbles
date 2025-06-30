@@ -242,14 +242,17 @@ namespace Bubbles4.Controls {
             var ratio = iratio/cratio;
             _minZoom = 1.0;
 
+            _fitHZoom = ch / ih;
+            _fitWZoom = cw/iw;
+            
             if (ratio < 1)
             {
-                _fitZoom = _fitHZoom = ch / ih;
+                _fitZoom = _fitHZoom;
                 if (ih >= ch) _minZoom = _fitZoom;
             } 
             else if (ratio >= 1)
             {
-                _fitZoom = _fitWZoom = cw/iw;
+                _fitZoom = _fitWZoom;
                 if(iw >= cw)_minZoom = _fitZoom;
             } 
         }

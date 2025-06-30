@@ -7,6 +7,7 @@ namespace Bubbles4.Views;
 
 public partial class OkCancelWindow : Window
 {
+    public OkCancelWindow() : this(null) { }
     public OkCancelWindow(OkCancelViewModel? vm)
     {
         InitializeComponent();
