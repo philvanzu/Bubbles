@@ -5,11 +5,14 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using Bubbles4.Models;
 using Bubbles4.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -50,7 +53,6 @@ public partial class BookViewModel: ViewModelBase
     
     private LibraryConfig.SortOptions _currentSortOption;
     private bool _currentSortAscending; //ascending
-    
     public BookViewModel(BookBase book, LibraryViewModel library, MainViewModel mainViewModel)
     {
         this._mainViewModel = mainViewModel;
@@ -319,8 +321,9 @@ public partial class BookViewModel: ViewModelBase
         }
     }
 
-    public int GetPageIndex(PageViewModel pageViewModel)
+    public int GetPageIndex(PageViewModel? pageViewModel)
     {
+        if(pageViewModel == null)return -1;
         return Pages.IndexOf(pageViewModel);
     }
     public ICommand HandleItemPrepared => new AsyncRelayCommand<object>(
@@ -412,4 +415,73 @@ public partial class BookViewModel: ViewModelBase
         Pages.Last().IsSelected = true;
         return true;
     }
+    
+    #region FileSystemWatcher events
+
+    public void FileSystemChanged(FileSystemEventArgs e)
+    {
+        RefreshModelInfo(Model.Path);
+    }
+
+    public void FileSystemRenamed(RenamedEventArgs e)
+    {
+        if (Path == e.OldFullPath)
+            RefreshModelInfo(e.FullPath);
+    }
+
+    public void PageFileChanged(FileSystemEventArgs e) => EnqueueRebuildPagesListJob();
+    public void PageFileRenamed(RenamedEventArgs e) => EnqueueRebuildPagesListJob();
+
+    void RefreshModelInfo(string newPath)
+    {
+        Model.Path = newPath;
+
+        if (Model is BookDirectory && Directory.Exists(newPath))
+        {
+            Model.Name = System.IO.Path.GetFileName(newPath.TrimEnd(System.IO.Path.DirectorySeparatorChar));
+            Model.Created = Directory.GetCreationTime(newPath);
+            Model.LastModified = Directory.GetLastWriteTime(newPath);
+        }
+        else if (File.Exists(newPath))
+        {
+            Model.Name = System.IO.Path.GetFileName(newPath);
+            Model.Created = File.GetCreationTime(newPath);
+            Model.LastModified = File.GetLastWriteTime(newPath);
+        }
+    }
+    
+    private int _pagesLoading = 0;
+    void EnqueueRebuildPagesListJob()
+    {
+        if (Interlocked.CompareExchange(ref _pagesLoading, 1, 0) == 0)
+        {
+            _ = Task.Run(async () =>
+            {
+                bool success = false;
+                try
+                {
+                    await Dispatcher.UIThread.InvokeAsync(() => _pages.Clear());
+                    await LoadPagesListAsync();
+                    success = true;
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine(ex);
+                }
+                finally
+                {
+                    Interlocked.Exchange(ref _pagesLoading, 0);
+                }
+
+                if (success)
+                {
+                    await Dispatcher.UIThread.InvokeAsync(() => Sort(_currentSortOption, _currentSortAscending));
+                }
+            });
+        }
+    }
+
+    
+    #endregion
+
 }

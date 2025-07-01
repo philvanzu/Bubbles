@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Bubbles4.Controls;
 using Bubbles4.Models;
 using Bubbles4.ViewModels;
@@ -35,6 +36,9 @@ public partial class MainView : UserControl
 
         // Subscribe to DataContext changes to watch IsFullscreen property
         this.DataContextChanged += MainView_DataContextChanged;
+        
+        
+        
         _imgViewerContainer!.DoubleTapped += (_, _) =>
         {
             if (DataContext is MainViewModel vm)
@@ -114,62 +118,47 @@ public partial class MainView : UserControl
                 }
             }
         };
-        /*
-         relocation of
-           <KeyBinding Gesture="PageDown" Command="{Binding NextBookCommand}" />
-           <KeyBinding Gesture="PageUp" Command="{Binding PreviousBookCommand}" />
-           <KeyBinding Gesture="Escape" Command="{Binding ExitFullScreenCommand}" />
-           <KeyBinding Gesture="Space" Command="{Binding NextCommand}" />
-           <KeyBinding Gesture="Alt+Space" Command="{Binding PreviousCommand}" />
-           <KeyBinding Gesture="Right" Command="{Binding NextCommand}" />
-           <KeyBinding Gesture="Back" Command="{Binding PreviousCommand}" />
-           <KeyBinding Gesture="Left" Command="{Binding PreviousCommand}" />
-         */
-        KeyUp += ((sender, e) =>
-        {
-            if (DataContext is MainViewModel vm)
-            {
-                switch (e.Key)
-                {
-                    case Key.PageDown :
-                        e.Handled = true;
-                        vm.NextBookCommand.Execute(null);
-                        break;
-                    case Key.PageUp :
-                        e.Handled = true;
-                        vm.PreviousBookCommand.Execute(null);
-                        break;
-                    case Key.Home:
-                        e.Handled = true;
-                        vm.FirstPageCommand.Execute(null);
-                        break;
-                    case Key.End:
-                        vm.LastPageCommand.Execute(null);
-                        e.Handled = true;
-                        break;
-                    case Key.Space:
-                    case Key.Right:
-                        if(e.KeyModifiers.HasFlag(KeyModifiers.Alt))
-                            vm.PreviousCommand.Execute(null);
-                        else vm.NextCommand.Execute(null);
-                        e.Handled = true;
-                        break;
-                    case Key.Left:
-                    case Key.Back:
-                        vm.PreviousCommand.Execute(null);
-                        e.Handled = true;
-                        break;
-                    case Key.Escape:
-                        if(vm.IsFullscreen)
-                            vm.ToggleFullscreenCommand.Execute(null);
-                        e.Handled = true;
-                        break;
-                }
-            }
-        });
-
     }
 
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+
+        var window = this.GetVisualRoot() as Window;
+        if (window != null)
+        {
+            window.AddHandler(InputElement.KeyUpEvent, OnGlobalKeyUp,  RoutingStrategies.Bubble, true);
+        }
+    }
+    private void OnGlobalKeyUp(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm )
+            return;
+
+        switch (e.Key)
+        {
+            case Key.Space:
+            case Key.Right:
+                if (e.KeyModifiers.HasFlag(KeyModifiers.Alt))
+                    vm.PreviousCommand.Execute(null);
+                else
+                    vm.NextCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            case Key.Left:
+            case Key.Back:
+                vm.PreviousCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            case Key.Escape:
+                if (vm.IsFullscreen)
+                    vm.ToggleFullscreenCommand.Execute(null);
+                e.Handled = true;
+                break;
+        }
+    }
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
@@ -227,4 +216,6 @@ public partial class MainView : UserControl
             SearchButton.Command?.Execute(SearchButton.CommandParameter);
         }
     }
+
+
 }

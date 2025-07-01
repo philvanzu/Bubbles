@@ -451,9 +451,9 @@ namespace Bubbles4.Controls {
                 {
                     RestoreFromIVP(ivp);
                     if (_ivpAnim?.IsRunning == false) _ivpAnim = null;
-                    Console.WriteLine("animation tick");
+                    //Console.WriteLine("animation tick");
                 }, 
-                500.0);
+                300.0);
         }
 
         public ImageViewingParams? SaveToIVP(string filename)

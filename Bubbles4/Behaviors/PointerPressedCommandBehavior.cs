@@ -7,6 +7,9 @@ using System.Windows.Input;
 namespace Bubbles4.Behaviors;
 public class PointerPressedCommandBehavior : Behavior<Control>
 {
+    
+
+
     public static readonly StyledProperty<ICommand?> CommandProperty =
         AvaloniaProperty.Register<PointerPressedCommandBehavior, ICommand?>(nameof(Command));
 
@@ -36,5 +39,7 @@ public class PointerPressedCommandBehavior : Behavior<Control>
         var parameter = AssociatedObject?.DataContext;
         if (Command?.CanExecute(parameter) == true)
             Command.Execute(parameter);
+        AutoScrollToSelectedBehavior.SuppressNextAutoScroll = true;
     }
+
 }

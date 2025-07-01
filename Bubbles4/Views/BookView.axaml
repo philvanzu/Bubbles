@@ -18,57 +18,39 @@
                 <local:InvokeItemLifecycleBehavior
                     ItemPreparedCommand="{Binding HandleItemPrepared}"
                     ItemClearingCommand="{Binding HandleItemClearing}" />
+                <local:AutoScrollToSelectedBehavior />
             </i:Interaction.Behaviors>
             <ir:ItemsRepeater.Layout>
                 <UniformGridLayout MaximumRowsOrColumns="0" /> <!-- 0 = auto wrap -->
             </ir:ItemsRepeater.Layout>
             <ir:ItemsRepeater.ItemTemplate>
                 <DataTemplate>
-                    <!--
-                    <Border BorderBrush="White" BorderThickness="1" >
-                        <StackPanel Width="250" Margin="5" Orientation="Vertical">
-                            <Image Source="{Binding Thumbnail}" Width="240"/>
-                            <TextBlock Text="{Binding Name}" TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </Border>
-                    -->
                     <UserControl>
-                        <UserControl.Resources>
-                            <converters:BoolToBrushConverter x:Key="BoolToBrushConverter"
-                                                             TrueBrush="LightBlue"
-                                                             FalseBrush="Transparent"/>
-                        </UserControl.Resources>
-                        <StackPanel Width="132" Height="152"
-                                    Orientation="Vertical"
-                                    Background="{Binding IsSelected, Converter={StaticResource BoolToBrushConverter}}">
+                        <Panel>
+                            <Border Width="132" Height="152">
+                            <StackPanel >
+                                <i:Interaction.Behaviors>
+                                    <local:PointerPressedCommandBehavior Command="{Binding PointerPressed}" />
+                                </i:Interaction.Behaviors>
+                                <StackPanel.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}" />
+                                        <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+                                    </ContextMenu>
+                                </StackPanel.ContextMenu>
 
-                            <i:Interaction.Behaviors>
-                                <local:PointerPressedCommandBehavior Command="{Binding PointerPressed}" />
-                            </i:Interaction.Behaviors>
-                            <!--    
-                            <StackPanel.InputBindings>
-                                <MouseBinding Gesture="LeftDoubleClick" Command="{Binding ShowDetailsCommand}" />
-                            </StackPanel.InputBindings>
-    -->
-                            <StackPanel.ContextMenu>
-                                <ContextMenu>
-                                    <!-- You can use Interactions or Command bindings depending on how you handle viewmodel logic -->
-                                    <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}" />
-                                    <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
-                                </ContextMenu>
-                            </StackPanel.ContextMenu>
-
-                            <Border BorderBrush="White" BorderThickness="1" CornerRadius="5" Width="128" Height="128">
-                                <Grid>
-                                    <Image Source="{Binding Thumbnail}" Stretch="Uniform"/>
-                                </Grid>
+                                <Border BorderBrush="White" BorderThickness="1" CornerRadius="5" Width="128" Height="128">
+                                    <Grid>
+                                        <Image Source="{Binding Thumbnail}" Stretch="Uniform"/>
+                                    </Grid>
+                                </Border>
+                                <TextBlock Name="FileNameTextBlock" HorizontalAlignment="Left" Margin="3" Text="{Binding Name}" />
+                            </StackPanel>
                             </Border>
-
-                            <TextBlock Name="FileNameTextBlock" HorizontalAlignment="Left" Margin="3" Text="{Binding Name}" />
-                            <!--
-                            <TextBlock HorizontalAlignment="Center" Margin="3" Text="{Binding Index}" />
-                            -->
-                        </StackPanel>
+                            <Border Width="132" Height="152" Background="#55ffffff" 
+                                    IsVisible="{Binding IsSelected}"
+                                    BorderBrush="transparent" BorderThickness="1" CornerRadius="5"/>
+                        </Panel>
                     </UserControl>
                 </DataTemplate>
             </ir:ItemsRepeater.ItemTemplate>

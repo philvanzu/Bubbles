@@ -12,6 +12,7 @@
              x:Name="RootControl">
     <UserControl.Resources>
         <converters:BoolToGridLengthConverter x:Key="BoolToGridLengthConverter" />
+        <converters:BooleanToGeometryConverter x:Key="BoolToArrowGeometry"/>
     </UserControl.Resources>
    
     <Grid >
@@ -22,7 +23,7 @@
         </Grid.RowDefinitions>
         <!--list of libraries-->
         <StackPanel >
-            <TextBlock Height="32" FontSize="16">Libraries</TextBlock>
+            <TextBlock Height="32" FontSize="16">Recent Libraries</TextBlock>
             <ItemsControl Grid.Row="1" ItemsSource="{Binding LibrariesList}" HorizontalAlignment="Stretch">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -60,10 +61,28 @@
                       Background="DarkGray"
                       ShowsPreview="True"/>
         <Border Grid.Row="2" IsVisible="{Binding ShowLibraryTree}">
-            <Grid RowDefinitions="Auto, *">
-                <TextBlock>Library Tree View</TextBlock>
+            <Grid RowDefinitions="36, Auto, *">
+                <Border Height="32" 
+                        BorderBrush="White" 
+                        BorderThickness="1" 
+                        Background="#505050"
+                        Margin="4, 8, 4, 16">
+                    <StackPanel Orientation="Horizontal">
+                    <TextBlock Text=" Sort children by   " VerticalAlignment="Center"/>
+                    <ComboBox SelectedItem="{Binding NodeSortOption}"
+                              ItemsSource="{Binding NodeSortOptions, Mode = TwoWay}"/>
+                    <ToggleButton Width="40" Height="40" IsChecked="{Binding NodeSortAscending, Mode=TwoWay}">
+                        <Path Fill="Black"
+                              Width="16"
+                              Height="16"
+                              Stretch="Uniform"
+                              Data="{Binding NodeSortAscending, Converter={StaticResource BoolToArrowGeometry}}"/>                
+                    </ToggleButton>
+                    </StackPanel>
+                </Border>
+                <TextBlock Grid.Row="1" Text="{Binding Library.Path}"/>
                 <!-- TreeView pane -->
-                <ScrollViewer Grid.Row="1">
+                <ScrollViewer Grid.Row="2">
                     <TreeView Width="250" 
                               ItemsSource="{Binding LibraryRoot.Children}" 
                               SelectedItem="{Binding SelectedLibraryNode, Mode=TwoWay}">

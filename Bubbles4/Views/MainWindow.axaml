@@ -16,13 +16,14 @@
         <Window.KeyBindings>
                 <KeyBinding Gesture="F11" Command="{Binding ToggleFullscreenCommand}" />
                 <KeyBinding Gesture="Alt+Enter" Command="{Binding ToggleFullscreenCommand}" />
-                
-                
+                <KeyBinding Gesture="PageDown" Command="{Binding NextBookCommand}" />
+                <KeyBinding Gesture="PageUp" Command="{Binding PreviousBookCommand}" />
+                <KeyBinding Gesture="Home" Command="{Binding FirstPageCommand}" />
+                <KeyBinding Gesture="End" Command="{Binding LastPageCommand}" />
                 <!--
                 leaving these here for reference, but they are better handled in the mainview codebehind
                 along with some more key bindings.
-                <KeyBinding Gesture="PageDown" Command="{Binding NextBookCommand}" />
-                <KeyBinding Gesture="PageUp" Command="{Binding PreviousBookCommand}" />
+
                 <KeyBinding Gesture="Escape" Command="{Binding ExitFullScreenCommand}" />
                 <KeyBinding Gesture="Space" Command="{Binding NextCommand}" />
                 <KeyBinding Gesture="Right" Command="{Binding NextCommand}" />

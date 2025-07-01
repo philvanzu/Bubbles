@@ -48,6 +48,8 @@ public partial class MainViewModel : ViewModelBase
         {
             SetProperty(ref _selectedLibraryNode, value);
             if(value != null && value != Library) Library = value;
+            if(LibraryRoot != null)
+                LibraryRoot.SelectedNode = value;
         }
     }
 
@@ -118,6 +120,7 @@ public partial class MainViewModel : ViewModelBase
     
     //toolbar
     public LibraryConfig.SortOptions[] SortOptions => Enum.GetValues<LibraryConfig.SortOptions>();
+    
 
     private LibraryConfig.SortOptions _librarySortOption;
     public LibraryConfig.SortOptions LibrarySortOption
@@ -180,7 +183,42 @@ public partial class MainViewModel : ViewModelBase
             }
         }
     }
-
+    public LibraryConfig.NodeSortOptions[] NodeSortOptions => Enum.GetValues<LibraryConfig.NodeSortOptions>();
+    private LibraryConfig.NodeSortOptions _nodeSortOption;
+    public LibraryConfig.NodeSortOptions NodeSortOption
+    {
+        get => _nodeSortOption;
+        set
+        {
+            SetProperty(ref _nodeSortOption, value);
+            if (this.Library is LibraryNodeViewModel node)
+                node.Root.SortChildren(value, NodeSortAscending);
+            if (Config != null)
+            {
+                Config.NodeSortOption = value;
+                Config.NodeSortAscending = _nodeSortAscending;    
+            }
+            
+        }
+    }
+    private bool _nodeSortAscending;
+    public bool NodeSortAscending
+    {
+        get => _nodeSortAscending;
+        set
+        {
+            if(value != _nodeSortAscending && SelectedLibraryNode != null)
+                SelectedLibraryNode.Root.ReverseChildrenSortOrder();
+            
+            SetProperty(ref _nodeSortAscending, value);
+            if (Config != null)
+            {
+                Config.NodeSortOption = _nodeSortOption;
+                Config.NodeSortAscending = value;
+            }
+        }
+    }
+    
     [ObservableProperty] private string _searchString = string.Empty;
     
     //status bar
@@ -190,6 +228,8 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string? _bookStatus;
     [ObservableProperty] private string? _libraryStatus;
     [ObservableProperty] private string? _pagingStatus;
+    
+    private readonly BackgroundFileWatcher _watcher = new();
     public MainViewModel(IDialogService dialogService)
     {
         _dialogService = dialogService;
@@ -218,10 +258,13 @@ public partial class MainViewModel : ViewModelBase
         if(!string.IsNullOrEmpty(Library?.Path))
             CloseLibrary();
         else AppData.Save();
+        
+        _watcher.Dispose();
     }
     
     void OpenLibrary(string? libraryPath)
     {
+        _watcher.StopWatching();
         if(Library != null)
             CloseLibrary();
         
@@ -236,22 +279,33 @@ public partial class MainViewModel : ViewModelBase
                 config  = new LibraryConfig(libraryPath);
 
             var libraryName = Path.GetFileName(Path.GetDirectoryName(libraryPath.TrimEnd(Path.DirectorySeparatorChar))) ?? libraryPath;
+            var info = new DirectoryInfo(libraryPath);
             Library = config.Recursive ? 
                 new LibraryViewModel(this, libraryPath) : 
-                new LibraryNodeViewModel(this, libraryPath, libraryName);
+                new LibraryNodeViewModel(this, libraryPath, info.Name, info.CreationTime, info.LastWriteTime);
 
             Config = config;            
             AppData.AddOrUpdate(libraryPath, config.Serialize());
             AppData.Save();
             OnPropertyChanged(nameof(LibrariesList));
 //            OnPropertyChanged(nameof(Config));
+            _watcher.BeginBuffering();
+            _watcher.StartWatching(libraryPath, true, Library.FileSystemChanged, Library.FileSystemRenamed);
 
-            _ = Task.Run(()=> Library.StartParsingLibraryAsync(libraryPath))
-                .ContinueWith((t) =>
+            _ = Task.Run(async () =>
+            {
+                try
                 {
-                    if (t.IsFaulted) { Console.WriteLine(t.Exception); }
-                    else Library.Sort(LibrarySortOption, LibrarySortAscending); 
-                });
+                    await Library.StartParsingLibraryAsync(libraryPath);
+                    Library.Sort(LibrarySortOption, LibrarySortAscending);
+                    _watcher.FlushBufferedEvents();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+
+            });
         }
     }
 
@@ -398,6 +452,12 @@ public partial class MainViewModel : ViewModelBase
             }    
         }
             
+    }
+
+    [RelayCommand]
+    private void EditGlobalSettings()
+    {
+        
     }
     [RelayCommand] public void ExitFullScreenCommand()
     {

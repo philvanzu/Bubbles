@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -226,7 +228,7 @@ public partial class LibraryViewModel: ViewModelBase
         //Console.WriteLine("Selected book :" + value.Name );
     }
 
-    int GetBookIndex(BookViewModel? book)
+    public int GetBookIndex(BookViewModel? book)
     {
         return (book != null)? Books.IndexOf(book) : -1;
     }
@@ -260,9 +262,221 @@ public partial class LibraryViewModel: ViewModelBase
 
     #region FileSystem Watcher Events
 
-    public async Task OnDirectoryChanged(string path)
+    public virtual void FileSystemChanged(FileSystemEventArgs e)
     {
-        await Task.CompletedTask;
+        bool sort = false;
+        BookBase? newBook = null;
+        BookViewModel? existing = null;
+        BookViewModel? shouldRemove = null;
+        BookViewModel? shouldAdd = null;
+        bool removeFlag = false;
+        
+        bool isImage = FileTypes.IsImage(e.FullPath);
+        if (isImage)
+        {
+            string? imgDir = System.IO.Path.GetDirectoryName(e.FullPath);
+            if (imgDir is not null)
+            {
+                var bvm = _books.FirstOrDefault(x => string.Equals(x.Path, imgDir, StringComparison.OrdinalIgnoreCase));
+                if(bvm?.Pages.Count > 0) bvm?.PageFileChanged(e);
+                else if(e.ChangeType == WatcherChangeTypes.Created && Directory.Exists(imgDir))
+                {
+                    FileInfo info = new FileInfo(imgDir);
+                    var bd = new BookDirectory(info.FullName, info.Name, -1,info.LastWriteTime, info.CreationTime);
+                    //!! potentially creating many versions of the same bookdirectory, but they should be bounced off in the processing thread if it happens
+                    shouldAdd = new BookViewModel(bd, this, _mainViewModel);
+                }
+            }
+        }
+
+        else
+        {
+            bool isArchive = FileTypes.IsArchive(e.FullPath);
+            bool isPdf = FileTypes.IsPdf(e.FullPath);
+            bool isDirbook = FileTypes.IsImageDirectory(e.FullPath);
+   
+            bool isBook = isDirbook || isPdf || isArchive;
+            if (isBook) existing = _books.FirstOrDefault(x => string.Equals(x.Path, e.FullPath, StringComparison.OrdinalIgnoreCase));
+
+            if (e.ChangeType == WatcherChangeTypes.Changed && existing != null)
+            {
+                existing.FileSystemChanged(e);
+                sort = true;
+            }
+            else
+            {
+                if (e.ChangeType == WatcherChangeTypes.Created )
+                {
+                    if (isArchive)
+                    {
+                        FileInfo info = new FileInfo(e.FullPath);
+                        newBook = new BookArchive(info.FullName, info.Name, -1, info.LastWriteTime, info.CreationTime);
+                        removeFlag = true;
+                    }
+                    else if (isPdf)
+                    {
+                        FileInfo info = new FileInfo(e.FullPath);
+                        newBook = new BookPdf(info.FullName, info.Name, -1, info.LastWriteTime, info.CreationTime);
+                        removeFlag = true;
+                    }
+                    else if (isDirbook)
+                    {
+                        DirectoryInfo info = new DirectoryInfo(e.FullPath);
+                        newBook = new BookDirectory(info.FullName, info.Name, -1, info.LastWriteTime, info.CreationTime);
+                        removeFlag = true;
+                    }
+                }
+                else if (e.ChangeType == WatcherChangeTypes.Deleted)
+                {
+                    if (isArchive || isPdf || isDirbook) removeFlag = true;
+                }
+
+                if (removeFlag && existing != null) shouldRemove = existing;
+                if (newBook != null) shouldAdd = new BookViewModel(newBook, this, _mainViewModel);
+            }
+        }
+        if (shouldAdd != null || shouldRemove != null || sort)
+        {
+            EnqueueWatcherEvent((shouldAdd, shouldRemove, sort));
+        }
+    }
+
+    public virtual void FileSystemRenamed(RenamedEventArgs e)
+    {
+        bool sort = false;
+        BookViewModel? shouldRemove = null;
+        BookViewModel? shouldAdd = null;
+
+        if (FileTypes.IsImage(e.FullPath))
+        {
+            string? imgDir = System.IO.Path.GetDirectoryName(e.FullPath);
+            string? oldImgDir = System.IO.Path.GetDirectoryName(e.OldFullPath);
+            if (imgDir is not null)
+            {
+                var bvm = _books.FirstOrDefault(x => string.Equals(x.Path, imgDir, StringComparison.OrdinalIgnoreCase));
+                if (bvm?.Pages.Count > 0) bvm.PageFileRenamed(e);
+            }
+            if (oldImgDir is not null)
+            {
+                var bvmOld = _books.FirstOrDefault(x => string.Equals(x.Path, oldImgDir, StringComparison.OrdinalIgnoreCase));
+                bvmOld?.PageFileRenamed(e); // Let it interpret that it lost a file
+            }
+        }
+        else
+        {
+            // Check whether the old path was a book
+            bool wasBook = FileTypes.IsArchive(e.OldFullPath) ||
+                           FileTypes.IsPdf(e.OldFullPath) ||
+                           FileTypes.IsImageDirectory(e.OldFullPath);
+
+            // Check whether the new path is a book
+            bool isNowBook = FileTypes.IsArchive(e.FullPath) ||
+                             FileTypes.IsPdf(e.FullPath) ||
+                             FileTypes.IsImageDirectory(e.FullPath);
+
+            // Remove the old book if it existed
+            if (wasBook)
+            {
+                var oldEntry = _books.FirstOrDefault(x =>
+                    string.Equals(x.Path, e.OldFullPath, StringComparison.OrdinalIgnoreCase));
+                if (oldEntry != null)
+                {
+                    if (isNowBook)
+                        oldEntry.FileSystemRenamed(e);
+                    else shouldRemove = oldEntry;
+                    sort = true;
+                }
+            }
+            // Add the new book if it qualifies
+            else if (isNowBook)
+            {
+                BookBase? newBook = null;
+
+                if (FileTypes.IsArchive(e.FullPath))
+                {
+                    var info = new FileInfo(e.FullPath);
+                    newBook = new BookArchive(info.FullName, info.Name, -1, info.LastWriteTime, info.CreationTime);
+                }
+                else if (FileTypes.IsPdf(e.FullPath))
+                {
+                    var info = new FileInfo(e.FullPath);
+                    newBook = new BookPdf(info.FullName, info.Name, -1, info.LastWriteTime, info.CreationTime);
+                }
+                else if (FileTypes.IsImageDirectory(e.FullPath))
+                {
+                    var info = new DirectoryInfo(e.FullPath);
+                    newBook = new BookDirectory(info.FullName, info.Name, -1, info.LastWriteTime, info.CreationTime);
+                }
+
+                if (newBook != null)
+                {
+                    var bvm = new BookViewModel(newBook, this, _mainViewModel);
+                    shouldAdd = bvm;
+                }
+                sort = true;
+            }
+
+            if (shouldAdd != null || shouldRemove != null || sort)
+            {
+                EnqueueWatcherEvent((shouldAdd, shouldRemove, sort));
+            }    
+        }
+    }
+
+    private ConcurrentQueue<(BookViewModel? add, BookViewModel? remove, bool sort )> _watcherProcessQueue = new(); 
+    
+    private int _watcherRunning = 0;
+
+    public void EnqueueWatcherEvent((BookViewModel? add, BookViewModel? remove, bool sort) item)
+    {
+        _watcherProcessQueue.Enqueue(item);
+        if (Interlocked.CompareExchange(ref _watcherRunning, 1, 0) == 0)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await ProcessWatcherEvents();
+                }
+                finally
+                {
+                    Interlocked.Exchange(ref _watcherRunning, 0);
+                }
+            });
+        }
+    }
+    
+    public async Task ProcessWatcherEvents()
+    {
+        bool dosort = false;
+        HashSet<string> addedPaths = new(StringComparer.OrdinalIgnoreCase);
+        while (_watcherProcessQueue.TryDequeue(out var item))
+        {
+            var add = item.add;
+            var remove = item.remove;
+            var sort = item.sort;
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (remove != null)
+                {
+                    _books.Remove(remove);
+                    dosort = true;
+                }
+
+                if (add != null && addedPaths.Add(add.Path)) //idempotent enough?
+                {
+                    _books.Add(add);
+                    dosort = true;
+                }
+
+                if (sort) dosort = true;
+            });
+        }
+
+        if (dosort)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() => Sort(_currentSortOption, _currentSortAscending));
+        }
     }
     #endregion
 

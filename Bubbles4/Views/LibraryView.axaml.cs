@@ -1,5 +1,7 @@
+using System;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Bubbles4.ViewModels;
 
@@ -12,5 +14,4 @@ public partial class LibraryView : UserControl
         InitializeComponent();
         
     }
-    
 }

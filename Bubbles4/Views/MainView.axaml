@@ -10,7 +10,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Bubbles4.Views.MainView"
              x:DataType="vm:MainViewModel"
-             >
+             x:Name="RootControl">
     <UserControl.Resources>
         <converters:BooleanToGeometryConverter x:Key="BoolToArrowGeometry"/>
         <converters:BoolToGridLengthConverter x:Key="BoolToGridLengthConverter" />
@@ -30,9 +30,27 @@
             <Border BorderThickness="1" BorderBrush="White" Background="#505050">
             <StackPanel Grid.Row="0" Orientation="Horizontal" >
                 <Menu>
-                    <MenuItem Header="Library">
-                        <MenuItem Header="New" Command="{Binding CreateLibraryAsync}"/>
-                        <MenuItem Header="Open" Command="{Binding PickDirectoryCommand}"/>
+                    <MenuItem Header="Bubbles">
+                        <MenuItem Header="New Library" Command="{Binding CreateLibraryAsync}"/>
+                        <MenuItem Header="Open Library" ItemsSource="{Binding LibrariesList}" >
+                                    <MenuItem.ItemTemplate>
+                                        <DataTemplate>
+                                            <MenuItem Header="{Binding .}" 
+                                                      Command="{Binding DataContext.OnOpenLibraryPressed, ElementName=RootControl}"
+                                                      CommandParameter="{Binding .}" />
+                                        </DataTemplate>
+                                    </MenuItem.ItemTemplate>
+                        </MenuItem>
+                        <MenuItem Header="Delete Library" ItemsSource="{Binding LibrariesList}" >
+                            <MenuItem.ItemTemplate>
+                                <DataTemplate>
+                                    <MenuItem Header="{Binding .}" 
+                                              Command="{Binding DataContext.OnDeleteLibraryPressed, ElementName=RootControl}"
+                                              CommandParameter="{Binding .}" />
+                                </DataTemplate>
+                            </MenuItem.ItemTemplate>
+                        </MenuItem>
+                        <MenuItem Header="Global Settings" Command="{Binding EditGlobalSettingsCommand}" />
                     </MenuItem>
                 </Menu>
                 
@@ -50,7 +68,7 @@
                 <TextBlock Text="|   Sort books by   " VerticalAlignment="Center"/>
                 <ComboBox SelectedItem="{Binding LibrarySortOption}"
                           ItemsSource="{Binding SortOptions, Mode = TwoWay}" />
-                <ToggleButton Width="40" Height="40" IsChecked="{Binding LibrarySortAscending}" Classes="sort-order-toggle">
+                <ToggleButton Width="40" Height="40" IsChecked="{Binding LibrarySortAscending, Mode=TwoWay}">
                     <Path Fill="Black"
                           Width="16"
                           Height="16"
@@ -62,7 +80,7 @@
                 <TextBlock Text="|   Sort pages by   " VerticalAlignment="Center"/>
                 <ComboBox SelectedItem="{Binding BookSortOption}"
                           ItemsSource="{Binding SortOptions, Mode = TwoWay}"/>
-                <ToggleButton Width="40" Height="40" IsChecked="{Binding BookSortAscending}" Classes="sort-order-toggle">
+                <ToggleButton Width="40" Height="40" IsChecked="{Binding BookSortAscending, Mode=TwoWay}" >
                     <Path Fill="Black"
                           Width="16"
                           Height="16"

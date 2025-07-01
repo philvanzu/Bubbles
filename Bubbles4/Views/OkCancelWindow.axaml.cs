@@ -12,5 +12,6 @@ public partial class OkCancelWindow : Window
     {
         InitializeComponent();
         this.DataContext = vm;
+        
     }
 }

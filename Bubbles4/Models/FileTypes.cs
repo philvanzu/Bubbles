@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Bubbles4.Models;
 
@@ -35,4 +36,33 @@ public static class FileTypes
     {
         return PdfExtensions.Contains(Path.GetExtension(path));
     }
+    
+    public static bool IsImageDirectory(string path)
+    {
+        try
+        {
+            if (!Directory.Exists(path)) return false;
+
+            return Directory.EnumerateFiles(path, "*.*", SearchOption.TopDirectoryOnly)
+                .Any(IsImage);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+    
+    public static bool IsDescendantPath(string parentPath, string childPath)
+    {
+        var parentUri = new Uri(AppendDirectorySeparator(parentPath), UriKind.Absolute);
+        var childUri = new Uri(AppendDirectorySeparator(childPath), UriKind.Absolute);
+        return parentUri.IsBaseOf(childUri);
+    }
+    private static string AppendDirectorySeparator(string path)
+    {
+        return path.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString())
+            ? path
+            : path + System.IO.Path.DirectorySeparatorChar;
+    }
+
 }

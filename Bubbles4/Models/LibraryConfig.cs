@@ -33,6 +33,7 @@ public class LibraryConfig
     public int ShowPageName { get; set; } = -1;
     public int ShowImageSize { get; set; } = -1;
     
+    public enum NodeSortOptions {Alpha, Created, Modified}
     public enum SortOptions { Path, Natural, Alpha, Created, Modified, Random }
     public enum SortDirection { Ascending, Descending }
     //library sort
@@ -42,8 +43,10 @@ public class LibraryConfig
     //Book Sort
     public SortOptions BookSortOption { get; set; } = SortOptions.Natural;
     public bool BookSortAscending { get; set; } =true;
-
     
+    //Node Sort
+    public NodeSortOptions NodeSortOption = NodeSortOptions.Alpha;
+    public bool NodeSortAscending { get; set; } = true;
     public bool ShowNavPane { get; set; } 
 
     public LibraryConfig(string path)

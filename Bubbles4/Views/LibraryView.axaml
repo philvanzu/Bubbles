@@ -17,76 +17,55 @@
          to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:LibraryViewModel />
     </Design.DataContext>
-    <ScrollViewer>
-        <ir:ItemsRepeater ItemsSource="{Binding Books}">
+    
+        <ScrollViewer x:Name="scrollViewer">
+        <ir:ItemsRepeater ItemsSource="{Binding Books}" x:Name="itemsRepeater">
             <i:Interaction.Behaviors>
                 <local:InvokeItemLifecycleBehavior
                     ItemPreparedCommand="{Binding HandleItemPrepared}"
                     ItemClearingCommand="{Binding HandleItemClearing}" />
+                <local:AutoScrollToSelectedBehavior />
             </i:Interaction.Behaviors>
             <ir:ItemsRepeater.Layout>
                 <UniformGridLayout MaximumRowsOrColumns="0"/> <!-- 0 = auto wrap -->
             </ir:ItemsRepeater.Layout>
             <ir:ItemsRepeater.ItemTemplate>
                 <DataTemplate>
-                    <!--
-                    <Border BorderBrush="White" BorderThickness="1" >
-                        <StackPanel Width="250" Margin="5" Orientation="Vertical">
-                            <Image Source="{Binding Thumbnail}" Width="240"/>
-                            <TextBlock Text="{Binding Name}" TextWrapping="Wrap"/>
-                        </StackPanel>
-                    </Border>
-                    -->
                     <UserControl>
-                        <UserControl.Resources>
-                            <converters:BoolToBrushConverter x:Key="BoolToBrushConverter"
-                                                             TrueBrush="LightBlue"
-                                                             FalseBrush="Transparent"/>
-                        </UserControl.Resources>
-                        <StackPanel Width="132" Height="152"
-                                    Orientation="Vertical"
-                                    Background="{Binding IsSelected, Converter={StaticResource BoolToBrushConverter}}"
-                                    ToolTip.Tip="{Binding Path}">
+                        <Panel>
+                            <Border Width="132" Height="152"
+                                    ToolTip.Tip="{Binding Path}"
+                                    Tag="{Binding IsSelected}">
+                                <StackPanel>
+                                    <i:Interaction.Behaviors>
+                                        <local:PointerPressedCommandBehavior Command="{Binding OnSelection}" />
+                                    </i:Interaction.Behaviors>
+                                    <StackPanel.ContextMenu>
+                                        <ContextMenu>
+                                            <!-- You can use Interactions or Command bindings depending on how you handle viewmodel logic -->
+                                            <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+                                            <MenuItem Header="Open Containing Folder" Command="{Binding OpenInExplorerCommand}" />
+                                        </ContextMenu>
+                                    </StackPanel.ContextMenu>
 
-                            <i:Interaction.Behaviors>
-                                <local:PointerPressedCommandBehavior Command="{Binding OnSelection}" />
-                            </i:Interaction.Behaviors>
-                            <!--    
-                            <StackPanel.InputBindings>
-                                <MouseBinding Gesture="LeftDoubleClick" Command="{Binding ShowDetailsCommand}" />
-                            </StackPanel.InputBindings>
-    -->
-                            <StackPanel.ContextMenu>
-                                <ContextMenu>
-                                    <!-- You can use Interactions or Command bindings depending on how you handle viewmodel logic -->
-                                    <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
-                                    <MenuItem Header="Open Containing Folder" Command="{Binding OpenInExplorerCommand}" />
-                                </ContextMenu>
-                            </StackPanel.ContextMenu>
-
-                            <Border BorderBrush="White" BorderThickness="1" CornerRadius="5" Width="128" Height="128">
-                                <Grid>
-                                    <Image Source="{Binding Thumbnail}" Stretch="Uniform"/>
-                                </Grid>
+                                    <Border BorderBrush="White" BorderThickness="1" CornerRadius="5" Width="128" Height="128">
+                                        <Grid>
+                                            <Image Source="{Binding Thumbnail}" Stretch="Uniform"/>
+                                        </Grid>
+                                    </Border>
+                                    <TextBlock Name="FileNameTextBlock" HorizontalAlignment="Left" Margin="3" Text="{Binding Name}" />
+                                </StackPanel>
                             </Border>
-
-                            <TextBlock Name="FileNameTextBlock" HorizontalAlignment="Left" Margin="3" Text="{Binding Name}" />
-    <!-- Implement FileNameEditorTextBoxBehavior in Avalonia via attached behavior if needed -->
-    <!--
-                            <TextBox Name="FileNameTextBox"
-                                     HorizontalAlignment="Left"
-                                     Margin="3"
-                                     TextWrapping="Wrap"
-                                     Visibility="{Binding IsRenaming, Converter={StaticResource BoolToVisibilityConverter}}"
-                                     Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                            </TextBox>
-    
-                            <TextBlock HorizontalAlignment="Center" Margin="3" Text="{Binding PageCount}" />
--->                            
-                        </StackPanel>
+                            <Border Width="132" Height="152" Background="#55ffffff" 
+                                    IsVisible="{Binding IsSelected}"
+                                    BorderBrush="transparent" BorderThickness="1" CornerRadius="5"/>
+                        </Panel>
+                        
                     </UserControl>
                 </DataTemplate>
             </ir:ItemsRepeater.ItemTemplate>
         </ir:ItemsRepeater>
-    </ScrollViewer>
+    </ScrollViewer>    
+    
+    
 </UserControl>

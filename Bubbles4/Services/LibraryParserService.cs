@@ -40,7 +40,7 @@ public static class LibraryParserService
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var subNode = new LibraryNodeViewModel(node.MainVM, subDir.FullName, subDir.Name, node);
+            var subNode = new LibraryNodeViewModel(node.MainVM, subDir.FullName, subDir.Name, subDir.CreationTime, subDir.LastWriteTime, node);
             childNodes.Add(subNode);
 
             await throttler.WaitAsync(cancellationToken);
@@ -79,7 +79,8 @@ public static class LibraryParserService
                 await Dispatcher.UIThread.InvokeAsync(() => node.AddChild(child));
             }
         }
-
+        DateTime lastImageWritten = DateTime.MinValue;
+        DateTime firstImageCreated = DateTime.MaxValue;
         // Analyze files
         foreach (var file in files)
         {
@@ -89,6 +90,10 @@ public static class LibraryParserService
 
             if (FileTypes.IsImage(file.Extension))
             {
+                if(file.CreationTime < firstImageCreated) 
+                    firstImageCreated = file.CreationTime;
+                if(file.LastWriteTime > lastImageWritten)
+                    lastImageWritten = file.LastWriteTime;
                 imageCount++;
                 continue;
             }
@@ -110,7 +115,7 @@ public static class LibraryParserService
         // Treat this folder as a book if it contains images
         if (imageCount > 0)
         {
-            var dirBook = new BookDirectory(dirInfo.FullName, dirInfo.Name, imageCount, dirInfo.CreationTimeUtc, dirInfo.LastWriteTimeUtc);
+            var dirBook = new BookDirectory(dirInfo.FullName, dirInfo.Name, imageCount, lastImageWritten, firstImageCreated);
             if(node.Parent == null) bookList.Add(dirBook);
             else if(bookToParent != null) 
                 await Dispatcher.UIThread.InvokeAsync(() => { bookToParent(dirBook); });
@@ -175,14 +180,23 @@ public static class LibraryParserService
 
                     int imageCount = 0;
                     FileInfo[] files = dir.GetFiles();
-
+                    DateTime firstImageCreated = DateTime.MaxValue;
+                    DateTime lastImageWritten = DateTime.MinValue;
                     foreach (var file in files)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
                         BookBase? result = null;
 
-                        if (FileTypes.IsImage(file.Extension)) imageCount++;
+                        if (FileTypes.IsImage(file.Extension))
+                        {
+                            if(file.CreationTime < firstImageCreated) 
+                                firstImageCreated = file.CreationTime;
+                            if(file.LastWriteTime > lastImageWritten)
+                                lastImageWritten = file.LastWriteTime;
+                            imageCount++;
+                            imageCount++;
+                        }
                         else if (FileTypes.IsArchive(file.Extension))
                         {
                             result = new BookArchive(file.FullName, file.Name, -1, file.CreationTime, file.LastWriteTime);
@@ -208,7 +222,7 @@ public static class LibraryParserService
 
                     if (imageCount > 0)
                     {
-                        var result = new BookDirectory(dir.FullName, dir.Name, imageCount, dir.CreationTimeUtc, dir.LastWriteTimeUtc);
+                        var result = new BookDirectory(dir.FullName, dir.Name, imageCount, lastImageWritten, firstImageCreated);
                         lock (batchLock)
                         {
                             batch.Add(result);
