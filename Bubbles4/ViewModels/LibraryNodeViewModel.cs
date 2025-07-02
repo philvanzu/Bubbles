@@ -62,19 +62,13 @@ public partial class LibraryNodeViewModel : LibraryViewModel
     }
 
     
-    public override async Task StartParsingLibraryAsync(string path)
+    public override async Task StartParsingLibraryAsync(string path, Progress<double> progress)
     {
         // Cancel previous parsing run if active
         _parsingCts?.Cancel();
         _parsingCts?.Dispose();
         _parsingCts = new CancellationTokenSource();
         var token = _parsingCts.Token;
-        int progressCount = 0;
-        var progress = new Progress<int>(_ =>
-        {
-            progressCount++;
-            Console.WriteLine(($"Scanning... ({progressCount} folders)"));
-        });
         Clear();
 
         try
@@ -214,7 +208,7 @@ public partial class LibraryNodeViewModel : LibraryViewModel
     {
         if (Interlocked.CompareExchange(ref _childrenSortRunning, 1, 0) == 0)
         {
-            _ = Dispatcher.UIThread.InvokeAsync(async () =>
+            _ = Dispatcher.UIThread.InvokeAsync(() =>
             {
                 try
                 {

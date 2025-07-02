@@ -17,89 +17,21 @@ namespace Bubbles4.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
+    #region AppData
     private AppStorage AppData { get; init; }
-    public ObservableCollection<string> LibrariesList => AppData.LibrariesList;
-    private LibraryViewModel? _library;
-    public LibraryViewModel? Library
+
+    public Preferences Preferences
     {
-        get => _library;
+        get => AppData.Preferences;
         set
         {
-            SetProperty(ref _library, value);
-            if (value is LibraryNodeViewModel node)
-            {
-                if (node.Parent == null && LibraryRoot != node) LibraryRoot = node;
-                if (node.Parent != null && SelectedLibraryNode != node) SelectedLibraryNode = node;
-            }
-            else
-            {
-                LibraryRoot = null;
-            }
-            OnPropertyChanged(nameof(ShowLibraryTree));
-        } 
-    }
-    [ObservableProperty] private LibraryNodeViewModel? _libraryRoot;
-    
-    private LibraryNodeViewModel? _selectedLibraryNode;
-    public LibraryNodeViewModel? SelectedLibraryNode
-    {
-        get => _selectedLibraryNode;
-        set
-        {
-            SetProperty(ref _selectedLibraryNode, value);
-            if(value != null && value != Library) Library = value;
-            if(LibraryRoot != null)
-                LibraryRoot.SelectedNode = value;
+            AppData.Preferences = value;
+            AppData.Save();
+            OnPropertyChanged(nameof(Preferences));
         }
     }
-
-    private bool _showNavPane;
-
-    public bool ShowNavPane
-    {
-        get => _showNavPane;
-        set
-        {
-            SetProperty(ref _showNavPane, value);
-            if(value)
-                OnPropertyChanged(nameof(LibrariesList));
-            if (Config != null)
-            {
-                Config.ShowNavPane = value;
-            }
-        }
-    }
-
-    public bool ShowLibraryTree => LibraryRoot != null;
-    
-    
-    public SlidingImageCache _cache;
-    
-    [ObservableProperty] public BookViewModel? _selectedBook;
-    [ObservableProperty] private ViewerData? _currentViewerData;
-    
-    private PageViewModel? _currentPageViewModel;
-    public PageViewModel? CurrentPageViewModel
-    {
-        get => _currentPageViewModel;
-        set => SetProperty(ref _currentPageViewModel, value);
-    }
-    
-    private bool _isFullscreen;
-    public bool IsFullscreen
-    {
-        get => _isFullscreen;
-        set => SetProperty(ref _isFullscreen, value);   
-    }
-
-    public ICommand ToggleFullscreenCommand { get; }
-
-
-    private readonly IDialogService _dialogService;
-    public IDialogService DialogService => _dialogService;
     
     private LibraryConfig? _config = new LibraryConfig("");
-
     public LibraryConfig? Config
     {
         get => _config;
@@ -116,9 +48,26 @@ public partial class MainViewModel : ViewModelBase
             }
         }
     }
-
+    public ObservableCollection<string> LibrariesList => AppData.LibrariesList;
+    private LibraryViewModel? _library;
     
-    //toolbar
+    private bool _showNavPane;
+    public bool ShowNavPane
+    {
+        get => _showNavPane;
+        set
+        {
+            SetProperty(ref _showNavPane, value);
+            if(value)
+                OnPropertyChanged(nameof(LibrariesList));
+            if (Config != null)
+            {
+                Config.ShowNavPane = value;
+            }
+        }
+    }
+
+    public bool ShowLibraryTree => LibraryRoot != null;
     public LibraryConfig.SortOptions[] SortOptions => Enum.GetValues<LibraryConfig.SortOptions>();
     
 
@@ -219,6 +168,77 @@ public partial class MainViewModel : ViewModelBase
         }
     }
     
+    #endregion
+    
+    #region Library exposure
+    public LibraryViewModel? Library
+    {
+        get => _library;
+        set
+        {
+            SetProperty(ref _library, value);
+            if (value is LibraryNodeViewModel node)
+            {
+                if (node.Parent == null && LibraryRoot != node) LibraryRoot = node;
+                if (node.Parent != null && SelectedLibraryNode != node) SelectedLibraryNode = node;
+            }
+            else
+            {
+                LibraryRoot = null;
+            }
+            OnPropertyChanged(nameof(ShowLibraryTree));
+        } 
+    }
+    [ObservableProperty] private LibraryNodeViewModel? _libraryRoot;
+    
+    private LibraryNodeViewModel? _selectedLibraryNode;
+    public LibraryNodeViewModel? SelectedLibraryNode
+    {
+        get => _selectedLibraryNode;
+        set
+        {
+            SetProperty(ref _selectedLibraryNode, value);
+            if(value != null && value != Library) Library = value;
+            if(LibraryRoot != null)
+                LibraryRoot.SelectedNode = value;
+        }
+    }
+    #endregion
+
+
+    
+    
+    public SlidingImageCache _cache;
+    
+    [ObservableProperty] public BookViewModel? _selectedBook;
+    [ObservableProperty] private ViewerData? _currentViewerData;
+    
+    private PageViewModel? _currentPageViewModel;
+    public PageViewModel? CurrentPageViewModel
+    {
+        get => _currentPageViewModel;
+        set => SetProperty(ref _currentPageViewModel, value);
+    }
+    
+    private bool _isFullscreen;
+    public bool IsFullscreen
+    {
+        get => _isFullscreen;
+        set => SetProperty(ref _isFullscreen, value);   
+    }
+
+    public ICommand ToggleFullscreenCommand { get; }
+
+
+    private readonly IDialogService _dialogService;
+    public IDialogService DialogService => _dialogService;
+    
+    
+
+    
+    //toolbar
+    
+    
     [ObservableProperty] private string _searchString = string.Empty;
     
     //status bar
@@ -243,11 +263,11 @@ public partial class MainViewModel : ViewModelBase
             (window as MainWindow)?.ToggleFullscreen();
             OnPropertyChanged(nameof(Config));
         });
-        AppData = AppStorage.Load();
+        AppData = AppStorage.Instance;
 
     }
 
-    public void InitializeAsync(string? libraryPath)
+    public void Initialize(string? libraryPath)
     {
         if (libraryPath != null)
             OpenLibrary(libraryPath);
@@ -291,13 +311,25 @@ public partial class MainViewModel : ViewModelBase
 //            OnPropertyChanged(nameof(Config));
             _watcher.BeginBuffering();
             _watcher.StartWatching(libraryPath, true, Library.FileSystemChanged, Library.FileSystemRenamed);
+            
+            var pvm = new ProgressDialogViewModel(_dialogService)
+            {
+                Relative = !(Library is LibraryNodeViewModel)
+            };
+            var progress = pvm.Progress;
+            var showTask = pvm.Show();
 
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    await Library.StartParsingLibraryAsync(libraryPath);
+                    await Library.StartParsingLibraryAsync(libraryPath, progress);
                     Library.Sort(LibrarySortOption, LibrarySortAscending);
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        (progress as IProgress<double>).Report(-1.0); 
+                        await showTask;
+                    });
                     _watcher.FlushBufferedEvents();
                 }
                 catch (Exception ex)
@@ -372,6 +404,40 @@ public partial class MainViewModel : ViewModelBase
             }
         }
             
+    }
+
+    private void showProgressDialog()
+    {
+        
+    }
+    [RelayCommand]
+    private async Task EditPreferences()
+    {
+        if (Library!= null)
+        {
+            var pref  = Preferences;
+            
+            var dialogVm = new PreferencesEditorViewModel()
+            {
+                MouseSensitivity = pref.MouseSensitivity,
+                ControllerStickSensitivity = pref.ControllerStickSensitivity
+            };
+            
+            var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+                ? desktop.MainWindow
+                : null;
+            if (window != null)
+            {
+                var result = await _dialogService.ShowDialogAsync<Preferences>(window, dialogVm);
+                if (result != null)
+                {
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        Preferences = result;
+                    });
+                }    
+            }
+        }
     }
     [RelayCommand]
     private async Task PickDirectoryAsync()
@@ -452,12 +518,6 @@ public partial class MainViewModel : ViewModelBase
             }    
         }
             
-    }
-
-    [RelayCommand]
-    private void EditGlobalSettings()
-    {
-        
     }
     [RelayCommand] public void ExitFullScreenCommand()
     {

@@ -1,10 +1,13 @@
 using System;
 using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Bubbles4.Models;
+using Bubbles4.Services;
 
 namespace Bubbles4.Controls;
 
@@ -87,6 +90,8 @@ public class StatusOverlay : Control
     const float fadeTime = 1.5f;
     private readonly DispatcherTimer animTimer;
 
+
+    
     public StatusOverlay()
     {
         Focusable = false;
@@ -95,6 +100,8 @@ public class StatusOverlay : Control
         animTimer.Tick += OnAnimTick;
         animTimer.Interval = TimeSpan.FromMilliseconds(10);
         animTimer.Start();
+        
+
     }
 
 

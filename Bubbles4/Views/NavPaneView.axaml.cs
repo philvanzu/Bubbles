@@ -6,9 +6,9 @@ using Bubbles4.ViewModels;
 
 namespace Bubbles4.Views;
 
-public partial class LibraryTreeView : UserControl
+public partial class NavPaneView : UserControl
 {
-    public LibraryTreeView()
+    public NavPaneView()
     {
         InitializeComponent();
     }

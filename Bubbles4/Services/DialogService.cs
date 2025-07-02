@@ -39,6 +39,8 @@ public class DialogService : IDialogService
         {
             LibraryConfigViewModel vm => new LibraryConfigWindow(vm),
             OkCancelViewModel vm => new OkCancelWindow(vm), // <-- Add this line
+            PreferencesEditorViewModel vm => new PreferencesEditorView(vm),
+            ProgressDialogViewModel vm => new ProgressDialogView(vm),
             _ => throw new NotImplementedException($"No view mapped for view model: {viewModel.GetType().Name}")
         };
     }

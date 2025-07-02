@@ -11,7 +11,8 @@
         x:DataType="vm:MainViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="Bubbles4"
-        Focusable="True">
+        Focusable="True"
+        Width="800" Height="600">
 
         <Window.KeyBindings>
                 <KeyBinding Gesture="F11" Command="{Binding ToggleFullscreenCommand}" />

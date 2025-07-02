@@ -49,17 +49,14 @@ public partial class LibraryViewModel: ViewModelBase
     
     protected CancellationTokenSource? _parsingCts;
 
-    public virtual async Task StartParsingLibraryAsync(string path)
+    public virtual async Task StartParsingLibraryAsync(string path, Progress<double> progress)
     {
         // Cancel previous parsing run if active
         _parsingCts?.Cancel();
         _parsingCts?.Dispose();
         _parsingCts = new CancellationTokenSource();
         var token = _parsingCts.Token;
-        var progress = new Progress<double>(p =>
-        {
-            Console.WriteLine($"Loading : {p:P1}");
-        });
+
         Clear();
 
         try
@@ -429,6 +426,7 @@ public partial class LibraryViewModel: ViewModelBase
 
     public void EnqueueWatcherEvent((BookViewModel? add, BookViewModel? remove, bool sort) item)
     {
+        Console.WriteLine($"watch removed: {item.remove}, added: {item.add}");
         _watcherProcessQueue.Enqueue(item);
         if (Interlocked.CompareExchange(ref _watcherRunning, 1, 0) == 0)
         {

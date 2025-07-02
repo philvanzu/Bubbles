@@ -18,6 +18,9 @@
     <ItemGroup>
         <EmbeddedResource Include="Assets\transparent-cursor.png" />
     </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\SDLInput\SDLInput.csproj" />
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Avalonia" />

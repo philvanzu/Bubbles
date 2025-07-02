@@ -15,6 +15,8 @@
         <entry key="Bubbles4/Views/OKCancelView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/OkCancelView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/OkCancelWindow.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/PreferencesEditorView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/ProgressDialogView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
       </map>
     </option>
   </component>

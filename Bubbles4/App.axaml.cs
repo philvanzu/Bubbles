@@ -6,6 +6,7 @@ using Avalonia.Data.Core.Plugins;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Markup.Xaml;
+using Bubbles4.Models;
 using Bubbles4.ViewModels;
 using Bubbles4.Views;
 using Bubbles4.Services;
@@ -30,20 +31,44 @@ public partial class App : Application
             {
                 string? libraryPath = desktop.Args.FirstOrDefault();
                 var mvm = new MainViewModel(dialogService);
-                desktop.MainWindow = new MainWindow
+                var appState = AppStorage.Instance.AppState;
+                var mainWindow = new MainWindow
                 {
-                    DataContext = mvm
+                    DataContext = mvm,
+                    Position = appState.WindowPosition,
+                    Width = appState.WindowWidth,
+                    Height = appState.WindowHeight,
+                    WindowState = appState.WindowState
                 };
-                try
+                mainWindow.Opened += (sender, e) =>
                 {
-                    mvm.InitializeAsync(libraryPath);
-                }
-                catch (Exception ex)
+                    try
+                    {
+
+                        mvm.Initialize(libraryPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Initialization failed: {ex}");
+                    }
+                };
+                mainWindow.Closed += (sender, e) =>
                 {
-                    // Optional: handle/log any init errors
-                    Console.WriteLine($"Initialization failed: {ex}");
-                }
-                
+                    try
+                    {
+                        var appData = AppStorage.Instance;
+                        var appState = appData.AppState;
+                        appState.WindowPosition = mainWindow.Position;
+                        appState.WindowWidth = mainWindow.Width;
+                        appState.WindowHeight = mainWindow.Height;
+                        appState.WindowState = mainWindow.WindowState;
+                        appData.AppState = appState;
+                        appData.Save();
+                    }
+                    catch (Exception ex){Console.WriteLine(ex);}
+                };
+
+                desktop.MainWindow = mainWindow;
             }
 
             

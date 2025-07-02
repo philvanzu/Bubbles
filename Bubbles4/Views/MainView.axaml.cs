@@ -1,5 +1,8 @@
 using System;
 using System.ComponentModel;
+using System.Linq.Expressions;
+using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -8,7 +11,9 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Bubbles4.Controls;
 using Bubbles4.Models;
+using Bubbles4.Services;
 using Bubbles4.ViewModels;
+using SDL2;
 
 namespace Bubbles4.Views;
 
@@ -19,7 +24,8 @@ public partial class MainView : UserControl
     private Panel? _originalParent;
     private int _originalIndex;
     private IInputElement? _previousFocusedElement;
-
+    private readonly SdlInputService _sdlInput=new();
+    private readonly CancellationTokenSource _cts = new();
     public MainView()
     {
         InitializeComponent();
@@ -37,8 +43,68 @@ public partial class MainView : UserControl
         // Subscribe to DataContext changes to watch IsFullscreen property
         this.DataContextChanged += MainView_DataContextChanged;
         
-        
-        
+        _sdlInput.Initialize();
+
+        _sdlInput.StickUpdated += ((s, e) =>
+        {
+            _ = Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (fastImageViewer != null)
+                {
+                    if (e.Stick == StickName.LStick)
+                    {
+                        fastImageViewer.OnLeftStickUpdate(e);
+                    }
+                    else if (e.Stick == StickName.RStick)
+                    {
+                        fastImageViewer.OnRightStickUpdate(e);
+                    }
+
+                }
+            });
+        });
+        _sdlInput.ButtonChanged += ((s, e) =>
+        {
+            _ = Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (DataContext is not MainViewModel vm)
+                    return;
+                if (e.Pressed == false)
+                {
+                    switch (e.Button)
+                    {
+                        case ButtonName.LB:
+                            vm.PreviousCommand.Execute(null);
+                            break;
+                        case ButtonName.RB:
+                            vm.NextCommand.Execute(null);
+                            break;
+                    }
+                }
+            });
+        });
+
+
+        Task.Run(async() =>
+        {
+            try
+            {
+                await _sdlInput.StartPollingAsync(_cts.Token);
+                return ;
+            }
+            catch (TaskCanceledException)
+            {
+                Console.WriteLine("Controller polling task cancelled");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+
+            }
+
+        });
+
+
         _imgViewerContainer!.DoubleTapped += (_, _) =>
         {
             if (DataContext is MainViewModel vm)
@@ -120,6 +186,14 @@ public partial class MainView : UserControl
         };
     }
 
+    protected override void OnUnloaded(RoutedEventArgs e)
+    {
+        _cts.Cancel();
+        _sdlInput.Shutdown();
+        _cts.Dispose();
+        base.OnUnloaded(e);
+    }
+
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
@@ -159,6 +233,7 @@ public partial class MainView : UserControl
                 break;
         }
     }
+
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);

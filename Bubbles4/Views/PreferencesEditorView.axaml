@@ -1,0 +1,28 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Bubbles4.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="Bubbles4.Views.PreferencesEditorView"
+        x:DataType="vm:PreferencesEditorViewModel"
+        Title="Edit Preferences"
+        Width="800"
+        SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="#505050">
+    <Grid>
+        <StackPanel Margin="16">
+            <TextBlock FontSize="17" HorizontalAlignment="Center">Edit Global Preference</TextBlock>
+            <Separator Width="300"/>
+            <TextBlock>Mouse Sensitivity : </TextBlock>
+            <Slider Minimum="0" Maximum="1" Value="{Binding MouseSensitivity, Mode=TwoWay}"/>
+            <Border Height="16"/>
+            <TextBlock> Controller Sticks Sensitivity : </TextBlock>
+            <Slider Minimum="0" Maximum="1" Value="{Binding ControllerStickSensitivity, Mode=TwoWay}"/>
+            <Border Height="16"/>
+            <Button Content="OK" Command="{Binding OkPressed}" Width="80" HorizontalAlignment="Center"/>
+        </StackPanel>
+    </Grid>
+</Window>

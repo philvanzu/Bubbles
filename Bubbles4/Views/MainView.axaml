@@ -50,7 +50,11 @@
                                 </DataTemplate>
                             </MenuItem.ItemTemplate>
                         </MenuItem>
-                        <MenuItem Header="Global Settings" Command="{Binding EditGlobalSettingsCommand}" />
+                        <MenuItem Header="View">
+                            <ToggleButton Content="Toggle Navigation Pane"
+                                      IsChecked="{Binding ShowNavPane, Mode=TwoWay}"/>
+                        </MenuItem>
+                        <MenuItem Header="Preferences" Command="{Binding EditPreferencesCommand}" />
                     </MenuItem>
                 </Menu>
                 
@@ -144,7 +148,7 @@
                     </Grid.ColumnDefinitions>
                     <!--NavPane-->
                     <Border Background="#303030">
-                        <views:LibraryTreeView />
+                        <views:NavPaneView />
                     </Border>
                     <GridSplitter Grid.Column="1"
                                   Width="5"
@@ -184,6 +188,7 @@
                                                           MainViewModel="{Binding}"
                                                           Data="{Binding CurrentViewerData}"
                                                           Config="{Binding Config}" 
+                                                          Preferences="{Binding Preferences}"
                                                           IsFullscreen="{Binding IsFullscreen}"/>
                                 
                                 <controls:StatusOverlay x:Name="StatusOverlay"
