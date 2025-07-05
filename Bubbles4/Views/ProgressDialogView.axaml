@@ -26,9 +26,9 @@
                    HorizontalAlignment="Center"/>
 
         <ProgressBar Grid.Row="1"
-                     IsVisible="{Binding Relative}"
                      Minimum="0" Maximum="1"
-                     Value="{Binding ProgressValue}" 
+                     Value="{Binding ProgressValue}"
+                     IsIndeterminate="{Binding IsIndeterminate}"
                      Height="24"/>
     </Grid>
 </Window>

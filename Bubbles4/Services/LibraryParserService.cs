@@ -17,12 +17,12 @@ public static class LibraryParserService
     LibraryNodeViewModel node,
     CancellationToken cancellationToken,
     Action<BookBase>? bookToParent = null,
-    int batchSize = 32,
     int maxParallelism = 4,
-    IProgress<double>? progress = null)
+    IProgress<(string, double, bool)>? progress = null)
     {
         if (!Directory.Exists(node.Path)) return false;
-        progress?.Report((double)1.0);
+        
+        progress?.Report(($"Loaded Directories : {++node.Root.progressCounter}", -1.0, false));
         var dirInfo = new DirectoryInfo(node.Path);
         var subDirs = dirInfo.GetDirectories();
         var files = dirInfo.GetFiles();
@@ -51,7 +51,7 @@ public static class LibraryParserService
                     try
                     {
                         return await ParseLibraryNodeAsync(subNode, cancellationToken,
-                            (BookBase) => { bookList.Add(BookBase); }, batchSize, maxParallelism, progress);
+                            (BookBase) => { bookList.Add(BookBase); }, maxParallelism, progress);
                     }
                     catch (OperationCanceledException) { }
                     catch (Exception ex){Console.WriteLine(ex);}
@@ -127,7 +127,7 @@ public static class LibraryParserService
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 node.AddBatch(bookList);
-                node.Sort();
+                
             });
         }
         
@@ -143,13 +143,14 @@ public static class LibraryParserService
     public static async Task ParseLibraryRecursiveAsync(
         string rootPath,
         Action<List<BookBase>> onBatchReady,
-        int batchSize = 32,
         int maxParallelism = 4,
         CancellationToken cancellationToken = default,
-        IProgress<double>? progress = null)
+        IProgress<(string, double, bool)>? progress = null)
     {
         // Step 1: Pre-scan all directories
+        progress?.Report(("Starting Library Parsing", -1.0, false));
         List<DirectoryInfo> allDirs = new();
+        Console.WriteLine("Collecting Directories");
         void CollectDirectories(DirectoryInfo dir)
         {
             allDirs.Add(dir);
@@ -160,15 +161,17 @@ public static class LibraryParserService
             }
             catch (UnauthorizedAccessException) { }
             catch (IOException) { }
+            progress?.Report(($"Counting directories : {allDirs.Count}", -1.0, false));
         }
-
+        
         CollectDirectories(new DirectoryInfo(rootPath));
 
         int totalDirs = allDirs.Count;
+        //Console.WriteLine($"{totalDirs} directories found");
         int dirsProcessed = 0;
 
         var folders = new ConcurrentQueue<DirectoryInfo>(allDirs);
-        var batch = new List<BookBase>(batchSize);
+        var batch = new List<BookBase>();
         var batchLock = new object();
 
         var tasks = Enumerable.Range(0, maxParallelism).Select(_ => Task.Run(() =>
@@ -196,7 +199,6 @@ public static class LibraryParserService
                             if(file.LastWriteTime > lastImageWritten)
                                 lastImageWritten = file.LastWriteTime;
                             imageCount++;
-                            imageCount++;
                         }
                         else if (FileTypes.IsArchive(file.Extension))
                         {
@@ -212,11 +214,6 @@ public static class LibraryParserService
                             lock (batchLock)
                             {
                                 batch.Add(result);
-                                if (batch.Count >= batchSize)
-                                {
-                                    onBatchReady(new List<BookBase>(batch));
-                                    batch.Clear();
-                                }
                             }
                         }
                     }
@@ -227,11 +224,6 @@ public static class LibraryParserService
                         lock (batchLock)
                         {
                             batch.Add(result);
-                            if (batch.Count >= batchSize)
-                            {
-                                onBatchReady(new List<BookBase>(batch));
-                                batch.Clear();
-                            }
                         }
                     }
 
@@ -239,7 +231,7 @@ public static class LibraryParserService
                     if (progress != null)
                     {
                         int current = Interlocked.Increment(ref dirsProcessed);
-                        progress.Report((double)current / totalDirs);
+                        progress.Report(($"Building Library : {current} / {totalDirs}", (double)current / totalDirs, false));
                     }
                 }
                 catch (UnauthorizedAccessException x) { Console.WriteLine(x.Message); }
@@ -250,12 +242,10 @@ public static class LibraryParserService
         await Task.WhenAll(tasks);
 
         // Send any remaining items
-        lock (batchLock)
+
+        if (batch.Count > 0 && !cancellationToken.IsCancellationRequested)
         {
-            if (batch.Count > 0 && !cancellationToken.IsCancellationRequested)
-            {
-                onBatchReady(batch);
-            }
+            await Dispatcher.UIThread.InvokeAsync(() => onBatchReady(batch));
         }
     }
 

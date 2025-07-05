@@ -21,8 +21,6 @@ public class AppStorage
     
     
 
-    public IReadOnlyDictionary<string, string> Data => _data;
-
     public Preferences Preferences
     {
         get
@@ -35,7 +33,7 @@ public class AppStorage
         }
         set
         {
-            string? json = (value == null) ? string.Empty: value.Serialize();    
+            string json = value.Serialize();    
             _data[_preferencesKey] = json;
         }
     }
@@ -52,7 +50,7 @@ public class AppStorage
         }
         set
         {
-            string? json = (value == null) ? string.Empty: value.Serialize();    
+            string json = value.Serialize();    
             _data[_appStateKey] = json;
         }
     }
@@ -72,7 +70,7 @@ public class AppStorage
     public ObservableCollection<string> LibrariesList {
         get
         {
-            var list = new ObservableCollection<string>(Data.Keys);
+            var list = new ObservableCollection<string>(_data.Keys);
             list.Remove(_preferencesKey);
             list.Remove(_appStateKey);
             return list;
@@ -81,7 +79,7 @@ public class AppStorage
     
     public LibraryConfig? GetConfig(string libraryPath)
     {
-        if (Data.TryGetValue(libraryPath, out var json))
+        if (_data.TryGetValue(libraryPath, out var json))
         {
             return LibraryConfig.Deserialize(json);
         }    
@@ -150,7 +148,21 @@ public class AppStorage
 
     
 }
+public class Preferences
+{
+    public double MouseSensitivity { get; set; } = 0.5;
+    public double ControllerStickSensitivity { get; set; } = 0.5;
 
+    public string Serialize()
+    {
+        return JsonSerializer.Serialize(this);
+    }
+
+    public static Preferences? Deserialize(string json)
+    {
+        return JsonSerializer.Deserialize<Preferences>(json);
+    }
+}
 public class AppState
 {
     public PixelPoint WindowPosition { get; set; } = new PixelPoint(100, 100);
@@ -158,7 +170,7 @@ public class AppState
     public double WindowHeight { get; set; } = 600;
     public WindowState WindowState { get; set; } = WindowState.Normal;
 
-    public string? Serialize()
+    public string Serialize()
     {
         return JsonSerializer.Serialize(this, typeof(AppState));
     }

@@ -250,6 +250,7 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string? _pagingStatus;
     
     private readonly BackgroundFileWatcher _watcher = new();
+    ProgressDialogViewModel _progressDialog;
     public MainViewModel(IDialogService dialogService)
     {
         _dialogService = dialogService;
@@ -264,7 +265,7 @@ public partial class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(Config));
         });
         AppData = AppStorage.Instance;
-
+        _progressDialog = new ProgressDialogViewModel(_dialogService);
     }
 
     public void Initialize(string? libraryPath)
@@ -311,30 +312,28 @@ public partial class MainViewModel : ViewModelBase
 //            OnPropertyChanged(nameof(Config));
             _watcher.BeginBuffering();
             _watcher.StartWatching(libraryPath, true, Library.FileSystemChanged, Library.FileSystemRenamed);
+
             
-            var pvm = new ProgressDialogViewModel(_dialogService)
-            {
-                Relative = !(Library is LibraryNodeViewModel)
-            };
-            var progress = pvm.Progress;
-            var showTask = pvm.Show();
+            IProgress<(string, double, bool)> progress = _progressDialog.Progress;
+            Dispatcher.UIThread.Post(()=> _ = _progressDialog.Show(), DispatcherPriority.Render);
 
             _ = Task.Run(async () =>
             {
                 try
                 {
+                    await _progressDialog.DialogShown;
+                    await Task.Delay(64);
                     await Library.StartParsingLibraryAsync(libraryPath, progress);
-                    Library.Sort(LibrarySortOption, LibrarySortAscending);
-                    await Dispatcher.UIThread.InvokeAsync(async () =>
-                    {
-                        (progress as IProgress<double>).Report(-1.0); 
-                        await showTask;
-                    });
                     _watcher.FlushBufferedEvents();
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex);
+                }
+                finally
+                {
+                    //ensure the dialog gets closed after library 
+                    progress.Report(("", -1.0, true));
                 }
 
             });

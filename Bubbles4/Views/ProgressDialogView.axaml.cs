@@ -12,5 +12,10 @@ public partial class ProgressDialogView : Window
     {
         InitializeComponent();
         DataContext = vm;
+        this.Opened += ((sender, args) =>
+        {
+            if (DataContext is ProgressDialogViewModel vm)
+                vm.NotifyDialogShown();
+        });
     }
 }

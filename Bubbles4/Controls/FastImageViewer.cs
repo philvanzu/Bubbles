@@ -28,7 +28,7 @@ namespace Bubbles4.Controls {
         private BookViewModel? _previousBook;
         private IvpRect? _ivpRect;
         private IvpAnimation? _ivpAnim;
-        
+        private bool _fullscreenToggled;
         private readonly DispatcherTimer turnPageTimer;
         private bool _topHit, _bottomHit, _turnPageOnScrollUp, _turnPageOnScrollDown, _noScrolling;
 
@@ -78,7 +78,7 @@ namespace Bubbles4.Controls {
         {
             Focusable = true;
             this.Focus();
-
+            
             this.LayoutUpdated += OnLayoutUpdated;
             
             turnPageTimer = new DispatcherTimer();
@@ -97,16 +97,19 @@ namespace Bubbles4.Controls {
             switch (change.Property.Name)
             {
                 case nameof(Data):
+                    bool skipSaveIvp = false;
                     if (_ivpAnim?.IsRunning == true)
                     {
+                        if(_page != null) _page.Ivp = _ivpAnim.EndIvp;
                         _ivpAnim.Stop(); 
                         _ivpAnim = null;
+                        skipSaveIvp = true;
                     }
                     
                     if (BookChanged) _previousBook = _page?.Book;
                     var data = change.NewValue as ViewerData;
                     
-                    if (_page != null && UseIvp )
+                    if (_page != null && UseIvp && !skipSaveIvp)
                         _page.Ivp = SaveToIVP(_page.Name);
 
                     bool isnext = true;
@@ -167,7 +170,9 @@ namespace Bubbles4.Controls {
                         // save ivp?
                     }
                     break;
-                   
+                case nameof(IsFullscreen):
+                    _fullscreenToggled = true;
+                    break;
             }
 
         }
@@ -488,35 +493,93 @@ namespace Bubbles4.Controls {
             return new ImageViewingParams(ivp.filename, clampedZoom, ivp.centerX, ivp.centerY);
         }
 
-
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            if (_fullscreenToggled && IsFullscreen == false && _image != null && _page!= null && Config?.UseIVPs==true)
+            {
+                Console.WriteLine("Fullscreen off. Saving Ivp");
+                _page.Ivp = SaveToIVP(_page.Name);
+            }
+            return base.ArrangeOverride(finalSize);
+        }
         private void OnLayoutUpdated(object? sender, EventArgs e)
         {
-            if (_image == null)
-                return;
 
-            var newSize = Bounds.Size;
-
-            // Only apply proportional zoom change if both old and new sizes are valid
-            if (_lastViewportSize.Width > 0 && _lastViewportSize.Height > 0 &&
-                newSize.Width > 0 && newSize.Height > 0)
+            if (_image != null && Bounds.Size != _lastViewportSize)
             {
-                // Use height as the reference axis
-                double heightRatio = newSize.Height / _lastViewportSize.Height;
-                var oldZoom = _zoom;
-                _zoom *= heightRatio;
-                _zoom = Math.Clamp(_zoom, _minZoom, _maxZoom);
+                AdjustZoomLimits();
+                if (_fullscreenToggled )
+                {
+                    //Console.WriteLine("fullscreen toggled");
+                    if (!IsFullscreen)
+                    {
+//                        Console.WriteLine("fullscreen off => fitbest");
+                        Fit();
+                    }
+                    else if (_page != null && _page.Ivp != null && UseIvp)
+                    {
+                        //Console.WriteLine("fullscreen on => ivp found, restoring it");
+                        RestoreFromIVP(_page.Ivp);
+                    }
+                    else if (Config != null)
+                    {
+                        //Console.WriteLine("fullscreen on => config.Fit");
+                        switch (Config?.Fit)
+                        {
+                            case LibraryConfig.FitTypes.Height:
+                                
+                                FitHeight();
+                                break;
+                            case LibraryConfig.FitTypes.Width:FitWidth();
+                                FitWidth();
+                                break;
+                            case LibraryConfig.FitTypes.Stock:FitStock();
+                                FitStock();
+                                break;
+                            default:
+                                Fit();
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        //Console.WriteLine("default fit : fitbest-");
+                        Fit();
+                    }
+                }
+                else
+                {
+                    var newSize = Bounds.Size;
 
-                // Maintain the position of the image center relative to viewport center
-                var centerBefore = new Point(_lastViewportSize.Width / 2, _lastViewportSize.Height / 2);
-                var imageCenterBefore = (centerBefore - _panOffset) / oldZoom;
-                var centerAfter = new Point(newSize.Width / 2, newSize.Height / 2);
-                _panOffset = centerAfter - imageCenterBefore * _zoom;
+                    // Only apply proportional zoom change if both old and new sizes are valid
+                    if (_lastViewportSize.Width > 0 && _lastViewportSize.Height > 0 &&
+                        newSize.Width > 0 && newSize.Height > 0)
+                    {
+                        // Use height as the reference axis
+                        double heightRatio = newSize.Height / _lastViewportSize.Height;
+                        double widthRatio = newSize.Width / _lastViewportSize.Width;
+                        var oldZoom = _zoom;
+                        if (heightRatio < widthRatio) _zoom *= heightRatio;    
+                        else _zoom *= widthRatio;                         
+                        
+                        _zoom = Math.Clamp(_zoom, _minZoom, _maxZoom);
+
+                        // Maintain the position of the image center relative to viewport center
+                        var centerBefore = new Point(_lastViewportSize.Width / 2, _lastViewportSize.Height / 2);
+                        var imageCenterBefore = (centerBefore - _panOffset) / oldZoom;
+                        var centerAfter = new Point(newSize.Width / 2, newSize.Height / 2);
+                        _panOffset = centerAfter - imageCenterBefore * _zoom;
+                    }
+                }
+
+                
+
+                
+                AdjustPanOffset();
+                InvalidateVisual();
             }
-
-            _lastViewportSize = newSize;
-            AdjustZoomLimits();
-            AdjustPanOffset();
-            InvalidateVisual();
+            _lastViewportSize = Bounds.Size;
+            _fullscreenToggled = false;
         }
         public void OnPointerMoved(object? sender, PointerEventArgs e)
         {
@@ -734,7 +797,9 @@ namespace Bubbles4.Controls {
         private class IvpAnimation
         {
             private ImageViewingParams _startIvp;
+            public ImageViewingParams StartIvp => _startIvp;
             private ImageViewingParams _endIvp;
+            public ImageViewingParams EndIvp => _endIvp;
             private double _duration;
             private DispatcherTimer? _timer;
             private Action<ImageViewingParams> _onTick;

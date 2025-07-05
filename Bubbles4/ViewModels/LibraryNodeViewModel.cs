@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Reflection.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
@@ -18,7 +17,7 @@ namespace Bubbles4.ViewModels;
 public partial class LibraryNodeViewModel : LibraryViewModel
 {
     private string _name;
-
+    public int progressCounter;
     public string Name
     {
         get
@@ -62,7 +61,7 @@ public partial class LibraryNodeViewModel : LibraryViewModel
     }
 
     
-    public override async Task StartParsingLibraryAsync(string path, Progress<double> progress)
+    public override async Task StartParsingLibraryAsync(string path, IProgress<(string, double, bool)> progress)
     {
         // Cancel previous parsing run if active
         _parsingCts?.Cancel();
@@ -110,7 +109,6 @@ public partial class LibraryNodeViewModel : LibraryViewModel
     public override void AddBatch(List<BookBase> batch)
     {
         base.AddBatch(batch);
-        
         OnPropertyChanged(nameof(BookCount));
         OnPropertyChanged(nameof(Name));
     }

@@ -11,64 +11,67 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Bubbles4.ViewModels;
 
+// constructor must run on the ui thread for the progress object to be valid
 public partial class ProgressDialogViewModel: ViewModelBase
 {
-    public bool Relative { get; set; }
-    [ObservableProperty]private string _message;
+    private readonly TaskCompletionSource _shownTcs = new TaskCompletionSource();
+    public Task DialogShown => _shownTcs.Task;
     
-    private double _progressValue;
-    public double ProgressValue
-    {
-        get => _progressValue;
-        set
-        {
-            SetProperty(ref _progressValue, value);
-            if (Relative) Message = $"Loading...{value}%";
-            else
-            {
-                _count++;
-                Message = $"{_count} directories loaded";
-            }
-        }
-    }
+    [ObservableProperty]private string _message = "";
+    [ObservableProperty]private double _progressValue=0;
+    [ObservableProperty]private bool _isIndeterminate=false;
 
-    private int _count;
     IDialogService _dialogService;
-    private Progress<double> _progress;
-    public Progress<double> Progress => _progress;
+    private Progress<(string msg, double progress, bool completed)> _progress;
+    public Progress<(string msg, double progress, bool completed)> Progress => _progress;
+    
 
     public ProgressDialogViewModel(IDialogService dialogService)
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            throw(new InvalidOperationException("ProgressDialogViewModel constructor Must be invoked on the UI thread."));
+        }
         _dialogService=dialogService;
-        _progress = new Progress<double>(OnProgressUpdated);
+        _progress = new Progress<(string msg, double progress, bool completed)>(OnProgressUpdated);
     }
-    public void OnProgressUpdated(double progressValue)
+    public void OnProgressUpdated((string msg, double value, bool completed)progress)
     {
-        if (Math.Abs(progressValue - (-1.0)) < 1e-6)
+        if (progress.completed)
         {
             Close();
             return;
         }
-        _ = Dispatcher.UIThread.InvokeAsync(() => ProgressValue=progressValue);
+        _ = Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            IsIndeterminate = Math.Abs(progress.value - (-1.0)) < 0.01;
+            Message = progress.msg;
+            ProgressValue = IsIndeterminate?0:progress.value;
+        });
     }
 
-    public Task<object?> Show()
+    public async Task Show()
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            throw(new InvalidOperationException("ProgressDialogViewModel.Show Must be invoked on the UI thread."));
+        }
         var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
             ? desktop.MainWindow
             : null;
+
         if (window != null)
         {
-                try
-                {
-                     return _dialogService.ShowDialogAsync<object>(window, this);
-                }
-                catch (TaskCanceledException){return (Task<object?>)Task.CompletedTask;}
-                catch (Exception ex){Console.WriteLine(ex);return (Task<object?>)Task.CompletedTask;}
-                   
+            try
+            {
+                await _dialogService.ShowDialogAsync<object>(window, this);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
         }
-
-        return (Task<object?>)Task.CompletedTask;
+        
     }
 
     public void Close()
@@ -80,4 +83,8 @@ public partial class ProgressDialogViewModel: ViewModelBase
         }
     }
 
+    public void NotifyDialogShown()
+    {
+        _shownTcs.TrySetResult();
+    }
 }

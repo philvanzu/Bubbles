@@ -49,7 +49,7 @@ public partial class LibraryViewModel: ViewModelBase
     
     protected CancellationTokenSource? _parsingCts;
 
-    public virtual async Task StartParsingLibraryAsync(string path, Progress<double> progress)
+    public virtual async Task StartParsingLibraryAsync(string path, IProgress<(string, double, bool)> progress)
     {
         // Cancel previous parsing run if active
         _parsingCts?.Cancel();
@@ -64,16 +64,14 @@ public partial class LibraryViewModel: ViewModelBase
             await LibraryParserService.ParseLibraryRecursiveAsync(path, batch =>
             {
                 // Marshal to UI thread
-                Dispatcher.UIThread.Post(() =>
-                {
-                    AddBatch(batch);
-                });
-            }, cancellationToken: token, progress:progress);
+                AddBatch(batch);
+            }, cancellationToken: token, progress: progress);
         }
         catch (OperationCanceledException)
         {
             // Optional: handle cancellation gracefully
         }
+
     }
 
     public void CancelParsing()
@@ -84,8 +82,12 @@ public partial class LibraryViewModel: ViewModelBase
     }
     
     public virtual void AddBatch(List<BookBase> batch)
-    {
+    {        
+        if (!Dispatcher.UIThread.CheckAccess())
+            throw(new InvalidOperationException("LibraryViewModel.AddBatch Must be invoked on the UI thread."));
+
         _books.AddRange(batch.Select(book => new BookViewModel(book, this, _mainViewModel)));
+        Sort();
         _mainViewModel.UpdateLibraryStatus();
         OnPropertyChanged(nameof(Count));
     }
@@ -189,13 +191,29 @@ public partial class LibraryViewModel: ViewModelBase
     public ICommand HandleItemPrepared => new AsyncRelayCommand<object>(async item =>
     {
         if (item is BookViewModel vm)
+        {
+            int idx = GetBookIndex(vm);
+            if (idx == 0)
+            {
+                Console.WriteLine($"handling item zero prepared");                
+            }
             await vm.PrepareThumbnailAsync();
+        }
+            
     });
 
     public ICommand HandleItemClearing => new AsyncRelayCommand<object>(async item =>
     {
         if (item is BookViewModel vm)
+        {
+            int idx = GetBookIndex(vm);
+            if (idx == 0)
+            {
+                Console.WriteLine($"handling item zero cleared");                
+            }
             await vm.ClearThumbnailAsync();
+        }
+            
     });
 
     [ObservableProperty] BookViewModel? _selectedItem;
@@ -480,3 +498,7 @@ public partial class LibraryViewModel: ViewModelBase
 
 
 }
+
+public class DummyItem
+{
+};

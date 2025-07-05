@@ -25,14 +25,14 @@ namespace Bubbles4.ViewModels;
 public partial class BookViewModel: ViewModelBase
 {
     private LibraryViewModel _library;
-    private BookBase _book;
-    public BookBase Model => _book;
+    private BookBase _model;
+    public BookBase Model => _model;
     
-    public string Path => _book.Path;
-    public string Name => _book.Name;
-    public int PageCount => _book.PageCount;
-    public DateTime LastModified => _book.LastModified;
-    public DateTime Created => _book.Created;
+    public string Path => _model.Path;
+    public string Name => _model.Name;
+    public int PageCount => _pages?.Count??_model.PageCount;
+    public DateTime LastModified => _model.LastModified;
+    public DateTime Created => _model.Created;
     public int RandomIndex;
     [ObservableProperty] private IvpCollection? _imageViewingParamsCollection;
 
@@ -56,7 +56,7 @@ public partial class BookViewModel: ViewModelBase
     public BookViewModel(BookBase book, LibraryViewModel library, MainViewModel mainViewModel)
     {
         this._mainViewModel = mainViewModel;
-        this._book = book;
+        this._model = book;
         this._library = library;
         
         Pages = new ReadOnlyObservableCollection<PageViewModel>(_pagesMutable);
@@ -136,27 +136,35 @@ public partial class BookViewModel: ViewModelBase
     }
     
     public async Task PrepareThumbnailAsync()
-    {   
-        if (_thumbnail != null || _isThumbnailLoading)
-            return;
+    {
+        if (_isThumbnailLoading) return;
+        
+
 
         _isThumbnailLoading = true;
         try
         {
             //Console.WriteLine($"awaiting thumbnail from BookViewModel {Path}");
-            await _book.LoadThumbnailAsync(bitmap => Thumbnail = bitmap );
-            
-            if (_book is BookArchive)
+            await _model.LoadThumbnailAsync(bitmap =>
             {
-                if (Thumbnail == null)
+                if (_thumbnail != null)
                 {
-                    //Console.WriteLine("null bitmap returned for book thumbnail : "+ Path);
+                    var oldBitmap = _thumbnail;
+                    _thumbnail = bitmap;
+                    OnPropertyChanged(nameof(Thumbnail));
+
+                    if (oldBitmap != null && !ReferenceEquals(oldBitmap, bitmap))
+                    {
+                        oldBitmap.Dispose();
+                    }
                 }
-                else 
-                {
-                    //Console.WriteLine("Thumbnail received for {0} : {1}px X {2}px", Path, Thumbnail.PixelSize.Width, Thumbnail.PixelSize.Height);
-                }    
-            }
+                else Thumbnail = bitmap;
+                OnPropertyChanged(nameof(Thumbnail));
+                
+                //Todo: remove this log
+                if(_library.GetBookIndex(this) == 0)
+                    Console.WriteLine($"Thumbnail set: {_thumbnail != null}");
+            });
         }
         catch (Exception ex){Console.WriteLine(ex);}
         finally
@@ -166,8 +174,9 @@ public partial class BookViewModel: ViewModelBase
     }
     public async Task ClearThumbnailAsync()
     {
-        //Console.WriteLine("unloading thmbnail :" +this.Name);
-        if (_isThumbnailLoading) _book.CancelThumbnailLoad();
+
+        //Console.WriteLine($"unloading thmbnail idx {} at :{Name}");
+        if (_isThumbnailLoading) _model.CancelThumbnailLoad();
         _thumbnail?.Dispose();
         _thumbnail = null;
         
@@ -181,7 +190,7 @@ public partial class BookViewModel: ViewModelBase
         page.IsThumbnailLoading = true;
         try
         {
-            await _book.LoadThumbnailAsync(bitmap => page.Thumbnail = bitmap, page.Path);
+            await _model.LoadThumbnailAsync(bitmap => page.Thumbnail = bitmap, page.Path);
 
         }
         finally
@@ -192,18 +201,20 @@ public partial class BookViewModel: ViewModelBase
     
     public async Task LoadPagesListAsync()
     {
-        await _book.LoadPagesList(pgs =>
+        await _model.LoadPagesList(pgs =>
         {
             if (pgs != null)
             {
+                _pages.Clear();
                 foreach (var page in pgs)
                 {
                     _pages.Add(new PageViewModel(this, page));
-                    _book.PagesCts.TryAdd(page.Path, null);
+                    _model.PagesCts.TryAdd(page.Path, null);
                 }
                 Sort();
+                Model.PageCount = _pages.Count;
                 
-                ImageViewingParamsCollection = IvpCollection.Load(_book.IvpPath);
+                ImageViewingParamsCollection = IvpCollection.Load(_model.IvpPath);
                 if (ImageViewingParamsCollection == null && _mainViewModel.Config?.UseIVPs == true)
                 {
                     ImageViewingParamsCollection = new();
@@ -217,10 +228,10 @@ public partial class BookViewModel: ViewModelBase
 
     public void UnloadPagesList()
     {
-        _book.CancelPagesListLoad();
+        _model.CancelPagesListLoad();
         if (ImageViewingParamsCollection != null && _mainViewModel.Config?.UseIVPs == true)
         {
-            ImageViewingParamsCollection.Save(_book.IvpPath);
+            ImageViewingParamsCollection.Save(_model.IvpPath);
             ImageViewingParamsCollection = null;
         }
         foreach (var page in Pages) page.Unload();
@@ -230,9 +241,9 @@ public partial class BookViewModel: ViewModelBase
             _pagesMutable.Clear();
         }
         
-        if (_book.PagesCts.Count > 0)
+        if (_model.PagesCts.Count > 0)
         {
-            foreach (var kv in _book.PagesCts)
+            foreach (var kv in _model.PagesCts)
             {
                 if (kv.Value != null)
                 {
@@ -240,7 +251,7 @@ public partial class BookViewModel: ViewModelBase
                     kv.Value.Dispose();
                 }
             }
-            _book.PagesCts.Clear();
+            _model.PagesCts.Clear();
         }
         
         SelectedPage = null;
@@ -416,6 +427,70 @@ public partial class BookViewModel: ViewModelBase
         return true;
     }
     
+    bool _ignoreWatcherEvents = false;
+    /// <summary>
+    /// Rearrange pages LastModified values so that they are in the same order as
+    /// their name when sorted by LastModified
+    /// </summary>
+    [RelayCommand]
+    public async Task NameOrderToModifiedAndCreated()
+    {
+        var sortedModifieds = _pages
+            .OrderBy(o => o.LastModified)
+            .Select(o => o.LastModified)
+            .ToList();
+        var sortedCreateds = _pages
+            .OrderBy(o => o.Created)
+            .Select(o => o.Created)
+            .ToList();
+        var sorted = _pages
+            .OrderBy(o => o.Name)
+            .ToList();
+        
+        _ignoreWatcherEvents=true;
+        
+        for (int i = 0; i < _pages.Count; i++)
+        {
+            File.SetLastWriteTime(sorted[i].Path, sortedModifieds[i]);
+            File.SetCreationTime(sorted[i].Path, sortedCreateds[i]);
+            sorted[i].Model.Update(new FileInfo(sorted[i].Path));
+        }
+
+        await Task.Delay(1000);
+        _ignoreWatcherEvents=false;
+        Sort();
+    }
+
+    public bool CanNameOrderToModifiedAndCreated => Model is BookDirectory; 
+    
+
+    [RelayCommand]
+    private async Task ModifiedOrderToName()
+    {
+        var sortedNames = _pages
+            .OrderBy(o => o.Path)
+            .Select(o => o.Path)
+            .ToList();
+        
+        var sorted= _pages
+            .OrderBy(o => o.LastModified)
+            .ToList();
+        
+        _ignoreWatcherEvents=true;
+        for (int i = 0; i < _pages.Count; i++)
+        {
+            File.Move(sorted[i].Path, sortedNames[i]);
+            sorted[i].Model.Path = sortedNames[i];
+        }
+
+        Sort();
+        await Task.Delay(1000);
+        _ignoreWatcherEvents=false;
+    }
+    public bool CanModifiedOrderToName => Model is BookDirectory;
+    
+    
+    
     #region FileSystemWatcher events
 
     public void FileSystemChanged(FileSystemEventArgs e)
@@ -429,11 +504,19 @@ public partial class BookViewModel: ViewModelBase
             RefreshModelInfo(e.FullPath);
     }
 
-    public void PageFileChanged(FileSystemEventArgs e) => EnqueueRebuildPagesListJob();
-    public void PageFileRenamed(RenamedEventArgs e) => EnqueueRebuildPagesListJob();
+    public void PageFileChanged(FileSystemEventArgs e)
+    {
+        if (_ignoreWatcherEvents) return;
+        EnqueueRebuildPagesListJob();  
+    } 
+    public void PageFileRenamed(RenamedEventArgs e) {
+        if (_ignoreWatcherEvents) return;
+        EnqueueRebuildPagesListJob();  
+    }
 
     void RefreshModelInfo(string newPath)
     {
+        if (_ignoreWatcherEvents) return;
         Model.Path = newPath;
 
         if (Model is BookDirectory && Directory.Exists(newPath))
@@ -453,6 +536,7 @@ public partial class BookViewModel: ViewModelBase
     private int _pagesLoading = 0;
     void EnqueueRebuildPagesListJob()
     {
+        if (_ignoreWatcherEvents) return;
         if (Interlocked.CompareExchange(ref _pagesLoading, 1, 0) == 0)
         {
             _ = Task.Run(async () =>
@@ -460,8 +544,15 @@ public partial class BookViewModel: ViewModelBase
                 bool success = false;
                 try
                 {
-                    await Dispatcher.UIThread.InvokeAsync(() => _pages.Clear());
-                    await LoadPagesListAsync();
+                    await Task.Delay(1000);
+                    Task? loadPages = null;
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        _pages.Clear();
+                        loadPages = LoadPagesListAsync();
+                    });
+
+                    if (loadPages != null) await loadPages;
                     success = true;
                 }
                 catch (Exception ex)
