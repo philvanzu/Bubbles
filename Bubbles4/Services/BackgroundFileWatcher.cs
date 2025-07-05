@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Bubbles4.Models;
 
 namespace Bubbles4.Services;
 
@@ -39,7 +40,11 @@ public class BackgroundFileWatcher : IDisposable
         _watcher = new FileSystemWatcher(path)
         {
             IncludeSubdirectories = recursive,
-            EnableRaisingEvents = true
+            EnableRaisingEvents = true,
+            NotifyFilter =  NotifyFilters.FileName |
+                            NotifyFilters.DirectoryName |
+                            NotifyFilters.LastWrite |    // modification (contents changed)
+                            NotifyFilters.CreationTime 
         };
 
         _watcher.Created += HandleChange;
@@ -50,6 +55,7 @@ public class BackgroundFileWatcher : IDisposable
 
     private void HandleChange(object sender, FileSystemEventArgs e)
     {
+        if (!FileTypes.IsWatchable(e.FullPath)) return;
         if (!_eventChannel.Writer.TryWrite(e))
         {
             // Optionally log or handle overflow
@@ -58,6 +64,7 @@ public class BackgroundFileWatcher : IDisposable
 
     private void HandleRename(object sender, RenamedEventArgs e)
     {
+        if (!FileTypes.IsWatchable(e.FullPath) && !FileTypes.IsWatchable(e.OldFullPath)) return;
         if (!_renameChannel.Writer.TryWrite(e))
         {
             // Optionally log or handle overflow

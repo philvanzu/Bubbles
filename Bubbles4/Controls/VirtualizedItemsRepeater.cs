@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.VisualTree;
+using Bubbles4.ViewModels;
 
 namespace Bubbles4.Controls;
 
@@ -46,11 +47,7 @@ public class VirtualizedItemsRepeater : ItemsRepeater
     private void OnElementPreparedInternal(object? sender, ItemsRepeaterElementPreparedEventArgs e)
     {
         var context = e.Element?.DataContext;
-
-        if (ItemPreparedCommand?.CanExecute(context) == true)
-        {
-            ItemPreparedCommand.Execute(context);
-        }
+        ItemPreparedCommand?.Execute(context);
 
         ItemPrepared?.Invoke(this, context);
     }
@@ -58,12 +55,9 @@ public class VirtualizedItemsRepeater : ItemsRepeater
     private void OnElementClearingInternal(object? sender, ItemsRepeaterElementClearingEventArgs e)
     {
         var context = e.Element?.DataContext;
-
-        if (ItemClearingCommand?.CanExecute(context) == true)
-        {
-            ItemClearingCommand.Execute(context);
-        }
+        ItemClearingCommand?.Execute(context);
 
         ItemCleared?.Invoke(this, context);
     }
 }
+

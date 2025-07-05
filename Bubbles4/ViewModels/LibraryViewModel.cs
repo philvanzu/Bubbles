@@ -8,10 +8,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia.Threading;
-using Bubbles4.Commands;
 using Bubbles4.Models;
 using Bubbles4.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using DynamicData;
 using DynamicData.Binding;
 
@@ -187,34 +187,31 @@ public partial class LibraryViewModel: ViewModelBase
         _currentSortAscending = !_currentSortAscending;
         Sort(_currentSortOption, _currentSortAscending);
     }
-
-    public ICommand HandleItemPrepared => new AsyncRelayCommand<object>(async item =>
+    [RelayCommand]
+    private async Task BookPrepared(object? parameter)
     {
-        if (item is BookViewModel vm)
+        if (parameter is BookViewModel vm)
         {
-            int idx = GetBookIndex(vm);
-            if (idx == 0)
-            {
-                Console.WriteLine($"handling item zero prepared");                
-            }
+            if(GetBookIndex(vm) == 0)
+                Console.WriteLine($"item {GetBookIndex(vm)} prepared.");
             await vm.PrepareThumbnailAsync();
         }
             
-    });
+    }
 
-    public ICommand HandleItemClearing => new AsyncRelayCommand<object>(async item =>
+    [RelayCommand]
+    private async Task BookClearing(object? parameter)
     {
-        if (item is BookViewModel vm)
+        if (parameter is BookViewModel vm)
         {
-            int idx = GetBookIndex(vm);
+            var idx = GetBookIndex(vm);
             if (idx == 0)
-            {
-                Console.WriteLine($"handling item zero cleared");                
-            }
-            await vm.ClearThumbnailAsync();
+                Console.WriteLine($"item {GetBookIndex(vm)} clearing");
+            await vm.ClearThumbnailAsync();    
         }
             
-    });
+    }
+    
 
     [ObservableProperty] BookViewModel? _selectedItem;
 

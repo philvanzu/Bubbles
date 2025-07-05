@@ -337,30 +337,25 @@ public partial class BookViewModel: ViewModelBase
         if(pageViewModel == null)return -1;
         return Pages.IndexOf(pageViewModel);
     }
-    public ICommand HandleItemPrepared => new AsyncRelayCommand<object>(
-        async item =>
-        {
-            if (item is PageViewModel vm)
-            {
-                //Console.WriteLine($"preparing item {vm.Path}");
-                await vm.LoadThumbnailAsync();
-            }
-            //else Console.WriteLine("Not a page");
-        }
-        ,
-        item => item is PageViewModel, 
-        options: AsyncRelayCommandOptions.AllowConcurrentExecutions
-    );
-
-    public ICommand HandleItemClearing => new AsyncRelayCommand<object>(async item =>
+    [RelayCommand]
+    private async Task PagePrepared(object? parameter)
     {
-        if (item is PageViewModel vm)
+        if (parameter is PageViewModel vm)
         {
-            await vm.UnLoadAsync();
-            //Console.WriteLine("Unloading page :"+vm.Name);
+            await vm.LoadThumbnailAsync();
         }
             
-    });
+    }
+
+    [RelayCommand]
+    private async Task PageClearing(object? parameter)
+    {
+        if (parameter is PageViewModel vm)
+        {
+            await vm.UnLoadAsync();       
+        }
+            
+    }
     
     [ObservableProperty] PageViewModel? _selectedPage;
 

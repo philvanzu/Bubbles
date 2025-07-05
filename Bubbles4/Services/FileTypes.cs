@@ -64,5 +64,20 @@ public static class FileTypes
             ? path
             : path + System.IO.Path.DirectorySeparatorChar;
     }
-
+    
+    public static bool CouldBeDirectory(string path)
+    {
+        return string.IsNullOrEmpty(Path.GetExtension(path));
+    }
+    
+    public static bool IsWatchable(string path)
+    {
+        if(IsImageDirectory(path) || IsArchive(path) || IsPdf(path))
+            return true;
+        
+        if (CouldBeDirectory(path) && Directory.Exists(path)) 
+            return true;
+        
+        return false;
+    }
 }

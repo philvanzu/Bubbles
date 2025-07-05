@@ -310,8 +310,8 @@ public partial class MainViewModel : ViewModelBase
             AppData.Save();
             OnPropertyChanged(nameof(LibrariesList));
 //            OnPropertyChanged(nameof(Config));
-            _watcher.BeginBuffering();
-            _watcher.StartWatching(libraryPath, true, Library.FileSystemChanged, Library.FileSystemRenamed);
+            
+            
 
             
             IProgress<(string, double, bool)> progress = _progressDialog.Progress;
@@ -324,7 +324,7 @@ public partial class MainViewModel : ViewModelBase
                     await _progressDialog.DialogShown;
                     await Task.Delay(64);
                     await Library.StartParsingLibraryAsync(libraryPath, progress);
-                    _watcher.FlushBufferedEvents();
+                    
                 }
                 catch (Exception ex)
                 {
@@ -334,6 +334,9 @@ public partial class MainViewModel : ViewModelBase
                 {
                     //ensure the dialog gets closed after library 
                     progress.Report(("", -1.0, true));
+                    //_watcher.BeginBuffering();
+                    _watcher.StartWatching(libraryPath, true, Library.FileSystemChanged, Library.FileSystemRenamed);
+                    //_watcher.FlushBufferedEvents();
                 }
 
             });

@@ -6,6 +6,7 @@ using Avalonia.Data.Core.Plugins;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using Bubbles4.Models;
 using Bubbles4.ViewModels;
 using Bubbles4.Views;
@@ -42,15 +43,18 @@ public partial class App : Application
                 };
                 mainWindow.Opened += (sender, e) =>
                 {
-                    try
+                    Dispatcher.UIThread.Post(async () =>
                     {
-
-                        mvm.Initialize(libraryPath);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Initialization failed: {ex}");
-                    }
+                        try
+                        {
+                            await Task.Delay(1000);
+                            mvm.Initialize(libraryPath);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Initialization failed: {ex}");
+                        }    
+                    });
                 };
                 mainWindow.Closed += (sender, e) =>
                 {

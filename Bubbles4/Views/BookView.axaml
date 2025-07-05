@@ -6,31 +6,30 @@
              xmlns:ir="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.ItemsRepeater"
              xmlns:i="using:Avalonia.Xaml.Interactivity"
              xmlns:converters="clr-namespace:Bubbles4.Converters"
-             xmlns:local="clr-namespace:Bubbles4.Behaviors"
+             xmlns:bhv="clr-namespace:Bubbles4.Behaviors"
+             xmlns:ctrl="clr-namespace:Bubbles4.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Bubbles4.Views.BookView"
              x:DataType="vm:BookViewModel">
 
     
     <ScrollViewer>
-        <ir:ItemsRepeater ItemsSource="{Binding Pages}">
+        <ctrl:VirtualizedItemsRepeater ItemsSource="{Binding Pages}"
+                                       ItemPreparedCommand="{Binding PagePreparedCommand}"
+                                       ItemClearingCommand="{Binding PageClearingCommand}">
             <i:Interaction.Behaviors>
-                <local:InvokeItemLifecycleBehavior
-                    ItemPreparedCommand="{Binding HandleItemPrepared}"
-                    ItemClearingCommand="{Binding HandleItemClearing}" />
-                <local:AutoScrollToSelectedBehavior />
+                <bhv:AutoscrollToSelectedOffsetBehavior />
             </i:Interaction.Behaviors>
-            <ir:ItemsRepeater.Layout>
-                <UniformGridLayout MaximumRowsOrColumns="0" /> <!-- 0 = auto wrap -->
-            </ir:ItemsRepeater.Layout>
-            <ir:ItemsRepeater.ItemTemplate>
+            <ctrl:VirtualizedItemsRepeater.Layout>
+                <WrapLayout Orientation="Horizontal"/>
+            </ctrl:VirtualizedItemsRepeater.Layout>
+            <ctrl:VirtualizedItemsRepeater.ItemTemplate>
                 <DataTemplate>
-                    <UserControl>
-                        <Panel>
-                            <Border Width="132" Height="152">
+                        <Grid Width="132" Height="152">
+                            <Border>
                             <StackPanel >
                                 <i:Interaction.Behaviors>
-                                    <local:PointerPressedCommandBehavior Command="{Binding PointerPressed}" />
+                                    <bhv:PointerPressedCommandBehavior Command="{Binding PointerPressed}" />
                                 </i:Interaction.Behaviors>
                                 <StackPanel.ContextMenu>
                                     <ContextMenu>
@@ -50,11 +49,10 @@
                             <Border Width="132" Height="152" Background="#55ffffff" 
                                     IsVisible="{Binding IsSelected}"
                                     BorderBrush="transparent" BorderThickness="1" CornerRadius="5"/>
-                        </Panel>
-                    </UserControl>
+                        </Grid>
                 </DataTemplate>
-            </ir:ItemsRepeater.ItemTemplate>
-        </ir:ItemsRepeater>
+            </ctrl:VirtualizedItemsRepeater.ItemTemplate>
+        </ctrl:VirtualizedItemsRepeater>
     </ScrollViewer>    
     
 </UserControl>
