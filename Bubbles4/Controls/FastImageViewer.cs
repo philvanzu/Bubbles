@@ -63,12 +63,14 @@ namespace Bubbles4.Controls {
         }
 
         public static readonly StyledProperty<bool> IsFullscreenProperty =
-            AvaloniaProperty.Register<FastImageViewer, bool>(nameof(IsFullscreen));
+                AvaloniaProperty.Register<FastImageViewer, bool>(nameof(IsFullscreen));
+
         public bool IsFullscreen
         {
             get => GetValue(IsFullscreenProperty);
             set => SetValue(IsFullscreenProperty, value);
         }
+        public static object OnIsFullscreenChanged { get; set; }
         bool UseIvp => IsFullscreen && Config != null && Config.UseIVPs;
         bool InScrollMode => IsFullscreen && Config?.ScrollAction == LibraryConfig.ScrollActions.Scroll;
         bool BookChanged => _page?.Book != _previousBook;
@@ -110,7 +112,7 @@ namespace Bubbles4.Controls {
                     var data = change.NewValue as ViewerData;
                     
                     if (_page != null && UseIvp && !skipSaveIvp)
-                        _page.Ivp = SaveToIVP(_page.Name);
+                        _page.Ivp = SaveToIVP();
 
                     bool isnext = true;
                     if (!BookChanged) isnext = data?.Page.Index - _page?.Index > 0;
@@ -171,8 +173,15 @@ namespace Bubbles4.Controls {
                     }
                     break;
                 case nameof(IsFullscreen):
-                    _fullscreenToggled = true;
+                    if (MainViewModel != null)
+                    {
+                        _fullscreenToggled = true;
+                        if (!IsFullscreen && _page != null)
+                            _page.Ivp = SaveToIVP();
+                    }
+                        
                     break;
+
             }
 
         }
@@ -456,7 +465,7 @@ namespace Bubbles4.Controls {
                         break;
                 }
             }
-            var start = SaveToIVP(_page.Name);
+            var start = SaveToIVP();
             if (start == null) return;
             
             _ivpAnim = new IvpAnimation(start, end,
@@ -469,7 +478,7 @@ namespace Bubbles4.Controls {
                 300.0);
         }
 
-        public ImageViewingParams? SaveToIVP(string filename)
+        public ImageViewingParams? SaveToIVP()
         {
             if (_image == null || Bounds.Width == 0 || Bounds.Height == 0)
                 return null;
@@ -480,7 +489,7 @@ namespace Bubbles4.Controls {
             double centerXpx = (leftPx + Bounds.Width / 2.0) / _zoom;
             double centerYpx = (topPx + Bounds.Height / 2.0) / _zoom;
 
-            return new ImageViewingParams(filename, _zoom, centerXpx, centerYpx);
+            return new ImageViewingParams("", _zoom, centerXpx, centerYpx);
         }
 
         private ImageViewingParams ClampIvpToZoomLimits(ImageViewingParams ivp)
@@ -493,20 +502,12 @@ namespace Bubbles4.Controls {
             return new ImageViewingParams(ivp.filename, clampedZoom, ivp.centerX, ivp.centerY);
         }
 
-        protected override Size ArrangeOverride(Size finalSize)
-        {
-            if (_fullscreenToggled && IsFullscreen == false && _image != null && _page!= null && Config?.UseIVPs==true)
-            {
-                Console.WriteLine("Fullscreen off. Saving Ivp");
-                _page.Ivp = SaveToIVP(_page.Name);
-            }
-            return base.ArrangeOverride(finalSize);
-        }
         private void OnLayoutUpdated(object? sender, EventArgs e)
         {
 
             if (_image != null && Bounds.Size != _lastViewportSize)
             {
+                //Console.WriteLine($"LayoutUpdated lastVpSize :{_lastViewportSize} || current bounds:{Bounds.Size}");
                 AdjustZoomLimits();
                 if (_fullscreenToggled )
                 {
@@ -518,7 +519,7 @@ namespace Bubbles4.Controls {
                     }
                     else if (_page != null && _page.Ivp != null && UseIvp)
                     {
-                        //Console.WriteLine("fullscreen on => ivp found, restoring it");
+                        Console.WriteLine("fullscreen on => ivp found, restoring it");
                         RestoreFromIVP(_page.Ivp);
                     }
                     else if (Config != null)

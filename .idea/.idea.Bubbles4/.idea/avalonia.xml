@@ -12,11 +12,13 @@
         <entry key="Bubbles4/Views/LibraryView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/MainView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/MainWindow.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/NavPaneView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/OKCancelView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/OkCancelView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/OkCancelWindow.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/PreferencesEditorView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/ProgressDialogView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/SortHeaderView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
       </map>
     </option>
   </component>

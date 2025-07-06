@@ -50,8 +50,12 @@ public partial class PageViewModel:ViewModelBase
         set
         {
             SetProperty(ref _ivp, value);
-            if(value != null && value.IsValid) 
+            if (value != null && value.IsValid)
+            {
+                value.filename = Name;
                 Book.ImageViewingParamsCollection?.AddOrUpdate(value);
+            }
+                
         }
     }
     

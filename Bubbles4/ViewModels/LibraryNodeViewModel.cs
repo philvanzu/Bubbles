@@ -39,8 +39,11 @@ public partial class LibraryNodeViewModel : LibraryViewModel
     private List<LibraryNodeViewModel> _children = new ();
     private ObservableCollection<LibraryNodeViewModel> _childrenMutable = new();
     public ReadOnlyObservableCollection<LibraryNodeViewModel> Children { get; }
-    private LibraryConfig.NodeSortOptions _currentChildrenSort = LibraryConfig.NodeSortOptions.Alpha;
-    private bool _currentChildrenSortAscending = true;
+    public LibraryConfig.NodeSortOptions CurrentChildrenSortOption { get; set; } 
+        = LibraryConfig.NodeSortOptions.Alpha;
+
+    public bool CurrentChildrenSortAscending { get; set; } = true;
+
     public bool HasChildren => _childrenMutable.Count > 0;
 
     [ObservableProperty] private bool _isExpanded;
@@ -119,8 +122,8 @@ public partial class LibraryNodeViewModel : LibraryViewModel
         var sorted = _children.OrderBy(x => x, GetComparer(sortOption, ascending));
         _childrenMutable.AddRange(sorted);
         OnPropertyChanged(nameof(Children));
-        _currentChildrenSort = sortOption;
-        _currentChildrenSortAscending = ascending;
+        CurrentChildrenSortOption = sortOption;
+        CurrentChildrenSortAscending = ascending;
         
         foreach (var child in _children)child.SortChildren(sortOption, ascending);
     }
@@ -145,7 +148,7 @@ public partial class LibraryNodeViewModel : LibraryViewModel
     }
     public void ReverseChildrenSortOrder()
     {
-        SortChildren(_currentChildrenSort, !_currentChildrenSortAscending);
+        SortChildren(CurrentChildrenSortOption, !CurrentChildrenSortAscending);
     }
 
     public bool HasBooks
@@ -213,7 +216,7 @@ public partial class LibraryNodeViewModel : LibraryViewModel
                     do
                     {
                         Interlocked.Exchange(ref _childrenSortPending, 0);
-                        SortChildren(_currentChildrenSort, _currentChildrenSortAscending);
+                        SortChildren(CurrentChildrenSortOption, CurrentChildrenSortAscending);
                         // Optionally await a small delay or yield to UI thread if sorting is expensive
                     }
                     while (Interlocked.CompareExchange(ref _childrenSortPending, 0, 0) != 0);

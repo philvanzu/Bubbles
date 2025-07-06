@@ -28,25 +28,23 @@
         <Grid RowDefinitions="36,*,36">
             <!-- Top toolbar/menu -->
             <Border BorderThickness="1" BorderBrush="White" Background="#505050">
-            <StackPanel Grid.Row="0" Orientation="Horizontal" >
+            <StackPanel Orientation="Horizontal" >
                 <Menu>
                     <MenuItem Header="Bubbles">
                         <MenuItem Header="New Library" Command="{Binding CreateLibraryAsync}"/>
-                        <MenuItem Header="Open Library" ItemsSource="{Binding LibrariesList}" >
+                        <MenuItem Header="Open Library" ItemsSource="{Binding Libraries}" >
                                     <MenuItem.ItemTemplate>
                                         <DataTemplate>
-                                            <MenuItem Header="{Binding .}" 
-                                                      Command="{Binding DataContext.OnOpenLibraryPressed, ElementName=RootControl}"
-                                                      CommandParameter="{Binding .}" />
+                                            <MenuItem Header="{Binding Name}" 
+                                                      Command="{Binding OnSelected}"/>
                                         </DataTemplate>
                                     </MenuItem.ItemTemplate>
                         </MenuItem>
-                        <MenuItem Header="Delete Library" ItemsSource="{Binding LibrariesList}" >
+                        <MenuItem Header="Delete Library" ItemsSource="{Binding Libraries}" >
                             <MenuItem.ItemTemplate>
                                 <DataTemplate>
-                                    <MenuItem Header="{Binding .}" 
-                                              Command="{Binding DataContext.OnDeleteLibraryPressed, ElementName=RootControl}"
-                                              CommandParameter="{Binding .}" />
+                                    <MenuItem Header="{Binding Name}" 
+                                              Command="{Binding OnDeleted}" />
                                 </DataTemplate>
                             </MenuItem.ItemTemplate>
                         </MenuItem>
@@ -68,29 +66,7 @@
                     </Button>
 
                 </StackPanel>
-                <Border Width="48"/>
-                <TextBlock Text="|   Sort books by   " VerticalAlignment="Center"/>
-                <ComboBox SelectedItem="{Binding LibrarySortOption}"
-                          ItemsSource="{Binding SortOptions, Mode = TwoWay}" />
-                <ToggleButton Width="40" Height="40" IsChecked="{Binding LibrarySortAscending, Mode=TwoWay}">
-                    <Path Fill="Black"
-                          Width="16"
-                          Height="16"
-                          Stretch="Uniform"
-                          Data="{Binding LibrarySortAscending, Converter={StaticResource BoolToArrowGeometry}}"/>                
-                </ToggleButton>
 
-                <Border Width="16"/>
-                <TextBlock Text="|   Sort pages by   " VerticalAlignment="Center"/>
-                <ComboBox SelectedItem="{Binding BookSortOption}"
-                          ItemsSource="{Binding SortOptions, Mode = TwoWay}"/>
-                <ToggleButton Width="40" Height="40" IsChecked="{Binding BookSortAscending, Mode=TwoWay}" >
-                    <Path Fill="Black"
-                          Width="16"
-                          Height="16"
-                          Stretch="Uniform"
-                          Data="{Binding BookSortAscending, Converter={StaticResource BoolToArrowGeometry}}"/>                
-                </ToggleButton>
                 <Border Width="16"/>
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <Canvas Width="200" Height="30">
@@ -157,9 +133,10 @@
                                   ShowsPreview="True" />
                     <Grid Grid.Column="2" RowDefinitions="1.75*, Auto, *">
                         <!--Library View-->
-                        <Grid Grid.RowDefinitions="*, 32" >
-                            <views:LibraryView DataContext="{Binding Library}" Background="#303030"/> 
-                            <Border Grid.Row="1" Background="#505050" BorderThickness="1" BorderBrush="White">
+                        <Grid Grid.RowDefinitions="32, *, 32" >
+                            <views:SortHeaderView DataContext="{Binding LibrarySortHeader}"/>
+                            <views:LibraryView Grid.Row="1"  DataContext="{Binding Library}" Background="#303030"/> 
+                            <Border Grid.Row="2" Background="#505050" BorderThickness="1" BorderBrush="White">
                             <TextBlock Text="{Binding BookStatus}" Margin="8" VerticalAlignment="Center" />
                             </Border>
                         </Grid>
@@ -170,7 +147,11 @@
                                       Background="DarkGray"
                                       ShowsPreview="True" />
                         <!-- Book View -->
-                        <views:BookView Grid.Row="2" DataContext="{Binding SelectedBook}" Background="#303030"/>
+                        <Grid Grid.Row="2" Grid.RowDefinitions="32, *">
+                            <views:SortHeaderView DataContext="{Binding BookSortHeader}"/>
+                            <views:BookView Grid.Row="1" DataContext="{Binding SelectedBook}" Background="#303030"/>    
+                        </Grid>
+                        
                     </Grid>
 
                     <GridSplitter Grid.Column="3"

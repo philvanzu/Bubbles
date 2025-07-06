@@ -17,14 +17,15 @@ using DynamicData.Binding;
 
 namespace Bubbles4.ViewModels;
 
-public partial class LibraryViewModel: ViewModelBase
+public partial class LibraryViewModel : ViewModelBase
 {
     public string Path { get; }
     protected List<BookViewModel> _books = new();
     protected ObservableCollection<BookViewModel> _booksMutable = new();
     public ReadOnlyObservableCollection<BookViewModel> Books { get; }
-    protected LibraryConfig.SortOptions _currentSortOption;
-    protected bool _currentSortAscending;
+    public LibraryConfig.SortOptions CurrentSortOption { get; set; }
+    public bool CurrentSortAscending { get; set; }
+
     protected List<string>? _filters;
     public int Count => Books.Count;
     protected MainViewModel _mainViewModel;
@@ -35,9 +36,9 @@ public partial class LibraryViewModel: ViewModelBase
         this.Path = path;
         Books = new ReadOnlyObservableCollection<BookViewModel>(_booksMutable);
 
-        _currentSortOption = _mainViewModel.Config?.LibrarySortOption ?? LibraryConfig.SortOptions.Path;
+        CurrentSortOption = _mainViewModel.Config?.LibrarySortOption ?? LibraryConfig.SortOptions.Path;
         var dir = _mainViewModel.Config?.LibrarySortAscending;
-        _currentSortAscending = dir ?? true;
+        CurrentSortAscending = dir ?? true;
     }
     
     public void Clear()
@@ -147,8 +148,8 @@ public partial class LibraryViewModel: ViewModelBase
         if (sort == null) sort = _mainViewModel.Config?.LibrarySortOption ?? LibraryConfig.SortOptions.Path;
         if (ascending == null) ascending = _mainViewModel.Config?.LibrarySortAscending ?? true;
 
-        _currentSortOption = sort.Value;
-        _currentSortAscending = ascending.Value;
+        CurrentSortOption = sort.Value;
+        CurrentSortAscending = ascending.Value;
         ApplyFilterAndSort();
     }
     public void Filter(List<string>? keywords = null)
@@ -158,7 +159,7 @@ public partial class LibraryViewModel: ViewModelBase
     }
     private void ApplyFilterAndSort()
     {
-        var comparer = GetComparer(_currentSortOption, _currentSortAscending);
+        var comparer = GetComparer(CurrentSortOption, CurrentSortAscending);
 
         var filtered = _books
             .Where(b => MatchesKeywords(b, _filters))
@@ -184,8 +185,8 @@ public partial class LibraryViewModel: ViewModelBase
 
     public void ReverseSortOrder()
     {
-        _currentSortAscending = !_currentSortAscending;
-        Sort(_currentSortOption, _currentSortAscending);
+        CurrentSortAscending = !CurrentSortAscending;
+        Sort(CurrentSortOption, CurrentSortAscending);
     }
     [RelayCommand]
     private async Task BookPrepared(object? parameter)
@@ -488,7 +489,7 @@ public partial class LibraryViewModel: ViewModelBase
 
         if (dosort)
         {
-            await Dispatcher.UIThread.InvokeAsync(() => Sort(_currentSortOption, _currentSortAscending));
+            await Dispatcher.UIThread.InvokeAsync(() => Sort(CurrentSortOption, CurrentSortAscending));
         }
     }
     #endregion

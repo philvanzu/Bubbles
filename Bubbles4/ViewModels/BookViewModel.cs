@@ -51,8 +51,8 @@ public partial class BookViewModel: ViewModelBase
     ObservableCollection<PageViewModel> _pagesMutable = new ();
     public ReadOnlyObservableCollection<PageViewModel> Pages { get; }
     
-    private LibraryConfig.SortOptions _currentSortOption;
-    private bool _currentSortAscending; //ascending
+    public LibraryConfig.SortOptions CurrentSortOption { get; set; }
+    public bool CurrentSortAscending { get; set; } 
     public BookViewModel(BookBase book, LibraryViewModel library, MainViewModel mainViewModel)
     {
         this._mainViewModel = mainViewModel;
@@ -60,8 +60,8 @@ public partial class BookViewModel: ViewModelBase
         this._library = library;
         
         Pages = new ReadOnlyObservableCollection<PageViewModel>(_pagesMutable);
-        _currentSortOption = _mainViewModel.Config?.BookSortOption ?? LibraryConfig.SortOptions.Path;
-        _currentSortAscending = _mainViewModel.Config?.BookSortAscending ?? true;
+        CurrentSortOption = _mainViewModel.Config?.BookSortOption ?? LibraryConfig.SortOptions.Path;
+        CurrentSortAscending = _mainViewModel.Config?.BookSortAscending ?? true;
     }
     
     private IComparer<PageViewModel> GetComparer(LibraryConfig.SortOptions sort, bool ascending)
@@ -117,10 +117,10 @@ public partial class BookViewModel: ViewModelBase
     {
         if(sort == null) sort  = _mainViewModel.Config?.BookSortOption ?? LibraryConfig.SortOptions.Path;
         if(ascending == null) ascending = _mainViewModel.Config?.BookSortAscending ?? true;
-        _currentSortOption = sort.Value;
-        _currentSortAscending = ascending.Value;
+        CurrentSortOption = sort.Value;
+        CurrentSortAscending = ascending.Value;
         
-        var comparer = GetComparer(_currentSortOption, _currentSortAscending);
+        var comparer = GetComparer(CurrentSortOption, CurrentSortAscending);
         var sorted = _pages.OrderBy(p => p, comparer);
 
         _pagesMutable.Clear();
@@ -131,8 +131,8 @@ public partial class BookViewModel: ViewModelBase
 
     public void ReverseSortOrder()
     {
-        _currentSortAscending = !_currentSortAscending;
-        Sort(_currentSortOption, _currentSortAscending);
+        CurrentSortAscending = !CurrentSortAscending;
+        Sort(CurrentSortOption, CurrentSortAscending);
     }
     
     public async Task PrepareThumbnailAsync()
@@ -561,7 +561,7 @@ public partial class BookViewModel: ViewModelBase
 
                 if (success)
                 {
-                    await Dispatcher.UIThread.InvokeAsync(() => Sort(_currentSortOption, _currentSortAscending));
+                    await Dispatcher.UIThread.InvokeAsync(() => Sort(CurrentSortOption, CurrentSortAscending));
                 }
             });
         }

@@ -40,15 +40,31 @@ public partial class MainViewModel : ViewModelBase
             SetProperty(ref _config, value);
             if (value != null)
             {
-                LibrarySortOption = value.LibrarySortOption;
-                LibrarySortAscending = value.LibrarySortAscending;
-                BookSortOption = value.BookSortOption;
-                BookSortAscending = value.BookSortAscending;
+                LibrarySortHeader.Value = (value.LibrarySortOption, value.LibrarySortAscending);
+                BookSortHeader.Value = (value.BookSortOption, value.BookSortAscending);
+                NodeSortHeader.Value = (value.NodeSortOption, value.NodeSortAscending);
                 ShowNavPane = value.ShowNavPane;    
             }
         }
     }
-    public ObservableCollection<string> LibrariesList => AppData.LibrariesList;
+
+    
+    public ObservableCollection<LibraryListItem> Libraries
+    {
+        get {
+                var libraries  = new ObservableCollection<LibraryListItem>();
+                foreach (var s in AppData.LibrariesList)
+                {
+                    libraries.Add(new LibraryListItem()
+                    {
+                        Name = s,
+                        MainViewModel = this
+                    });
+                }
+                return libraries; 
+        }
+    }
+
     private LibraryViewModel? _library;
     
     private bool _showNavPane;
@@ -59,7 +75,7 @@ public partial class MainViewModel : ViewModelBase
         {
             SetProperty(ref _showNavPane, value);
             if(value)
-                OnPropertyChanged(nameof(LibrariesList));
+                OnPropertyChanged(nameof(Libraries));
             if (Config != null)
             {
                 Config.ShowNavPane = value;
@@ -68,106 +84,11 @@ public partial class MainViewModel : ViewModelBase
     }
 
     public bool ShowLibraryTree => LibraryRoot != null;
-    public LibraryConfig.SortOptions[] SortOptions => Enum.GetValues<LibraryConfig.SortOptions>();
     
+    [ObservableProperty]private FullSortHeaderViewModel _librarySortHeader;
+    [ObservableProperty]private FullSortHeaderViewModel _bookSortHeader;
+    [ObservableProperty]private ShortSortHeaderViewModel _nodeSortHeader;
 
-    private LibraryConfig.SortOptions _librarySortOption;
-    public LibraryConfig.SortOptions LibrarySortOption
-    {
-        get => _librarySortOption;
-        set
-        {
-            SetProperty(ref _librarySortOption, value);
-            Library?.Sort(value, LibrarySortAscending);
-            if (Config != null)
-            {
-                Config.LibrarySortOption = value;
-                Config.LibrarySortAscending = _librarySortAscending;    
-            }
-        }
-    }
-    private bool _librarySortAscending;
-    public bool LibrarySortAscending
-    {
-        get => _librarySortAscending;
-        set
-        {
-            if(value != _librarySortAscending)Library?.ReverseSortOrder();
-            SetProperty(ref _librarySortAscending, value);
-            if (Config != null) Config.LibrarySortAscending = value;    
-        } 
-    }
-    
-    private LibraryConfig.SortOptions _bookSortOption;
-    public LibraryConfig.SortOptions BookSortOption
-    {
-        get => _bookSortOption;
-        set
-        {
-            SetProperty(ref _bookSortOption, value);
-            if (SelectedBook != null)
-                SelectedBook.Sort(value, BookSortAscending);
-            if (Config != null)
-            {
-                Config.BookSortOption = value;
-                Config.BookSortAscending = _bookSortAscending;    
-            }
-            
-        }
-    }
-    private bool _bookSortAscending;
-    public bool BookSortAscending
-    {
-        get => _bookSortAscending;
-        set
-        {
-            if(value != _bookSortAscending && SelectedBook != null)
-                SelectedBook.ReverseSortOrder();
-            
-            SetProperty(ref _bookSortAscending, value);
-            if (Config != null)
-            {
-                Config.BookSortOption = _bookSortOption;
-                Config.BookSortAscending = value;
-            }
-        }
-    }
-    public LibraryConfig.NodeSortOptions[] NodeSortOptions => Enum.GetValues<LibraryConfig.NodeSortOptions>();
-    private LibraryConfig.NodeSortOptions _nodeSortOption;
-    public LibraryConfig.NodeSortOptions NodeSortOption
-    {
-        get => _nodeSortOption;
-        set
-        {
-            SetProperty(ref _nodeSortOption, value);
-            if (this.Library is LibraryNodeViewModel node)
-                node.Root.SortChildren(value, NodeSortAscending);
-            if (Config != null)
-            {
-                Config.NodeSortOption = value;
-                Config.NodeSortAscending = _nodeSortAscending;    
-            }
-            
-        }
-    }
-    private bool _nodeSortAscending;
-    public bool NodeSortAscending
-    {
-        get => _nodeSortAscending;
-        set
-        {
-            if(value != _nodeSortAscending && SelectedLibraryNode != null)
-                SelectedLibraryNode.Root.ReverseChildrenSortOrder();
-            
-            SetProperty(ref _nodeSortAscending, value);
-            if (Config != null)
-            {
-                Config.NodeSortOption = _nodeSortOption;
-                Config.NodeSortAscending = value;
-            }
-        }
-    }
-    
     #endregion
     
     #region Library exposure
@@ -221,13 +142,13 @@ public partial class MainViewModel : ViewModelBase
     }
     
     private bool _isFullscreen;
+    
     public bool IsFullscreen
     {
         get => _isFullscreen;
-        set => SetProperty(ref _isFullscreen, value);   
+        set => SetProperty(ref _isFullscreen, value);
     }
 
-    public ICommand ToggleFullscreenCommand { get; }
 
 
     private readonly IDialogService _dialogService;
@@ -255,15 +176,12 @@ public partial class MainViewModel : ViewModelBase
     {
         _dialogService = dialogService;
         _cache = new SlidingImageCache(this);
-        
-        ToggleFullscreenCommand = new RelayCommand(() =>
-        {
-            IsFullscreen = !IsFullscreen;
-            var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-                ? desktop.MainWindow : null;
-            (window as MainWindow)?.ToggleFullscreen();
-            OnPropertyChanged(nameof(Config));
-        });
+        _librarySortHeader = new FullSortHeaderViewModel();
+        _librarySortHeader.StateChanged += OnLibrarySortHeaderStateChanged;
+        _bookSortHeader = new FullSortHeaderViewModel();
+        _bookSortHeader.StateChanged += OnBookSortHeaderStateChanged;
+        _nodeSortHeader = new ShortSortHeaderViewModel();
+        _nodeSortHeader.StateChanged += OnNodeSortHeaderStateChanged;
         AppData = AppStorage.Instance;
         _progressDialog = new ProgressDialogViewModel(_dialogService);
     }
@@ -308,7 +226,7 @@ public partial class MainViewModel : ViewModelBase
             Config = config;            
             AppData.AddOrUpdate(libraryPath, config.Serialize());
             AppData.Save();
-            OnPropertyChanged(nameof(LibrariesList));
+            OnPropertyChanged(nameof(Libraries));
 //            OnPropertyChanged(nameof(Config));
             
             
@@ -399,7 +317,7 @@ public partial class MainViewModel : ViewModelBase
                     {
                         AppData.AddOrUpdate(result.Path, result.Serialize());
                         AppData.Save();
-                        OnPropertyChanged(nameof(LibrariesList)); 
+                        OnPropertyChanged(nameof(Libraries)); 
                     }    
                     OpenLibrary(selectedPath);
                 });
@@ -408,10 +326,7 @@ public partial class MainViewModel : ViewModelBase
             
     }
 
-    private void showProgressDialog()
-    {
-        
-    }
+
     [RelayCommand]
     private async Task EditPreferences()
     {
@@ -516,10 +431,19 @@ public partial class MainViewModel : ViewModelBase
             {
                 AppData.Remove(path);
                 AppData.Save();
-                OnPropertyChanged(nameof(LibrariesList));
+                OnPropertyChanged(nameof(Libraries));
             }    
         }
             
+    }
+    [RelayCommand]
+    void ToggleFullscreen()
+    {
+        IsFullscreen = !IsFullscreen;
+        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow : null;
+        (window as MainWindow)?.ToggleFullscreen();
+        OnPropertyChanged(nameof(Config));
     }
     [RelayCommand] public void ExitFullScreenCommand()
     {
@@ -549,6 +473,54 @@ public partial class MainViewModel : ViewModelBase
     
 
     #region input
+    void OnLibrarySortHeaderStateChanged( object? _, EventArgs __ )
+    {
+        if (Config != null)
+        {
+            Config.LibrarySortOption = LibrarySortHeader.Value.sortOption;
+            Config.LibrarySortAscending = LibrarySortHeader.Value.ascending;
+        }
+        if (Library != null)
+        {
+            if (Library.CurrentSortOption != LibrarySortHeader.Value.sortOption)
+                Library.Sort(LibrarySortHeader.Value.sortOption, LibrarySortHeader.Value.ascending);
+            else if (Library.CurrentSortAscending != LibrarySortHeader.Value.ascending)
+                Library.ReverseSortOrder();    
+        }
+    }
+    void OnBookSortHeaderStateChanged(object? _, EventArgs __)
+    {
+        if (Config != null)
+        {
+            Config.BookSortOption = BookSortHeader.Value.sortOption;
+            Config.BookSortAscending = BookSortHeader.Value.ascending;
+        }
+        if (SelectedBook != null)
+        {
+            if (SelectedBook.CurrentSortOption != BookSortHeader.Value.sortOption)
+                SelectedBook.Sort(BookSortHeader.Value.sortOption, BookSortHeader.Value.ascending);
+            else if (SelectedBook.CurrentSortAscending != BookSortHeader.Value.ascending)
+                SelectedBook.ReverseSortOrder();    
+        }
+    }
+    public void OnNodeSortHeaderStateChanged(object? _, EventArgs __)
+    {
+        var option = NodeSortHeader.Value.sortOption;
+        var asc = NodeSortHeader.Value.ascending;
+        if (Config != null)
+        {
+            Config.NodeSortOption = option;
+            Config.NodeSortAscending = asc;    
+        }
+        if (Library is LibraryNodeViewModel node)
+        {
+            if(option != node.Root.CurrentChildrenSortOption)
+                node.Root.SortChildren(option, asc);
+            else if (asc != node.Root.CurrentChildrenSortAscending)
+                node.Root.ReverseChildrenSortOrder();
+        }
+    }
+    
     [RelayCommand]
     public async Task Next()
     {
