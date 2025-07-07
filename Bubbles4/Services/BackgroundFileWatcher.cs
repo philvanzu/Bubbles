@@ -11,28 +11,23 @@ public class BackgroundFileWatcher : IDisposable
 {
     private FileSystemWatcher? _watcher;
     private Channel<FileSystemEventArgs> _eventChannel = Channel.CreateUnbounded<FileSystemEventArgs>();
-    private Channel<RenamedEventArgs> _renameChannel = Channel.CreateUnbounded<RenamedEventArgs>();
     private CancellationTokenSource? _cts;
     private Task? _processingTask;
 
     private Action<FileSystemEventArgs>? _onFileChanged;
-    private Action<RenamedEventArgs>? _onFileRenamed;
 
     private volatile bool _buffering = false;
 
     public void StartWatching(string path, bool recursive,
-        Action<FileSystemEventArgs> onChanged,
-        Action<RenamedEventArgs> onRenamed)
+        Action<FileSystemEventArgs> onChanged)
     {
         StopWatching();
 
         if (!Directory.Exists(path)) return;
 
         _onFileChanged = onChanged;
-        _onFileRenamed = onRenamed;
 
         _eventChannel = Channel.CreateUnbounded<FileSystemEventArgs>();
-        _renameChannel = Channel.CreateUnbounded<RenamedEventArgs>();
         _cts = new CancellationTokenSource();
 
         _processingTask = Task.Run(() => ProcessEventsAsync(_cts.Token));
@@ -55,19 +50,45 @@ public class BackgroundFileWatcher : IDisposable
 
     private void HandleChange(object sender, FileSystemEventArgs e)
     {
-        if (!FileTypes.IsWatchable(e.FullPath)) return;
-        if (!_eventChannel.Writer.TryWrite(e))
+        HandleChange(e, false);
+    }
+    private void HandleChange(FileSystemEventArgs e, bool skipWatchableCheck)
+    {
+        if (skipWatchableCheck || FileTypes.IsWatchable(e.FullPath))
         {
-            // Optionally log or handle overflow
+            if (!_eventChannel.Writer.TryWrite(e))
+            {
+                // Optionally log or handle overflow
+            }    
         }
     }
 
     private void HandleRename(object sender, RenamedEventArgs e)
     {
-        if (!FileTypes.IsWatchable(e.FullPath) && !FileTypes.IsWatchable(e.OldFullPath)) return;
-        if (!_renameChannel.Writer.TryWrite(e))
+        bool new_ = FileTypes.IsWatchable(e.FullPath);
+        bool old_ = FileTypes.IsWatchable(e.OldFullPath);
+        if (! new_ && !old_) return;
+
+        if (!old_ && new_)
         {
-            // Optionally log or handle overflow
+            FileSystemEventArgs args = new FileSystemEventArgs(WatcherChangeTypes.Created, e.FullPath, e.Name);
+            HandleChange(args, true);
+            return;
+        }
+
+        if (old_ && !new_)
+        {
+            FileSystemEventArgs args = new FileSystemEventArgs(WatcherChangeTypes.Deleted, e.FullPath, e.Name);
+            HandleChange(args, true);
+            return;
+        }
+
+        if (old_ && new_)
+        {
+            var deleteArgs = new FileSystemEventArgs(WatcherChangeTypes.Deleted, e.OldFullPath, e.OldName);
+            HandleChange(deleteArgs, true);
+            var createArgs = new FileSystemEventArgs(WatcherChangeTypes.Created, e.FullPath, e.Name);
+            HandleChange(createArgs, true);
         }
     }
 
@@ -78,10 +99,9 @@ public class BackgroundFileWatcher : IDisposable
             try
             {
                 var eventTask = _eventChannel.Reader.WaitToReadAsync(token).AsTask();
-                var renameTask = _renameChannel.Reader.WaitToReadAsync(token).AsTask();
+                var completed = await Task.WhenAny(eventTask);
 
-                var completed = await Task.WhenAny(eventTask, renameTask);
-                if (completed == eventTask && await eventTask)
+                if (await eventTask)
                 {
                     while (_eventChannel.Reader.TryRead(out var e))
                     {
@@ -89,16 +109,6 @@ public class BackgroundFileWatcher : IDisposable
                             _onFileChanged?.Invoke(e);
                     }
                 }
-
-                if (completed == renameTask && await renameTask)
-                {
-                    while (_renameChannel.Reader.TryRead(out var re))
-                    {
-                        if (!_buffering)
-                            _onFileRenamed?.Invoke(re);
-                    }
-                }
-
                 // If buffering, just hold the data in the channels
             }
             catch (OperationCanceledException)
@@ -116,9 +126,6 @@ public class BackgroundFileWatcher : IDisposable
 
         while (_eventChannel.Reader.TryRead(out var e))
             _onFileChanged?.Invoke(e);
-
-        while (_renameChannel.Reader.TryRead(out var re))
-            _onFileRenamed?.Invoke(re);
     }
 
     public void StopWatching()

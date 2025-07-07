@@ -43,6 +43,7 @@ public partial class LibraryViewModel : ViewModelBase
     
     public void Clear()
     {
+        _books.Clear();
         _booksMutable.Clear();
         OnPropertyChanged(nameof(Count));
     }
@@ -174,13 +175,14 @@ public partial class LibraryViewModel : ViewModelBase
     {
         if (keywords == null || keywords.Count == 0)
             return true;
-
+        
+        
         foreach (var keyword in keywords)
         {
-            if (bvm.Path.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
-                return true;
+            if (bvm.Path.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) < 0)
+                return false;
         }
-        return false;
+        return true;
     }
 
     public void ReverseSortOrder()
@@ -256,7 +258,10 @@ public partial class LibraryViewModel : ViewModelBase
             if (newIndex >= Books.Count) newIndex = 0;
             index = newIndex;
         }
-        Books[index].IsSelected = true;
+
+        if (Books[index].IsSelected ) Books[index].SelectedPage = null;
+        else Books[index].IsSelected = true;
+        
     }
 
     public void PreviousBook()
@@ -270,7 +275,8 @@ public partial class LibraryViewModel : ViewModelBase
             if (newIndex < 0) newIndex = Books.Count - 1;
             index = newIndex;
         }
-        Books[index].IsSelected = true;
+        if (Books[index].IsSelected) Books[index].SelectedPage = null;
+        else Books[index].IsSelected = true;
     }
 
     #region FileSystem Watcher Events
@@ -291,7 +297,11 @@ public partial class LibraryViewModel : ViewModelBase
             if (imgDir is not null)
             {
                 var bvm = _books.FirstOrDefault(x => string.Equals(x.Path, imgDir, StringComparison.OrdinalIgnoreCase));
-                if(bvm?.Pages.Count > 0) bvm?.PageFileChanged(e);
+                if (bvm is not null)
+                {
+                    if(bvm.Pages.Count > 0) 
+                        bvm.PageFileChanged(e);
+                }
                 else if(e.ChangeType == WatcherChangeTypes.Created && Directory.Exists(imgDir))
                 {
                     FileInfo info = new FileInfo(imgDir);
@@ -351,88 +361,6 @@ public partial class LibraryViewModel : ViewModelBase
         if (shouldAdd != null || shouldRemove != null || sort)
         {
             EnqueueWatcherEvent((shouldAdd, shouldRemove, sort));
-        }
-    }
-
-    public virtual void FileSystemRenamed(RenamedEventArgs e)
-    {
-        bool sort = false;
-        BookViewModel? shouldRemove = null;
-        BookViewModel? shouldAdd = null;
-
-        if (FileTypes.IsImage(e.FullPath))
-        {
-            string? imgDir = System.IO.Path.GetDirectoryName(e.FullPath);
-            string? oldImgDir = System.IO.Path.GetDirectoryName(e.OldFullPath);
-            if (imgDir is not null)
-            {
-                var bvm = _books.FirstOrDefault(x => string.Equals(x.Path, imgDir, StringComparison.OrdinalIgnoreCase));
-                if (bvm?.Pages.Count > 0) bvm.PageFileRenamed(e);
-            }
-            if (oldImgDir is not null)
-            {
-                var bvmOld = _books.FirstOrDefault(x => string.Equals(x.Path, oldImgDir, StringComparison.OrdinalIgnoreCase));
-                bvmOld?.PageFileRenamed(e); // Let it interpret that it lost a file
-            }
-        }
-        else
-        {
-            // Check whether the old path was a book
-            bool wasBook = FileTypes.IsArchive(e.OldFullPath) ||
-                           FileTypes.IsPdf(e.OldFullPath) ||
-                           FileTypes.IsImageDirectory(e.OldFullPath);
-
-            // Check whether the new path is a book
-            bool isNowBook = FileTypes.IsArchive(e.FullPath) ||
-                             FileTypes.IsPdf(e.FullPath) ||
-                             FileTypes.IsImageDirectory(e.FullPath);
-
-            // Remove the old book if it existed
-            if (wasBook)
-            {
-                var oldEntry = _books.FirstOrDefault(x =>
-                    string.Equals(x.Path, e.OldFullPath, StringComparison.OrdinalIgnoreCase));
-                if (oldEntry != null)
-                {
-                    if (isNowBook)
-                        oldEntry.FileSystemRenamed(e);
-                    else shouldRemove = oldEntry;
-                    sort = true;
-                }
-            }
-            // Add the new book if it qualifies
-            else if (isNowBook)
-            {
-                BookBase? newBook = null;
-
-                if (FileTypes.IsArchive(e.FullPath))
-                {
-                    var info = new FileInfo(e.FullPath);
-                    newBook = new BookArchive(info.FullName, info.Name, -1, info.LastWriteTime, info.CreationTime);
-                }
-                else if (FileTypes.IsPdf(e.FullPath))
-                {
-                    var info = new FileInfo(e.FullPath);
-                    newBook = new BookPdf(info.FullName, info.Name, -1, info.LastWriteTime, info.CreationTime);
-                }
-                else if (FileTypes.IsImageDirectory(e.FullPath))
-                {
-                    var info = new DirectoryInfo(e.FullPath);
-                    newBook = new BookDirectory(info.FullName, info.Name, -1, info.LastWriteTime, info.CreationTime);
-                }
-
-                if (newBook != null)
-                {
-                    var bvm = new BookViewModel(newBook, this, _mainViewModel);
-                    shouldAdd = bvm;
-                }
-                sort = true;
-            }
-
-            if (shouldAdd != null || shouldRemove != null || sort)
-            {
-                EnqueueWatcherEvent((shouldAdd, shouldRemove, sort));
-            }    
         }
     }
 

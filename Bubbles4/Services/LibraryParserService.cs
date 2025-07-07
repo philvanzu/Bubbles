@@ -12,7 +12,121 @@ using Bubbles4.Models;
 namespace Bubbles4.Services;
 public static class LibraryParserService
 {
-#region node
+
+    /// ///////////////////////////////////////////////////////////////////////////////////////
+    #region recursive
+    public static async Task ParseLibraryRecursiveAsync(
+        string rootPath,
+        Action<List<BookBase>> onBatchReady,
+        int maxParallelism = 4,
+        CancellationToken cancellationToken = default,
+        IProgress<(string, double, bool)>? progress = null)
+    {
+        // Step 1: Pre-scan all directories
+        progress?.Report(("Starting Library Parsing", -1.0, false));
+        List<DirectoryInfo> allDirs = new();
+        Console.WriteLine("Collecting Directories");
+        void CollectDirectories(DirectoryInfo dir)
+        {
+            allDirs.Add(dir);
+            try
+            {
+                foreach (var sub in dir.GetDirectories())
+                    CollectDirectories(sub);
+            }
+            catch (UnauthorizedAccessException) { }
+            catch (IOException) { }
+            progress?.Report(($"Counting directories : {allDirs.Count}", -1.0, false));
+        }
+        
+        CollectDirectories(new DirectoryInfo(rootPath));
+
+        int totalDirs = allDirs.Count;
+        //Console.WriteLine($"{totalDirs} directories found");
+        int dirsProcessed = 0;
+
+        var folders = new ConcurrentQueue<DirectoryInfo>(allDirs);
+        var batch = new List<BookBase>();
+        var batchLock = new object();
+
+        var tasks = Enumerable.Range(0, maxParallelism).Select(_ => Task.Run(() =>
+        {
+            while (!cancellationToken.IsCancellationRequested && folders.TryDequeue(out var dir))
+            {
+                try
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    int imageCount = 0;
+                    FileInfo[] files = dir.GetFiles();
+                    DateTime firstImageCreated = DateTime.MaxValue;
+                    DateTime lastImageWritten = DateTime.MinValue;
+                    foreach (var file in files)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        BookBase? result = null;
+
+                        if (FileTypes.IsImage(file.Extension))
+                        {
+                            if(file.CreationTime < firstImageCreated) 
+                                firstImageCreated = file.CreationTime;
+                            if(file.LastWriteTime > lastImageWritten)
+                                lastImageWritten = file.LastWriteTime;
+                            imageCount++;
+                        }
+                        else if (FileTypes.IsArchive(file.Extension))
+                        {
+                            result = new BookArchive(file.FullName, file.Name, -1, file.CreationTime, file.LastWriteTime);
+                        }
+                        else if (FileTypes.IsPdf(file.Extension))
+                        {
+                            result = new BookPdf(file.FullName, file.Name, -1, file.CreationTime, file.LastWriteTime);
+                        }
+
+                        if (result != null)
+                        {
+                            lock (batchLock)
+                            {
+                                batch.Add(result);
+                            }
+                        }
+                    }
+
+                    if (imageCount > 0)
+                    {
+                        var result = new BookDirectory(dir.FullName, dir.Name, imageCount, lastImageWritten, firstImageCreated);
+                        lock (batchLock)
+                        {
+                            batch.Add(result);
+                        }
+                    }
+
+                    // Report progress
+                    if (progress != null)
+                    {
+                        int current = Interlocked.Increment(ref dirsProcessed);
+                        progress.Report(($"Building Library : {current} / {totalDirs}", (double)current / totalDirs, false));
+                    }
+                }
+                catch (UnauthorizedAccessException x) { Console.WriteLine(x.Message); }
+                catch (IOException x) { Console.WriteLine(x.Message); }
+            }
+        }, cancellationToken)).ToArray();
+
+        await Task.WhenAll(tasks);
+
+        // Send any remaining items
+
+        if (batch.Count > 0 && !cancellationToken.IsCancellationRequested)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() => onBatchReady(batch));
+        }
+    }
+
+    #endregion
+    /// ///////////////////////////////////////////////////////////////////////////////////////
+    #region node
    public static async Task<bool> ParseLibraryNodeAsync(
     LibraryNodeViewModel node,
     CancellationToken cancellationToken,
@@ -136,118 +250,11 @@ public static class LibraryParserService
         // Return true if this node or any of its children has books
         return bookList.Count > 0 || subResults.Any(x => x);
     }
-
-    #endregion 
-    /// ///////////////////////////////////////////////////////////////////////////////////////
-    #region recursive
-    public static async Task ParseLibraryRecursiveAsync(
-        string rootPath,
-        Action<List<BookBase>> onBatchReady,
-        int maxParallelism = 4,
-        CancellationToken cancellationToken = default,
-        IProgress<(string, double, bool)>? progress = null)
+    ///////////////////////////////
+    public static async Task OnNodeLoadedAsync(LibraryNodeViewModel node)
     {
-        // Step 1: Pre-scan all directories
-        progress?.Report(("Starting Library Parsing", -1.0, false));
-        List<DirectoryInfo> allDirs = new();
-        Console.WriteLine("Collecting Directories");
-        void CollectDirectories(DirectoryInfo dir)
-        {
-            allDirs.Add(dir);
-            try
-            {
-                foreach (var sub in dir.GetDirectories())
-                    CollectDirectories(sub);
-            }
-            catch (UnauthorizedAccessException) { }
-            catch (IOException) { }
-            progress?.Report(($"Counting directories : {allDirs.Count}", -1.0, false));
-        }
-        
-        CollectDirectories(new DirectoryInfo(rootPath));
-
-        int totalDirs = allDirs.Count;
-        //Console.WriteLine($"{totalDirs} directories found");
-        int dirsProcessed = 0;
-
-        var folders = new ConcurrentQueue<DirectoryInfo>(allDirs);
-        var batch = new List<BookBase>();
-        var batchLock = new object();
-
-        var tasks = Enumerable.Range(0, maxParallelism).Select(_ => Task.Run(() =>
-        {
-            while (!cancellationToken.IsCancellationRequested && folders.TryDequeue(out var dir))
-            {
-                try
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-
-                    int imageCount = 0;
-                    FileInfo[] files = dir.GetFiles();
-                    DateTime firstImageCreated = DateTime.MaxValue;
-                    DateTime lastImageWritten = DateTime.MinValue;
-                    foreach (var file in files)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                        BookBase? result = null;
-
-                        if (FileTypes.IsImage(file.Extension))
-                        {
-                            if(file.CreationTime < firstImageCreated) 
-                                firstImageCreated = file.CreationTime;
-                            if(file.LastWriteTime > lastImageWritten)
-                                lastImageWritten = file.LastWriteTime;
-                            imageCount++;
-                        }
-                        else if (FileTypes.IsArchive(file.Extension))
-                        {
-                            result = new BookArchive(file.FullName, file.Name, -1, file.CreationTime, file.LastWriteTime);
-                        }
-                        else if (FileTypes.IsPdf(file.Extension))
-                        {
-                            result = new BookPdf(file.FullName, file.Name, -1, file.CreationTime, file.LastWriteTime);
-                        }
-
-                        if (result != null)
-                        {
-                            lock (batchLock)
-                            {
-                                batch.Add(result);
-                            }
-                        }
-                    }
-
-                    if (imageCount > 0)
-                    {
-                        var result = new BookDirectory(dir.FullName, dir.Name, imageCount, lastImageWritten, firstImageCreated);
-                        lock (batchLock)
-                        {
-                            batch.Add(result);
-                        }
-                    }
-
-                    // Report progress
-                    if (progress != null)
-                    {
-                        int current = Interlocked.Increment(ref dirsProcessed);
-                        progress.Report(($"Building Library : {current} / {totalDirs}", (double)current / totalDirs, false));
-                    }
-                }
-                catch (UnauthorizedAccessException x) { Console.WriteLine(x.Message); }
-                catch (IOException x) { Console.WriteLine(x.Message); }
-            }
-        }, cancellationToken)).ToArray();
-
-        await Task.WhenAll(tasks);
-
-        // Send any remaining items
-
-        if (batch.Count > 0 && !cancellationToken.IsCancellationRequested)
-        {
-            await Dispatcher.UIThread.InvokeAsync(() => onBatchReady(batch));
-        }
+        await Task.CompletedTask;
     }
-
-    #endregion
+    #endregion 
+    
 }

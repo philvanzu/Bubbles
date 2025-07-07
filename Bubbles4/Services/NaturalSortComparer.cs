@@ -4,7 +4,7 @@ using NaturalSort.Extension;
 using Bubbles4.ViewModels;
 namespace Bubbles4.Services;
 
-class BookViewModelNaturalComparer(bool descending = false) : IComparer<BookViewModel>
+class BookViewModelNaturalComparer(bool ascending = true) : IComparer<BookViewModel>
 {
     private readonly NaturalSortComparer _naturalComparer = new(StringComparison.CurrentCultureIgnoreCase);
 
@@ -13,11 +13,11 @@ class BookViewModelNaturalComparer(bool descending = false) : IComparer<BookView
         if (x == null) return y == null ? 0 : -1;
         if (y == null) return 1;
         var result =  _naturalComparer.Compare(x.Name, y.Name);
-        return descending ? -result : result;
+        return ascending ? result : -result;
     }
 }
 
-class PageViewModelNaturalComparer(bool descending = false) : IComparer<PageViewModel>
+class PageViewModelNaturalComparer(bool ascending = true) : IComparer<PageViewModel>
 {
     private readonly NaturalSortComparer _naturalComparer = new(StringComparison.CurrentCultureIgnoreCase);
 
@@ -26,6 +26,6 @@ class PageViewModelNaturalComparer(bool descending = false) : IComparer<PageView
         if (x == null) return y == null ? 0 : -1;
         if (y == null) return 1;
         var result =  _naturalComparer.Compare(x.Name, y.Name);
-        return descending ? -result : result;
+        return ascending ? result : -result;
     }
 }

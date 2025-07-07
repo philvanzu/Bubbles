@@ -161,7 +161,6 @@ public class BookArchive : BookBase
     }
     private async Task LoadPageThumbnail(Action<Bitmap?> callback, CancellationToken ct, string key)
     {
-      
         Stream? stream = null;
         try
         {
@@ -187,6 +186,7 @@ public class BookArchive : BookBase
             if (stream != null) await DispatchThumbnail(stream, callback, ct);
 
         }
+        catch(TaskCanceledException){}
         catch (Exception ex)
         {
             Console.WriteLine($"Thumbnail load failed: {ex}");

@@ -116,6 +116,15 @@ public partial class LibraryNodeViewModel : LibraryViewModel
         OnPropertyChanged(nameof(Name));
     }
 
+    /// <summary>
+    /// Happens when this library node gets selected in the TreeView
+    /// maintains books list accurate
+    /// Bypasses the need to get too sophisticated with the FileSystem watch system
+    /// </summary>
+    public void Load()
+    {
+        Clear();
+    }
     public void SortChildren(LibraryConfig.NodeSortOptions sortOption, bool ascending)
     {
         _childrenMutable.Clear();
@@ -176,11 +185,6 @@ public partial class LibraryNodeViewModel : LibraryViewModel
     {
         if (SelectedNode is LibraryViewModel lvm)
             lvm.FileSystemChanged(e);
-    }
-    public override void FileSystemRenamed(RenamedEventArgs e)
-    {
-        if (SelectedNode is LibraryViewModel lvm)
-            lvm.FileSystemRenamed(e);
     }
     public LibraryNodeViewModel? FindOwnerNode(string path)
     {

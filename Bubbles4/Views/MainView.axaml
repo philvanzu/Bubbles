@@ -32,6 +32,7 @@
                 <Menu>
                     <MenuItem Header="Bubbles">
                         <MenuItem Header="New Library" Command="{Binding CreateLibraryAsync}"/>
+                        
                         <MenuItem Header="Open Library" ItemsSource="{Binding Libraries}" >
                                     <MenuItem.ItemTemplate>
                                         <DataTemplate>
@@ -49,24 +50,15 @@
                             </MenuItem.ItemTemplate>
                         </MenuItem>
                         <MenuItem Header="View">
+                            <MenuItem Header="Toggle Fullscreen"  Command="{Binding ToggleFullscreenCommand}"/>
                             <ToggleButton Content="Toggle Navigation Pane"
-                                      IsChecked="{Binding ShowNavPane, Mode=TwoWay}"/>
+                                          IsChecked="{Binding ShowNavPane, Mode=TwoWay}"/>
                         </MenuItem>
-                        <MenuItem Header="Preferences" Command="{Binding EditPreferencesCommand}" />
+                        <MenuItem Header="Configure Library" Command="{Binding ConfigureLibraryAsync}"/>
+                        <MenuItem Header="Edit Preferences" Command="{Binding EditPreferencesCommand}" />
                     </MenuItem>
                 </Menu>
                 
-                
-                <StackPanel Orientation="Horizontal" Spacing="1" Background="#222222" Height="28" VerticalAlignment="Center">
-                    <Button Command="{Binding ToggleFullscreenCommand}" ClickMode="Release" Width="28"  >
-                        <Image Source="avares://Bubbles4/Assets/optionFS.png" Width="28" Height="28" />
-                    </Button>
-                    <Button Command="{Binding ConfigureLibraryAsync}" ClickMode="Release" Width="28">
-                        <Image Source="avares://Bubbles4/Assets/optionW.png" Width="28" Height="28" />
-                    </Button>
-
-                </StackPanel>
-
                 <Border Width="16"/>
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <Canvas Width="200" Height="30">
@@ -133,11 +125,24 @@
                                   ShowsPreview="True" />
                     <Grid Grid.Column="2" RowDefinitions="1.75*, Auto, *">
                         <!--Library View-->
-                        <Grid Grid.RowDefinitions="32, *, 32" >
-                            <views:SortHeaderView DataContext="{Binding LibrarySortHeader}"/>
-                            <views:LibraryView Grid.Row="1"  DataContext="{Binding Library}" Background="#303030"/> 
-                            <Border Grid.Row="2" Background="#505050" BorderThickness="1" BorderBrush="White">
-                            <TextBlock Text="{Binding BookStatus}" Margin="8" VerticalAlignment="Center" />
+                        <Grid Grid.RowDefinitions=" *, 28" >
+                            <Grid>
+                                <Border  Background="#303030"
+                                         BorderBrush="White" BorderThickness="1"
+                                         MinWidth="374">
+                                    <views:LibraryView Grid.Row="0"  DataContext="{Binding Library}"/>    
+                                </Border>
+                                <Border BorderBrush="White" BorderThickness="1"
+                                    VerticalAlignment="Top"
+                                    HorizontalAlignment="Left"
+                                    Background="Black" 
+                                    Height="22" Width="374"
+                                    MinWidth="374" MinHeight="22">
+                                    <views:SortHeaderView DataContext="{Binding LibrarySortHeader}"/>    
+                                </Border>
+                            </Grid>
+                            <Border Grid.Row="1" Background="#505050" BorderThickness="1" BorderBrush="White">
+                            <TextBlock Text="{Binding BookStatus}" Margin="2" VerticalAlignment="Center" />
                             </Border>
                         </Grid>
                         
@@ -147,9 +152,20 @@
                                       Background="DarkGray"
                                       ShowsPreview="True" />
                         <!-- Book View -->
-                        <Grid Grid.Row="2" Grid.RowDefinitions="32, *">
-                            <views:SortHeaderView DataContext="{Binding BookSortHeader}"/>
-                            <views:BookView Grid.Row="1" DataContext="{Binding SelectedBook}" Background="#303030"/>    
+                        <Grid Grid.Row="2">
+                            <Border  Background="#303030"
+                                     BorderBrush="White" BorderThickness="1"
+                                     MinWidth="374">
+                                <views:BookView DataContext="{Binding SelectedBook}"/>
+                            </Border>
+                            <Border BorderBrush="White" BorderThickness="1"
+                                    VerticalAlignment="Top"
+                                    HorizontalAlignment="Left"
+                                    Background="Black" 
+                                    Height="22" Width="374"
+                                    MinWidth="374" MinHeight="22">
+                                <views:SortHeaderView DataContext="{Binding BookSortHeader}"/>
+                            </Border>
                         </Grid>
                         
                     </Grid>

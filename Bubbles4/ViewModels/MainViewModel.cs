@@ -119,7 +119,11 @@ public partial class MainViewModel : ViewModelBase
         set
         {
             SetProperty(ref _selectedLibraryNode, value);
-            if(value != null && value != Library) Library = value;
+            if (value != null && value != Library)
+            {
+                Library = value;
+                Library.Sort();
+            }
             if(LibraryRoot != null)
                 LibraryRoot.SelectedNode = value;
         }
@@ -203,7 +207,7 @@ public partial class MainViewModel : ViewModelBase
     
     void OpenLibrary(string? libraryPath)
     {
-        _watcher.StopWatching();
+        
         if(Library != null)
             CloseLibrary();
         
@@ -253,7 +257,7 @@ public partial class MainViewModel : ViewModelBase
                     //ensure the dialog gets closed after library 
                     progress.Report(("", -1.0, true));
                     //_watcher.BeginBuffering();
-                    _watcher.StartWatching(libraryPath, true, Library.FileSystemChanged, Library.FileSystemRenamed);
+                    _watcher.StartWatching(libraryPath, true, Library.FileSystemChanged);
                     //_watcher.FlushBufferedEvents();
                 }
 
@@ -263,6 +267,7 @@ public partial class MainViewModel : ViewModelBase
 
     public void CloseLibrary()
     {
+        _watcher.StopWatching();
         if (Library != null)
         {
             

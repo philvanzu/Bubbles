@@ -160,10 +160,6 @@ public partial class BookViewModel: ViewModelBase
                 }
                 else Thumbnail = bitmap;
                 OnPropertyChanged(nameof(Thumbnail));
-                
-                //Todo: remove this log
-                if(_library.GetBookIndex(this) == 0)
-                    Console.WriteLine($"Thumbnail set: {_thumbnail != null}");
             });
         }
         catch (Exception ex){Console.WriteLine(ex);}

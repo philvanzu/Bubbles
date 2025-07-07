@@ -72,7 +72,7 @@ public static class FileTypes
     
     public static bool IsWatchable(string path)
     {
-        if(IsImageDirectory(path) || IsArchive(path) || IsPdf(path))
+        if(IsImageDirectory(path) || IsArchive(path) || IsPdf(path) || IsImage(path))
             return true;
         
         if (CouldBeDirectory(path) && Directory.Exists(path)) 
