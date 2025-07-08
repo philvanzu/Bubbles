@@ -18,7 +18,7 @@
                                        ItemPreparedCommand="{Binding PagePreparedCommand}"
                                        ItemClearingCommand="{Binding PageClearingCommand}">
             <i:Interaction.Behaviors>
-                <bhv:AutoscrollToSelectedOffsetBehavior />
+                <bhv:AutoscrollToSelectedOffsetBehavior Width="132" Height="152" />
             </i:Interaction.Behaviors>
             <ctrl:VirtualizedItemsRepeater.Layout>
                 <WrapLayout Orientation="Horizontal"/>

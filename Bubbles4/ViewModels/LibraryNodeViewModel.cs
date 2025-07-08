@@ -109,9 +109,9 @@ public partial class LibraryNodeViewModel : LibraryViewModel
     }
     public int BookCount => Root.CountBooks();
 
-    public override void AddBatch(List<BookBase> batch)
+    public override void AddBatch(List<BookBase> batch, bool authoritative=true)
     {
-        base.AddBatch(batch);
+        base.AddBatch(batch, authoritative);
         OnPropertyChanged(nameof(BookCount));
         OnPropertyChanged(nameof(Name));
     }

@@ -16,6 +16,7 @@
         <converters:BooleanToGeometryConverter x:Key="BoolToArrowGeometry"/>
     </UserControl.Resources>
    
+    <Border BorderBrush="White" BorderThickness="1">
     <Grid >
         <Grid.RowDefinitions>
            <RowDefinition Height="Auto"/> 
@@ -23,7 +24,7 @@
            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <!--list of libraries-->
-        <Border BorderBrush="White" BorderThickness="1">
+        
         <StackPanel >
             
             <Border BorderBrush="White" BorderThickness="1" Margin="12">
@@ -57,7 +58,6 @@
             </ItemsControl>
             <Border Height="16"/>
         </StackPanel>
-        </Border>
         <!--Splitter-->
         <GridSplitter IsVisible="{Binding ShowLibraryTree}"
                       Grid.Row="1"
@@ -67,30 +67,27 @@
                       ShowsPreview="True"/>
         <Border Grid.Row="2" IsVisible="{Binding ShowLibraryTree}">
             <Grid>
-                <Border BorderBrush="White"
-                        BorderThickness="1">
-                    <StackPanel>
-                        <!-- TreeView  -->
-                        <TextBlock Grid.Row="2" Text="{Binding Library.Path}" Margin="16 32 16 8" HorizontalAlignment="Left"/>
-                        <ScrollViewer Grid.Row="3">
-                            <TreeView Width="250" 
-                                      ItemsSource="{Binding LibraryRoot.Children}" 
-                                      SelectedItem="{Binding SelectedLibraryNode, Mode=TwoWay}">
-                                <TreeView.DataTemplates>
-                                    <TreeDataTemplate DataType="{x:Type vm:LibraryNodeViewModel}" 
-                                                      ItemsSource="{Binding Children}">
-                                        
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Name}" />
-                                            </StackPanel>
-                                        
-                                    </TreeDataTemplate>
-                                </TreeView.DataTemplates>
+                <StackPanel>
+                    <!-- TreeView  -->
+                    <TextBlock Grid.Row="2" Text="{Binding Library.Path}" Margin="16 32 16 8" HorizontalAlignment="Left"/>
+                    <ScrollViewer Grid.Row="3">
+                        <TreeView Width="250" 
+                                  ItemsSource="{Binding LibraryRoot.Children}" 
+                                  SelectedItem="{Binding SelectedLibraryNode, Mode=TwoWay}">
+                            <TreeView.DataTemplates>
+                                <TreeDataTemplate DataType="{x:Type vm:LibraryNodeViewModel}" 
+                                                  ItemsSource="{Binding Children}">
+                                    
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Name}" />
+                                        </StackPanel>
+                                    
+                                </TreeDataTemplate>
+                            </TreeView.DataTemplates>
 
-                            </TreeView>
-                        </ScrollViewer>
-                    </StackPanel>
-                </Border>
+                        </TreeView>
+                    </ScrollViewer>
+                </StackPanel>
                 <Border Background="Black"
                         BorderBrush="White"
                         BorderThickness="1"
@@ -128,4 +125,5 @@
             </Grid>
         </Border>
     </Grid>
+    </Border>
 </UserControl>

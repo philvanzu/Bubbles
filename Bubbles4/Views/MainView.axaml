@@ -142,7 +142,7 @@
                                 </Border>
                             </Grid>
                             <Border Grid.Row="1" Background="#505050" BorderThickness="1" BorderBrush="White">
-                            <TextBlock Text="{Binding BookStatus}" Margin="2" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding BookStatus}" Margin="8" VerticalAlignment="Center" />
                             </Border>
                         </Grid>
                         
@@ -208,7 +208,7 @@
 
             <!-- Status bar -->
             <Border Grid.Row="2" BorderThickness="1" BorderBrush="White">
-            <Grid  Grid.ColumnDefinitions="*, 250" Background="#505050">
+            <Grid  Grid.ColumnDefinitions="*, 250, 400" Background="#505050">
                 <StackPanel Orientation="Horizontal">
                     <ToggleButton IsChecked="{Binding ShowNavPane, Mode=TwoWay}" >
                         <StackPanel Orientation="Horizontal">
@@ -228,6 +228,9 @@
                 <Separator Width="8"/>
                 <TextBlock Text="{Binding ImageStatus}"  Margin="8" VerticalAlignment="Center"/>
                 </StackPanel>
+                <ContentControl Grid.Column="2">
+                    <views:ProgressView DataContext="{Binding StatusProgress}"/>
+                </ContentControl>
             </Grid>
             </Border>
         </Grid>

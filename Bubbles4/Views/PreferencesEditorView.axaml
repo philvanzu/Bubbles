@@ -22,7 +22,11 @@
             <TextBlock> Controller Sticks Sensitivity : </TextBlock>
             <Slider Minimum="0" Maximum="1" Value="{Binding ControllerStickSensitivity, Mode=TwoWay}"/>
             <Border Height="16"/>
+            <CheckBox Content="Cache Recursive Libraries Data for faster loads (Will write a .bbl_lib file in your library root directory)" 
+                      IsChecked="{Binding CacheLibraryData}"></CheckBox>
+            <Border Height="16"/>
             <Button Content="OK" Command="{Binding OkPressed}" Width="80" HorizontalAlignment="Center"/>
+            
         </StackPanel>
     </Grid>
 </Window>

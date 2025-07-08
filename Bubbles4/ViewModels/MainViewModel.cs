@@ -5,6 +5,7 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Bubbles4.Models;
 using System.Threading.Tasks;
 using Avalonia;
@@ -176,6 +177,7 @@ public partial class MainViewModel : ViewModelBase
     
     private readonly BackgroundFileWatcher _watcher = new();
     ProgressDialogViewModel _progressDialog;
+    [ObservableProperty] private ProgressViewModel _statusProgress = new();
     public MainViewModel(IDialogService dialogService)
     {
         _dialogService = dialogService;
@@ -216,11 +218,7 @@ public partial class MainViewModel : ViewModelBase
             libraryPath = libraryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             libraryPath += Path.DirectorySeparatorChar;
             
-            var config = AppData.GetConfig(libraryPath);
-            
-            if(config == null) 
-                config  = new LibraryConfig(libraryPath);
-
+            var config = AppData.GetConfig(libraryPath) ?? new LibraryConfig(libraryPath);
             var libraryName = Path.GetFileName(Path.GetDirectoryName(libraryPath.TrimEnd(Path.DirectorySeparatorChar))) ?? libraryPath;
             var info = new DirectoryInfo(libraryPath);
             Library = config.Recursive ? 
@@ -233,18 +231,37 @@ public partial class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(Libraries));
 //            OnPropertyChanged(nameof(Config));
             
-            
-
-            
             IProgress<(string, double, bool)> progress = _progressDialog.Progress;
             Dispatcher.UIThread.Post(()=> _ = _progressDialog.Show(), DispatcherPriority.Render);
 
             _ = Task.Run(async () =>
             {
+                if (AppData.Preferences.CacheLibraryData && Config.Recursive && Directory.Exists(libraryPath))
+                {
+                    try
+                    {
+                        string libraryDataCachePath = Path.Combine(Library.Path, ".bblLibraryData");
+                        var json = File.ReadAllText(libraryDataCachePath);
+
+                        await _progressDialog.DialogShown;
+                        // fast cache load will report progress to the progress dialog
+                        await Library.LoadSerializedCollection(json, progress);
+                        await Task.Delay(1);
+                        await Dispatcher.UIThread.InvokeAsync(() => {}, DispatcherPriority.Background);
+                        // slow parsing will report progress to the status bar
+                        progress = StatusProgress.Progress;
+
+                    }
+                    catch
+                    {
+                        //fast load failed, parsing process will report to the progress dialog
+                        progress = _progressDialog.Progress;
+                        await _progressDialog.DialogShown;
+                    }
+                }
+
                 try
                 {
-                    await _progressDialog.DialogShown;
-                    await Task.Delay(64);
                     await Library.StartParsingLibraryAsync(libraryPath, progress);
                     
                 }
@@ -270,7 +287,15 @@ public partial class MainViewModel : ViewModelBase
         _watcher.StopWatching();
         if (Library != null)
         {
-            
+            if ( Library is LibraryNodeViewModel == false && AppData.Preferences.CacheLibraryData)
+            {
+                string json = Library.SerializeCollection();
+                string path =  Path.Combine(Library.Path, ".bblLibraryData");
+                if (Directory.Exists(Library.Path))
+                {
+                    File.WriteAllText(path, json);
+                }
+            }
             OnPropertyChanged(nameof(CurrentViewerData));
             if (_config != null)
             {
@@ -342,7 +367,8 @@ public partial class MainViewModel : ViewModelBase
             var dialogVm = new PreferencesEditorViewModel()
             {
                 MouseSensitivity = pref.MouseSensitivity,
-                ControllerStickSensitivity = pref.ControllerStickSensitivity
+                ControllerStickSensitivity = pref.ControllerStickSensitivity,
+                CacheLibraryData = pref.CacheLibraryData,
             };
             
             var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop

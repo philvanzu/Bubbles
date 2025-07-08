@@ -25,14 +25,14 @@
                                        ItemClearingCommand="{Binding BookClearingCommand}"
                                        x:Name="itemsRepeater">
             <i:Interaction.Behaviors>
-               <bhv:AutoscrollToSelectedOffsetBehavior />
+               <bhv:AutoscrollToSelectedOffsetBehavior Width="180" Height="185" />
             </i:Interaction.Behaviors>
             <ctrl:VirtualizedItemsRepeater.Layout>
                 <WrapLayout Orientation="Horizontal"/>
             </ctrl:VirtualizedItemsRepeater.Layout>
             <ctrl:VirtualizedItemsRepeater.ItemTemplate>
                 <DataTemplate>
-                    <Grid Width="132" Height="152">
+                    <Grid Width="180" Height="185" >
                         <Border ToolTip.Tip="{Binding Path}"
                                 Tag="{Binding IsSelected}">
                             <StackPanel>
@@ -57,12 +57,16 @@
                                     </ContextMenu>
                                 </StackPanel.ContextMenu>
 
-                                <Border BorderBrush="White" BorderThickness="1" CornerRadius="5" Width="128" Height="128">
+                                <Border BorderBrush="White" BorderThickness="1" CornerRadius="5" Width="172" Height="150">
                                     <Grid>
                                         <Image Source="{Binding Thumbnail}" Stretch="Uniform"/>
                                     </Grid>
                                 </Border>
-                                <TextBlock Name="FileNameTextBlock" HorizontalAlignment="Left" Margin="3" Text="{Binding Name}" />
+                                <Border Height="50" Width="172" HorizontalAlignment="Center">
+                                <TextBlock Name="FileNameTextBlock" Text="{Binding Name}" 
+                                           TextWrapping="Wrap" FontSize="12" MaxHeight="50" MaxWidth="172"
+                                           MaxLines="2"/>
+                                </Border>
                             </StackPanel>
                         </Border>
                         <Border Background="#55ffffff" 

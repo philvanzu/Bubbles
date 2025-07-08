@@ -12,19 +12,12 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace Bubbles4.ViewModels;
 
 // constructor must run on the ui thread for the progress object to be valid
-public partial class ProgressDialogViewModel: ViewModelBase
+public partial class ProgressDialogViewModel: ProgressViewModel
 {
     private readonly TaskCompletionSource _shownTcs = new TaskCompletionSource();
     public Task DialogShown => _shownTcs.Task;
     
-    [ObservableProperty]private string _message = "";
-    [ObservableProperty]private double _progressValue=0;
-    [ObservableProperty]private bool _isIndeterminate=false;
-
     IDialogService _dialogService;
-    private Progress<(string msg, double progress, bool completed)> _progress;
-    public Progress<(string msg, double progress, bool completed)> Progress => _progress;
-    
 
     public ProgressDialogViewModel(IDialogService dialogService)
     {
@@ -33,21 +26,6 @@ public partial class ProgressDialogViewModel: ViewModelBase
             throw(new InvalidOperationException("ProgressDialogViewModel constructor Must be invoked on the UI thread."));
         }
         _dialogService=dialogService;
-        _progress = new Progress<(string msg, double progress, bool completed)>(OnProgressUpdated);
-    }
-    public void OnProgressUpdated((string msg, double value, bool completed)progress)
-    {
-        if (progress.completed)
-        {
-            Close();
-            return;
-        }
-        _ = Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            IsIndeterminate = Math.Abs(progress.value - (-1.0)) < 0.01;
-            Message = progress.msg;
-            ProgressValue = IsIndeterminate?0:progress.value;
-        });
     }
 
     public async Task Show()
@@ -74,7 +52,7 @@ public partial class ProgressDialogViewModel: ViewModelBase
         
     }
 
-    public void Close()
+    public override void Close()
     {
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime app)
         {

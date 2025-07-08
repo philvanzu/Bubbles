@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -59,7 +60,7 @@ public partial class LibraryViewModel : ViewModelBase
         _parsingCts = new CancellationTokenSource();
         var token = _parsingCts.Token;
 
-        Clear();
+        //Clear();
 
         try
         {
@@ -83,16 +84,44 @@ public partial class LibraryViewModel : ViewModelBase
         _parsingCts = null;
     }
     
-    public virtual void AddBatch(List<BookBase> batch)
-    {        
+    public virtual void AddBatch(List<BookBase> batch, bool authoritative = true)
+    {
         if (!Dispatcher.UIThread.CheckAccess())
-            throw(new InvalidOperationException("LibraryViewModel.AddBatch Must be invoked on the UI thread."));
+            throw new InvalidOperationException("LibraryViewModel.AddBatch must be invoked on the UI thread.");
 
-        _books.AddRange(batch.Select(book => new BookViewModel(book, this, _mainViewModel)));
+        if (!authoritative && _books.Count > 0)
+            return;
+
+        if (authoritative && _books.Count > 0)
+        {
+            var vmLookup = _books.ToDictionary(vm => vm.Path);
+            var incomingPaths = new HashSet<string>(batch.Select(b => b.Path));
+
+            // Remove any existing items not in the incoming batch
+            for (int i = _books.Count - 1; i >= 0; i--)
+            {
+                if (!incomingPaths.Contains(_books[i].Path))
+                    _books.RemoveAt(i);
+            }
+
+            // Add new ones not already in the VM list
+            foreach (var newBook in batch)
+            {
+                if (!vmLookup.ContainsKey(newBook.Path))
+                    _books.Add(new BookViewModel(newBook, this, _mainViewModel));
+            }
+        }
+        else
+        {
+            _books.Clear();
+            _books.AddRange(batch.Select(book => new BookViewModel(book, this, _mainViewModel)));
+        }
+
         Sort();
         _mainViewModel.UpdateLibraryStatus();
         OnPropertyChanged(nameof(Count));
     }
+
 
     private IComparer<BookViewModel> GetComparer(LibraryConfig.SortOptions sort, bool ascending)
     {
@@ -422,7 +451,36 @@ public partial class LibraryViewModel : ViewModelBase
     }
     #endregion
 
+    public string SerializeCollection()
+    {
+        List<string> list = new();
+        foreach (var item in _books)
+            list.Add(item.Model.Serialize());
+        return JsonSerializer.Serialize(list);
+    }
 
+    public async Task LoadSerializedCollection(string json, IProgress<(string, double, bool)> progress)
+    {
+        var strings = JsonSerializer.Deserialize<List<string>>(json);
+        List<BookBase> bookbases = new();
+        if (strings is not null)
+        {
+            var total = strings.Count;
+            int i = 0;
+            
+            foreach (var item in strings)
+            {
+                var bookbase = BookBase.Deserialize(item);
+                if(bookbase != null)
+                    bookbases.Add(bookbase);
+                
+                progress.Report(($"Loading Cached Library Data...", (double)++i/total, false));
+            }    
+        }
+        progress.Report(($"Loading Cached Library Data...", (double)-1, false));
+        await Dispatcher.UIThread.InvokeAsync(()=>AddBatch(bookbases, false));        
+        progress.Report(($"Loading Cached Library Data...", (double)0, true));
+    }
 }
 
 public class DummyItem

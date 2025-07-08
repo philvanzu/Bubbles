@@ -11,7 +11,7 @@ public partial class PreferencesEditorViewModel: ViewModelBase
 {
     [ObservableProperty]private double _mouseSensitivity;
     [ObservableProperty]private double _controllerStickSensitivity;
-    
+    [ObservableProperty]private bool _cacheLibraryData;
     
 
     [RelayCommand] public void OkPressed()
@@ -19,7 +19,8 @@ public partial class PreferencesEditorViewModel: ViewModelBase
         Preferences prefs = new Preferences()
         {
             MouseSensitivity = MouseSensitivity,
-            ControllerStickSensitivity = ControllerStickSensitivity
+            ControllerStickSensitivity = ControllerStickSensitivity,
+            CacheLibraryData = CacheLibraryData,
         };    
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime app)
         {

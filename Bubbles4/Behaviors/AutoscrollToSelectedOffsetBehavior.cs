@@ -10,6 +10,22 @@ namespace Bubbles4.Behaviors;
 
 public class AutoscrollToSelectedOffsetBehavior : Behavior<VirtualizedItemsRepeater>
 {
+    public static readonly StyledProperty<int> HeightProperty =
+        AvaloniaProperty.Register<AutoscrollToSelectedOffsetBehavior, int>(nameof(Height));
+    public int Height
+    {
+        get => GetValue(HeightProperty);
+        set => SetValue(HeightProperty, value);
+    }
+    
+    public static readonly StyledProperty<int> WidthProperty =
+        AvaloniaProperty.Register<AutoscrollToSelectedOffsetBehavior, int>(nameof(Width));
+    public int Width
+    {
+        get => GetValue(WidthProperty);
+        set => SetValue(WidthProperty, value);
+    }
+    
     private ViewModelBase? _viewModel;
     protected override void OnAttached()
     {
@@ -62,8 +78,8 @@ public class AutoscrollToSelectedOffsetBehavior : Behavior<VirtualizedItemsRepea
 
     private void ScrollIntoView(int index)
     {
-        const double itemWidth = 132;
-        const double itemHeight = 152;
+        double itemWidth = Width;
+        double itemHeight = Height;
 
         var repeater = AssociatedObject;
         var scrollViewer = FindParentScrollViewer(repeater);

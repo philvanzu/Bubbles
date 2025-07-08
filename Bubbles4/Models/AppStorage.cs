@@ -114,6 +114,7 @@ public class AppStorage
         }
     }
 
+
     private static AppStorage Load()
     {
         try
@@ -152,6 +153,9 @@ public class Preferences
 {
     public double MouseSensitivity { get; set; } = 0.5;
     public double ControllerStickSensitivity { get; set; } = 0.5;
+    public bool CacheLibraryData { get; set; } = false;
+    
+    //ivp anim speed
 
     public string Serialize()
     {
