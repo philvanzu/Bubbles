@@ -7,18 +7,17 @@
              x:Class="Bubbles4.Views.ProgressView"
              x:DataType="vm:ProgressViewModel">
     
-    <Grid Margin="16">
+    <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="250"/>
             <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
-
         <TextBlock Grid.Column="0" 
                    Text="{Binding Message}" 
-                   FontSize="14"
-                   Margin="8,0,8,0"
-                   HorizontalAlignment="Center"/>
-
+                   FontSize="16"
+                   Margin="8,2,8,2"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Center"/>
         <ProgressBar Grid.Column="1"
                      Minimum="0" Maximum="1"
                      Value="{Binding ProgressValue}"

@@ -9,7 +9,7 @@
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Bubbles4.Views.MainWindow"
         x:DataType="vm:MainViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/Bubbles.ico"
         Title="Bubbles4"
         Focusable="True"
         Width="800" Height="600">
@@ -19,8 +19,7 @@
                 <KeyBinding Gesture="Alt+Enter" Command="{Binding ToggleFullscreenCommand}" />
                 <KeyBinding Gesture="PageDown" Command="{Binding NextBookCommand}" />
                 <KeyBinding Gesture="PageUp" Command="{Binding PreviousBookCommand}" />
-                <KeyBinding Gesture="Home" Command="{Binding FirstPageCommand}" />
-                <KeyBinding Gesture="End" Command="{Binding LastPageCommand}" />
+
                 <!-- See other input events sent directly to the viewer in mainview codebehind and FastImageViewer.cs-->
         </Window.KeyBindings>
         

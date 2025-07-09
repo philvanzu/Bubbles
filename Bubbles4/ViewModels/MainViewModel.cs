@@ -5,6 +5,7 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Bubbles4.Models;
 using System.Threading.Tasks;
@@ -32,60 +33,37 @@ public partial class MainViewModel : ViewModelBase
         }
     }
     
-    private LibraryConfig? _config = new LibraryConfig("");
-    public LibraryConfig? Config
+    [ObservableProperty] private LibraryConfig? _config = new LibraryConfig("");
+    partial void OnConfigChanged(LibraryConfig? value)
     {
-        get => _config;
-        set
+        if (value != null)
         {
-            SetProperty(ref _config, value);
-            if (value != null)
-            {
-                LibrarySortHeader.Value = (value.LibrarySortOption, value.LibrarySortAscending);
-                BookSortHeader.Value = (value.BookSortOption, value.BookSortAscending);
-                NodeSortHeader.Value = (value.NodeSortOption, value.NodeSortAscending);
-                ShowNavPane = value.ShowNavPane;    
-            }
+            LibrarySortHeader.Value = (value.LibrarySortOption, value.LibrarySortAscending);
+            BookSortHeader.Value = (value.BookSortOption, value.BookSortAscending);
+            NodeSortHeader.Value = (value.NodeSortOption, value.NodeSortAscending);
         }
+        OnPropertyChanged(nameof(ShowNavPane));
     }
 
-    
-    public ObservableCollection<LibraryListItem> Libraries
+    public bool ShowNavPane=>Config?.ShowNavPane ?? false;
+    public ObservableCollection<LibraryListItem> Libraries => MakeLibraries();
+    ObservableCollection<LibraryListItem> MakeLibraries()
     {
-        get {
-                var libraries  = new ObservableCollection<LibraryListItem>();
-                foreach (var s in AppData.LibrariesList)
-                {
-                    libraries.Add(new LibraryListItem()
-                    {
-                        Name = s,
-                        MainViewModel = this
-                    });
-                }
-                return libraries; 
-        }
+        var libraries  = new ObservableCollection<LibraryListItem>() {new LibraryListItem(){Name = "Add New Library"}};
+        foreach (var s in AppData.LibrariesList)
+            libraries.Add(new LibraryListItem() { Name = s});
+        return libraries;
     }
-
-    private LibraryViewModel? _library;
+    public string LibraryName => Library == null ? "Select Library" : Library.Path;
     
-    private bool _showNavPane;
-    public bool ShowNavPane
+    [ObservableProperty]private LibraryListItem? _selectedLibraryItem;
+    partial void OnSelectedLibraryItemChanged(LibraryListItem? value)
     {
-        get => _showNavPane;
-        set
-        {
-            SetProperty(ref _showNavPane, value);
-            if(value)
-                OnPropertyChanged(nameof(Libraries));
-            if (Config != null)
-            {
-                Config.ShowNavPane = value;
-            }
-        }
+        if (value == null) return;
+        if (value.Name == "Add New Library") CreateLibrary();
+        else OpenLibrary(value.Name);
     }
 
-    public bool ShowLibraryTree => LibraryRoot != null;
-    
     [ObservableProperty]private FullSortHeaderViewModel _librarySortHeader;
     [ObservableProperty]private FullSortHeaderViewModel _bookSortHeader;
     [ObservableProperty]private ShortSortHeaderViewModel _nodeSortHeader;
@@ -93,78 +71,39 @@ public partial class MainViewModel : ViewModelBase
     #endregion
     
     #region Library exposure
-    public LibraryViewModel? Library
+
+    [ObservableProperty] private LibraryViewModel? _library;
+    partial void OnLibraryChanged(LibraryViewModel? value)
     {
-        get => _library;
-        set
+        if (value is LibraryNodeViewModel node)
         {
-            SetProperty(ref _library, value);
-            if (value is LibraryNodeViewModel node)
-            {
-                if (node.Parent == null && LibraryRoot != node) LibraryRoot = node;
-                if (node.Parent != null && SelectedLibraryNode != node) SelectedLibraryNode = node;
-            }
-            else
-            {
-                LibraryRoot = null;
-            }
-            OnPropertyChanged(nameof(ShowLibraryTree));
-        } 
+            if (node.Parent == null && LibraryRoot != node) LibraryRoot = node;
+            if (node.Parent != null && SelectedLibraryNode != node) SelectedLibraryNode = node;
+        }
+        else LibraryRoot = null;
     }
     [ObservableProperty] private LibraryNodeViewModel? _libraryRoot;
     
-    private LibraryNodeViewModel? _selectedLibraryNode;
-    public LibraryNodeViewModel? SelectedLibraryNode
+    [ObservableProperty] private LibraryNodeViewModel? _selectedLibraryNode;
+    partial void OnSelectedLibraryNodeChanged(LibraryNodeViewModel? value)
     {
-        get => _selectedLibraryNode;
-        set
+        if (value != null && value != Library)
         {
-            SetProperty(ref _selectedLibraryNode, value);
-            if (value != null && value != Library)
-            {
-                Library = value;
-                Library.Sort();
-            }
-            if(LibraryRoot != null)
-                LibraryRoot.SelectedNode = value;
+            Library = value;
+            Library.Sort();
         }
+        if(LibraryRoot != null)
+            LibraryRoot.SelectedNode = value;
     }
+
     #endregion
 
-
-    
-    
-    public SlidingImageCache _cache;
-    
     [ObservableProperty] public BookViewModel? _selectedBook;
     [ObservableProperty] private ViewerData? _currentViewerData;
-    
-    private PageViewModel? _currentPageViewModel;
-    public PageViewModel? CurrentPageViewModel
-    {
-        get => _currentPageViewModel;
-        set => SetProperty(ref _currentPageViewModel, value);
-    }
-    
-    private bool _isFullscreen;
-    
-    public bool IsFullscreen
-    {
-        get => _isFullscreen;
-        set => SetProperty(ref _isFullscreen, value);
-    }
-
-
-
-    private readonly IDialogService _dialogService;
-    public IDialogService DialogService => _dialogService;
-    
-    
-
+    [ObservableProperty] private PageViewModel? _currentPageViewModel=null;
+    [ObservableProperty] private bool _isFullscreen;
     
     //toolbar
-    
-    
     [ObservableProperty] private string _searchString = string.Empty;
     
     //status bar
@@ -176,6 +115,10 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string? _pagingStatus;
     
     private readonly BackgroundFileWatcher _watcher = new();
+    public SlidingImageCache _cache;
+
+    private readonly IDialogService _dialogService;
+    public IDialogService DialogService => _dialogService;
     ProgressDialogViewModel _progressDialog;
     [ObservableProperty] private ProgressViewModel _statusProgress = new();
     public MainViewModel(IDialogService dialogService)
@@ -207,6 +150,7 @@ public partial class MainViewModel : ViewModelBase
         _watcher.Dispose();
     }
     
+    [RelayCommand]
     void OpenLibrary(string? libraryPath)
     {
         
@@ -229,7 +173,8 @@ public partial class MainViewModel : ViewModelBase
             AppData.AddOrUpdate(libraryPath, config.Serialize());
             AppData.Save();
             OnPropertyChanged(nameof(Libraries));
-//            OnPropertyChanged(nameof(Config));
+            OnPropertyChanged(nameof(LibraryName));
+            OnPropertyChanged(nameof(Config));
             
             IProgress<(string, double, bool)> progress = _progressDialog.Progress;
             Dispatcher.UIThread.Post(()=> _ = _progressDialog.Show(), DispatcherPriority.Render);
@@ -281,8 +226,9 @@ public partial class MainViewModel : ViewModelBase
             });
         }
     }
-
-    public void CloseLibrary()
+    
+    [RelayCommand]
+    private void CloseLibrary()
     {
         _watcher.StopWatching();
         if (Library != null)
@@ -296,16 +242,27 @@ public partial class MainViewModel : ViewModelBase
                     File.WriteAllText(path, json);
                 }
             }
+            CurrentViewerData = null;
             OnPropertyChanged(nameof(CurrentViewerData));
-            if (_config != null)
+            if (Config != null)
             {
                 var save = Library;
                 if (Library is LibraryNodeViewModel library) save = library.Root;
-                AppData.AddOrUpdate(save.Path, _config.Serialize());
-                AppData.Save();    
+                AppData.AddOrUpdate(save.Path, Config.Serialize());
+                AppData.Save();
+                Config = null;
             }
-            Library.Clear();
-        }    
+            Library.Close();
+            _cache.ClearCache();
+            Library = null;
+            if(LibraryRoot!=null) LibraryRoot = null;
+            if(SelectedBook!= null) SelectedBook = null;
+            if(SelectedLibraryNode != null) SelectedLibraryNode = null;
+            if(CurrentPageViewModel != null) CurrentPageViewModel = null;
+            OnPropertyChanged(nameof(LibraryName));
+            OnPropertyChanged(nameof(Config));
+            
+        }  
     }
 
     partial void OnCurrentViewerDataChanged(ViewerData? value)
@@ -323,39 +280,52 @@ public partial class MainViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    public async Task CreateLibraryAsync()
+    private void CreateLibrary()
     {
+        var dlgVm = new LibraryConfigViewModel(new LibraryConfig("Pick a Directory"), _dialogService);
+        CreateOrUpdateLibrary(dlgVm);
+    }
+    [RelayCommand]
+    private void ConfigureLibrary()
+    {
+        if (Library == null) return;
+        var config = (Config!.Path == Library.Path) ? Config : AppData.GetConfig(Library.Path);
         
+        var dlgVm = new LibraryConfigViewModel(config!);
+        CreateOrUpdateLibrary(dlgVm);
+    }
+    private bool CanConfigureLibrary()=> Library != null;
+    
+    private void CreateOrUpdateLibrary(LibraryConfigViewModel dialogVm)
+    {
         var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
             ? desktop.MainWindow
             : null;
 
         if (window != null)
         {
-            string? selectedPath = await _dialogService.PickDirectoryAsync(window);
-
-            if (!string.IsNullOrEmpty(selectedPath) && Directory.Exists(selectedPath))
+            Dispatcher.UIThread.InvokeAsync(async() =>
             {
-                selectedPath = selectedPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                selectedPath += Path.DirectorySeparatorChar;
-            
-                var dialogVm = new LibraryConfigViewModel(new LibraryConfig(selectedPath));
-                var result = await _dialogService.ShowDialogAsync<LibraryConfig>(window, dialogVm);
-                await Dispatcher.UIThread.InvokeAsync(() =>
+                try
                 {
-                    if (result != null)
+                    var result = await _dialogService.ShowDialogAsync<LibraryConfig>(window, dialogVm);
+                    await Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        AppData.AddOrUpdate(result.Path, result.Serialize());
-                        AppData.Save();
-                        OnPropertyChanged(nameof(Libraries)); 
-                    }    
-                    OpenLibrary(selectedPath);
-                });
-            }
-        }
-            
-    }
+                        if (result != null)
+                        {
+                            AppData.AddOrUpdate(result.Path, result.Serialize());
+                            AppData.Save();
+                            OnPropertyChanged(nameof(Libraries));
+                            OpenLibrary(result.Path);
+                        }
 
+                    });
+                }
+                catch(Exception ex){Console.WriteLine(ex);}
+            });
+        }
+    }
+    
 
     [RelayCommand]
     private async Task EditPreferences()
@@ -387,67 +357,21 @@ public partial class MainViewModel : ViewModelBase
             }
         }
     }
-    [RelayCommand]
-    private async Task PickDirectoryAsync()
-    {
-        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
-
-        if (window != null)
-        {
-            var selectedPath = await _dialogService.PickDirectoryAsync(window);
-            await Dispatcher.UIThread.InvokeAsync(() => OpenLibrary(selectedPath));
-        }
-    }
 
     [RelayCommand]
-    public async Task ConfigureLibraryAsync()
+    private void DeleteLibrary()
     {
-        if (Library!= null)
-        {
-            var config  = AppData.GetConfig(Library.Path);
-            if (config == null) config = Config;
-            if (config == null) config = new LibraryConfig(Library.Path);
-            var dialogVm = new LibraryConfigViewModel(config);
-            var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-                ? desktop.MainWindow
-                : null;
-            if (window != null)
-            {
-                var result = await _dialogService.ShowDialogAsync<LibraryConfig>(window, dialogVm);
-                if (result != null)
-                {
-                    await Dispatcher.UIThread.InvokeAsync(() =>
-                    {
-                        Config = result;
-                        AppData.AddOrUpdate(Config.Path, Config.Serialize());
-                        AppData.Save();
-                    });
-                }    
-            }
-        }
+        if(Library==null) return;
+        var path = Library.Path;
+        CloseLibrary();
+        Dispatcher.UIThread.Post(async void () => await DeleteLibraryPressedAsync(path));
     }
     [RelayCommand]
-    public void OnOpenLibraryPressed(string? path)
+    private async Task DeleteLibraryPressedAsync(string path)
     {
-        try
-        {
-            OpenLibrary(path);    
-        }
-        catch (Exception ex){Console.WriteLine(ex);}
-            
-    }
-
-    [RelayCommand]
-    public async Task OnDeleteLibraryPressed(string? path)
-    {
-        if (path == null) return;
-        
         if (path == Library?.Path)
-        {
-            
-        }
+            CloseLibrary();
+
         var dialog = new OkCancelViewModel
         {
             Content = $"Do you want to delete the recorded setting for the library at [{path}] ?"
@@ -506,11 +430,13 @@ public partial class MainViewModel : ViewModelBase
     #region input
     void OnLibrarySortHeaderStateChanged( object? _, EventArgs __ )
     {
+        /*
         if (Config != null)
         {
             Config.LibrarySortOption = LibrarySortHeader.Value.sortOption;
             Config.LibrarySortAscending = LibrarySortHeader.Value.ascending;
         }
+        */
         if (Library != null)
         {
             if (Library.CurrentSortOption != LibrarySortHeader.Value.sortOption)
@@ -521,11 +447,13 @@ public partial class MainViewModel : ViewModelBase
     }
     void OnBookSortHeaderStateChanged(object? _, EventArgs __)
     {
+        /*
         if (Config != null)
         {
             Config.BookSortOption = BookSortHeader.Value.sortOption;
             Config.BookSortAscending = BookSortHeader.Value.ascending;
         }
+        */
         if (SelectedBook != null)
         {
             if (SelectedBook.CurrentSortOption != BookSortHeader.Value.sortOption)
@@ -538,11 +466,13 @@ public partial class MainViewModel : ViewModelBase
     {
         var option = NodeSortHeader.Value.sortOption;
         var asc = NodeSortHeader.Value.ascending;
+        /*
         if (Config != null)
         {
             Config.NodeSortOption = option;
             Config.NodeSortAscending = asc;    
         }
+        */
         if (Library is LibraryNodeViewModel node)
         {
             if(option != node.Root.CurrentChildrenSortOption)
@@ -560,7 +490,11 @@ public partial class MainViewModel : ViewModelBase
         {
             //determine current book
             var book = Library.Books[0];
-            if (SelectedBook != null) book = SelectedBook;
+            if (SelectedBook != null)
+            {
+                Library.RequestScrollToIndex(Library.GetSelectedIndex());
+                book = SelectedBook;
+            }
             bool more;
             do
             {
@@ -594,7 +528,11 @@ public partial class MainViewModel : ViewModelBase
         {
             //determine current book
             var book = Library.Books[Library.Books.Count - 1];
-            if (SelectedBook != null) book = SelectedBook;
+            if (SelectedBook != null)
+            {
+                Library.RequestScrollToIndex(Library.GetSelectedIndex());
+                book = SelectedBook;
+            }
             bool more;
             do
             {

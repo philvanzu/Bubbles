@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,7 +19,7 @@ using DynamicData.Binding;
 
 namespace Bubbles4.ViewModels;
 
-public partial class LibraryViewModel : ViewModelBase
+public partial class LibraryViewModel : ViewModelBase, ISelectItems
 {
     public string Path { get; }
     protected List<BookViewModel> _books = new();
@@ -30,7 +31,11 @@ public partial class LibraryViewModel : ViewModelBase
     protected List<string>? _filters;
     public int Count => Books.Count;
     protected MainViewModel _mainViewModel;
+    public event EventHandler<SelectedItemChangedEventArgs>? SelectionChanged;
+    public event EventHandler? SortOrderChanged;
+    public event EventHandler<int> ScrollToIndexRequested;
     
+    [ObservableProperty] private bool _isLoading;
     public LibraryViewModel(MainViewModel mainViewModel, string path)
     {
         _mainViewModel = mainViewModel;
@@ -41,7 +46,15 @@ public partial class LibraryViewModel : ViewModelBase
         var dir = _mainViewModel.Config?.LibrarySortAscending;
         CurrentSortAscending = dir ?? true;
     }
-    
+
+    public virtual void Close()
+    {
+        if(SelectedItem != null) 
+            SelectedItem.IsSelected = false;
+        
+        SelectedItem = null;
+        Clear();
+    }
     public void Clear()
     {
         _books.Clear();
@@ -64,11 +77,13 @@ public partial class LibraryViewModel : ViewModelBase
 
         try
         {
+            Dispatcher.UIThread.Post(()=>IsLoading = true);
             await LibraryParserService.ParseLibraryRecursiveAsync(path, batch =>
             {
                 // Marshal to UI thread
                 AddBatch(batch);
             }, cancellationToken: token, progress: progress);
+            Dispatcher.UIThread.Post(()=>IsLoading = false);
         }
         catch (OperationCanceledException)
         {
@@ -83,7 +98,30 @@ public partial class LibraryViewModel : ViewModelBase
         _parsingCts?.Dispose();
         _parsingCts = null;
     }
-    
+    public async Task LoadSerializedCollection(string json, IProgress<(string, double, bool)> progress)
+    {
+        Dispatcher.UIThread.Post(()=>IsLoading = true);
+        var strings = JsonSerializer.Deserialize<List<string>>(json);
+        List<BookBase> bookbases = new();
+        if (strings is not null)
+        {
+            var total = strings.Count;
+            int i = 0;
+            
+            foreach (var item in strings)
+            {
+                var bookbase = BookBase.Deserialize(item);
+                if(bookbase != null)
+                    bookbases.Add(bookbase);
+                
+                progress.Report(($"Loading Cached Library Data...", (double)++i/total, false));
+            }    
+        }
+        progress.Report(($"Loading Cached Library Data...", (double)-1, false));
+        await Dispatcher.UIThread.InvokeAsync(()=>AddBatch(bookbases, false));        
+        progress.Report(($"Loading Cached Library Data...", (double)0, true));
+    }
+
     public virtual void AddBatch(List<BookBase> batch, bool authoritative = true)
     {
         if (!Dispatcher.UIThread.CheckAccess())
@@ -145,42 +183,29 @@ public partial class LibraryViewModel : ViewModelBase
 
             LibraryConfig.SortOptions.Natural => new BookViewModelNaturalComparer(ascending),
 
-            LibraryConfig.SortOptions.Random => RandomizeAndReturnComparer(),
+            LibraryConfig.SortOptions.Random => 
+                SortExpressionComparer<BookViewModel>.Ascending(x => x.RandomIndex),
 
             _ => SortExpressionComparer<BookViewModel>.Ascending(x => x.Name)
         };
     }
-    private IComparer<BookViewModel> RandomizeAndReturnComparer()
+
+    private void ShuffleBooks()
     {
-        int seed = CryptoRandom.NextInt();
-
-        int Hash(string input)
-        {
-            unchecked
-            {
-                int hash = 17;
-                foreach (char c in input)
-                    hash = hash * 31 + c;
-                return hash;
-            }
-        }
-
-        return Comparer<BookViewModel>.Create((x, y) =>
-        {
-            int xHash = Hash(x.Path) ^ seed;
-            int yHash = Hash(y.Path) ^ seed;
-            return xHash.CompareTo(yHash);
-        });
+        foreach (var book in _books)
+            book.RandomIndex = CryptoRandom.NextInt();
     }
-
     public void Sort(LibraryConfig.SortOptions? sort=null, bool? ascending=null)
     {
         if (sort == null) sort = _mainViewModel.Config?.LibrarySortOption ?? LibraryConfig.SortOptions.Path;
         if (ascending == null) ascending = _mainViewModel.Config?.LibrarySortAscending ?? true;
 
+        if (sort == LibraryConfig.SortOptions.Random) ShuffleBooks();
+
         CurrentSortOption = sort.Value;
         CurrentSortAscending = ascending.Value;
         ApplyFilterAndSort();
+        //InvokeSortOrderChanged();
     }
     public void Filter(List<string>? keywords = null)
     {
@@ -199,6 +224,11 @@ public partial class LibraryViewModel : ViewModelBase
         _booksMutable.AddRange(filtered);
 
         OnPropertyChanged(nameof(Books));
+    }
+    
+    public void InvokeSortOrderChanged()
+    {
+        SortOrderChanged?.Invoke(this, EventArgs.Empty);
     }
     private bool MatchesKeywords(BookViewModel bvm, List<string>? keywords)
     {
@@ -224,8 +254,6 @@ public partial class LibraryViewModel : ViewModelBase
     {
         if (parameter is BookViewModel vm)
         {
-            if(GetBookIndex(vm) == 0)
-                Console.WriteLine($"item {GetBookIndex(vm)} prepared.");
             await vm.PrepareThumbnailAsync();
         }
             
@@ -236,9 +264,6 @@ public partial class LibraryViewModel : ViewModelBase
     {
         if (parameter is BookViewModel vm)
         {
-            var idx = GetBookIndex(vm);
-            if (idx == 0)
-                Console.WriteLine($"item {GetBookIndex(vm)} clearing");
             await vm.ClearThumbnailAsync();    
         }
             
@@ -249,13 +274,18 @@ public partial class LibraryViewModel : ViewModelBase
 
 
 
+
+
+
     partial void OnSelectedItemChanged(BookViewModel? value)
     {
+        BookViewModel? oldItem = null;
         _mainViewModel.SelectedBook = value;
         foreach (var book in Books)
         {
             if (book != value && book.IsSelected)
             {
+                oldItem = book;
                 //unload book in BookView and dispose pages data
                 book.UnloadPagesList();
                 book.IsSelected = false;
@@ -268,10 +298,23 @@ public partial class LibraryViewModel : ViewModelBase
                 .ContinueWith(_ => value.LoadingTask = null
                 , TaskScheduler.FromCurrentSynchronizationContext());
         }
+        InvokeSelectionChanged(SelectedItem, oldItem);
         _mainViewModel.UpdateBookStatus();
         //Console.WriteLine("Selected book :" + value.Name );
     }
-
+    public void InvokeSelectionChanged(ISelectableItem? newItem, ISelectableItem? oldItem)
+    {
+        SelectionChanged?.Invoke(this, new SelectedItemChangedEventArgs(this,  newItem, oldItem));
+    }
+    
+    public void RequestScrollToIndex(int index)
+    {
+        ScrollToIndexRequested?.Invoke(this, index);
+    }
+    public int GetSelectedIndex()
+    {
+        return GetBookIndex(SelectedItem);
+    }
     public int GetBookIndex(BookViewModel? book)
     {
         return (book != null)? Books.IndexOf(book) : -1;
@@ -459,28 +502,7 @@ public partial class LibraryViewModel : ViewModelBase
         return JsonSerializer.Serialize(list);
     }
 
-    public async Task LoadSerializedCollection(string json, IProgress<(string, double, bool)> progress)
-    {
-        var strings = JsonSerializer.Deserialize<List<string>>(json);
-        List<BookBase> bookbases = new();
-        if (strings is not null)
-        {
-            var total = strings.Count;
-            int i = 0;
-            
-            foreach (var item in strings)
-            {
-                var bookbase = BookBase.Deserialize(item);
-                if(bookbase != null)
-                    bookbases.Add(bookbase);
-                
-                progress.Report(($"Loading Cached Library Data...", (double)++i/total, false));
-            }    
-        }
-        progress.Report(($"Loading Cached Library Data...", (double)-1, false));
-        await Dispatcher.UIThread.InvokeAsync(()=>AddBatch(bookbases, false));        
-        progress.Report(($"Loading Cached Library Data...", (double)0, true));
-    }
+
 }
 
 public class DummyItem

@@ -186,7 +186,7 @@ public class BookArchive : BookBase
             if (stream != null) await DispatchThumbnail(stream, callback, ct);
 
         }
-        catch(TaskCanceledException){}
+        catch ( OperationCanceledException){}
         catch (Exception ex)
         {
             Console.WriteLine($"Thumbnail load failed: {ex}");
@@ -213,18 +213,30 @@ public class BookArchive : BookBase
         {
             if (_pagesListTask == null)
             {
-                    token.ThrowIfCancellationRequested();
-                    _pagesListTask = Task.Run(() => GetPagesListAsync());
+                token.ThrowIfCancellationRequested();
+                _pagesListTask = Task.Run(() => GetPagesListAsync());
             }
 
-            var pages  = await _pagesListTask;
-            if(pages != null)
+            var pages = await _pagesListTask;
+            if (pages != null)
                 callback(pages);
         }
-        catch (TaskCanceledException){}
-        catch (OperationCanceledException) { }
-        catch (Exception ex) { Console.WriteLine(ex.ToString()); }
-        finally { _pagesListLock.Release(); }
+        catch (TaskCanceledException)
+        {
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+        }
+        finally
+        {
+            _pagesListLock.Release();
+            PagesListCts?.Dispose();
+            PagesListCts = null;
+        }
     }
 
     
@@ -257,10 +269,12 @@ public class BookArchive : BookBase
 
         if (!PagesCts.ContainsKey(key))
             throw new ArgumentException("Invalid page path in BookArchive.LoadThumnailAsync");
-
+    
         PagesCts[key]?.Cancel();
         PagesCts[key]?.Dispose();
-        PagesCts[key] = new CancellationTokenSource();
+        PagesCts[key] = new CancellationTokenSource();    
+        
+        
         var token = PagesCts[key]!.Token;
         try
         {
@@ -268,8 +282,15 @@ public class BookArchive : BookBase
         }
         finally
         {
-            PagesCts[key]?.Dispose();
-            PagesCts[key] = null;
+            try
+            {
+                if (PagesCts.ContainsKey(key))
+                {
+                    PagesCts[key]?.Dispose();
+                    PagesCts[key] = null;
+                }
+            }
+            catch (Exception ex) { Console.WriteLine(ex.ToString()); }
         }
     }
 

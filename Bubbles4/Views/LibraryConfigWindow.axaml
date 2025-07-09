@@ -3,19 +3,30 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Bubbles4.ViewModels"
+        xmlns:conv="clr-namespace:Bubbles4.Converters"
         xmlns:spin="clr-namespace:Avalonia.Controls.Primitives;assembly=Avalonia.Controls"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="Bubbles4.Views.LibraryConfigWindow"
         x:DataType="vm:LibraryConfigViewModel"
         Width="540"
-        Height="632"
+        Height="720"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         Background="#505050"
-        Title="Library Config">
-   
+        Title="{Binding WindowTitle}">
+    <Window.Resources>
+        <conv:InverseBooleanConverter x:Key="InverseBool" />
+    </Window.Resources>
     <StackPanel Margin="10" HorizontalAlignment="Center">
-        <TextBlock HorizontalAlignment="Center" FontSize="16" Text="{Binding Path}"/>
+        
+        <TextBlock HorizontalAlignment="Left" FontSize="16" 
+                   Text="{Binding Path}"
+                   IsVisible="{Binding PickDirectory, Converter={StaticResource InverseBool}}"/>
+        <Grid ColumnDefinitions="*, Auto"
+            IsVisible="{Binding PickDirectory}">
+            <TextBox Text="{Binding Path, Mode=TwoWay}" Margin="8"></TextBox>
+            <Button Grid.Column="1" Content="Browse" Command="{Binding OpenDirectoryPickerCommand}"/>
+        </Grid>
         <Border Height="8"/>
         <Separator Width="400" />
         <Border Height="8"/>
@@ -23,11 +34,11 @@
         <Border Height="8"/>
         <StackPanel Orientation="Horizontal">
             <ToggleButton IsChecked="{Binding Recursive, Mode=TwoWay}" Width="250" Height="75" HorizontalAlignment="Left" > 
-                <TextBlock TextWrapping="Wrap" Text="Recursive : All albums, including those found in subdirectories are presented in one large view"/>
+                <TextBlock TextWrapping="Wrap" Text="Recursive : All albums, including those found in subdirectories are presented in one large view. (Can be slow to load)"/>
             </ToggleButton>
             
             <ToggleButton IsChecked="{Binding Navtree, Mode=TwoWay}"  Width="250" Height="75" HorizontalAlignment="Left" >
-                <TextBlock TextWrapping="Wrap" Text="NavTree : Directory structure is navigable, only albums within the selected directory are shown"/> 
+                <TextBlock TextWrapping="Wrap" Text="NavTree : Directory structure is preserved and navigable, only albums within the selected directory are shown"/> 
             </ToggleButton>
         </StackPanel>
         <Border Height="8"/>
@@ -50,6 +61,33 @@
         <CheckBox IsChecked="{Binding AnimateIVPs}" IsEnabled="{Binding Viewer}">
             Animate Image Viewing Parameters restoration.
         </CheckBox>
+        <Border Height="8"/>
+        <Separator Width="400" />
+        <Border Height="8"/>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock VerticalAlignment="Center" >Sort Books by</TextBlock>
+            <ComboBox ItemsSource="{Binding SortOptions}"
+                      SelectedIndex="{Binding BooksSortOption, Mode=TwoWay}"
+                      Margin="16 0 16 0" Width="200"/>
+            <Button Command="{Binding ToggleBooksAscendingCommand}">
+                <Path Fill="White"
+                      Width="16" Height="16"
+                      Stretch="Uniform"
+                      Data="{Binding BooksArrow}" />  
+            </Button>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock VerticalAlignment="Center" >Sort Pages by</TextBlock>
+            <ComboBox ItemsSource="{Binding SortOptions}"
+                      SelectedIndex="{Binding PagesSortOption}"
+                      Margin="16 0 16 0" Width="200"/>
+            <Button Command="{Binding TogglePagesAscendingCommand}">
+                <Path Fill="White"
+                      Width="16" Height="16"
+                      Stretch="Uniform"
+                      Data="{Binding PagesArrow}" />  
+            </Button>
+        </StackPanel>
         <Border Height="8"/>
         <Separator Width="400" />
         <Border Height="8"/>
@@ -94,6 +132,8 @@
         
         
         
-        <Button Content="OK" Command="{Binding OkCommand}" Margin="0,10,0,0" HorizontalAlignment="Center"/>
+        <Button Content="OK" Command="{Binding OkCommand}"
+                IsEnabled="{Binding CanOk}"
+                Margin="0,10,0,0" HorizontalAlignment="Center"/>
     </StackPanel>
 </Window>

@@ -17,9 +17,11 @@
         <ctrl:VirtualizedItemsRepeater ItemsSource="{Binding Pages}"
                                        ItemPreparedCommand="{Binding PagePreparedCommand}"
                                        ItemClearingCommand="{Binding PageClearingCommand}">
+            <!--
             <i:Interaction.Behaviors>
                 <bhv:AutoscrollToSelectedOffsetBehavior Width="132" Height="152" />
             </i:Interaction.Behaviors>
+            -->
             <ctrl:VirtualizedItemsRepeater.Layout>
                 <WrapLayout Orientation="Horizontal"/>
             </ctrl:VirtualizedItemsRepeater.Layout>
@@ -28,9 +30,11 @@
                         <Grid Width="132" Height="152">
                             <Border>
                             <StackPanel >
+                                
                                 <i:Interaction.Behaviors>
                                     <bhv:PointerPressedCommandBehavior Command="{Binding PointerPressed}" />
                                 </i:Interaction.Behaviors>
+                                
                                 <StackPanel.ContextMenu>
                                     <ContextMenu>
                                         <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}" />

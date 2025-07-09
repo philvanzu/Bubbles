@@ -26,6 +26,8 @@ public partial class MainView : UserControl
     private IInputElement? _previousFocusedElement;
     private readonly SdlInputService _sdlInput=new();
     private readonly CancellationTokenSource _cts = new();
+    private FastImageViewer? _fastImageViewer;
+    
     public MainView()
     {
         InitializeComponent();
@@ -34,7 +36,7 @@ public partial class MainView : UserControl
         _fullscreenOverlay = this.FindControl<Panel>("FullscreenOverlay");
         _imgViewerContainer = this.FindControl<ContentControl>("ImageViewerContainer");
         if(_imgViewerContainer!= null) _imgViewerContainer.Focusable = true;
-        var fastImageViewer = this.FindControl<FastImageViewer>("ImageViewer");
+        _fastImageViewer = this.FindControl<FastImageViewer>("ImageViewer");
 
         // Remember original parent and index to restore later
         _originalParent = (Panel)_imgViewerContainer?.Parent!;
@@ -45,44 +47,8 @@ public partial class MainView : UserControl
         
         _sdlInput.Initialize();
 
-        _sdlInput.StickUpdated += ((s, e) =>
-        {
-            _ = Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                if (fastImageViewer != null)
-                {
-                    if (e.Stick == StickName.LStick)
-                    {
-                        fastImageViewer.OnLeftStickUpdate(e);
-                    }
-                    else if (e.Stick == StickName.RStick)
-                    {
-                        fastImageViewer.OnRightStickUpdate(e);
-                    }
-
-                }
-            });
-        });
-        _sdlInput.ButtonChanged += ((s, e) =>
-        {
-            _ = Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                if (DataContext is not MainViewModel vm)
-                    return;
-                if (e.Pressed == false)
-                {
-                    switch (e.Button)
-                    {
-                        case ButtonName.LB:
-                            vm.PreviousCommand.Execute(null);
-                            break;
-                        case ButtonName.RB:
-                            vm.NextCommand.Execute(null);
-                            break;
-                    }
-                }
-            });
-        });
+        _sdlInput.StickUpdated +=  ControllerStickUpdated;
+        _sdlInput.ButtonChanged += ControllerButtonChanged;
 
 
         Task.Run(async() =>
@@ -105,86 +71,16 @@ public partial class MainView : UserControl
         });
 
 
-        _imgViewerContainer!.DoubleTapped += (_, _) =>
-        {
-            if (DataContext is MainViewModel vm)
-            { 
-                vm.ToggleFullscreenCommand.Execute(null);
-            }
-        };
-        _imgViewerContainer.PointerWheelChanged += (s, e) =>
-        {
-            if (DataContext is MainViewModel vm &&
-                vm.Config != null &&
-                ( vm.Config.ScrollAction == LibraryConfig.ScrollActions.TurnPage ||
-                  vm.IsFullscreen == false) )
-            {
-                if (Math.Abs(e.Delta.Y - (-1.0)) < 0.01f) _ = vm.Next();
-                
-                else if (Math.Abs(e.Delta.Y - 1.0) < 0.01f) _ = vm.Previous(); 
-            }
-            else fastImageViewer!.OnMouseWheel(s, e);
-        };
-        _imgViewerContainer.PointerPressed += (s, e) =>
-        {
-            if (fastImageViewer != null)
-                fastImageViewer.OnPointerPressed(s, e);
-        };
-        _imgViewerContainer.PointerReleased += (s, e) =>
-        {
-            if (fastImageViewer != null)
-                fastImageViewer.OnPointerReleased(s, e);
-        };
-        _imgViewerContainer.PointerMoved += (s, e) =>
-        {
-            if (fastImageViewer != null)
-            {
-                fastImageViewer.OnPointerMoved(s, e);
-            }
-        };
-        
-        _imgViewerContainer.KeyUp += (_, e) =>
-        {
-            if (fastImageViewer != null)
-            {
-                switch (e.Key)
-                {
-                    case Key.H:
-                        e.Handled = true;
-                        fastImageViewer.FitHeight();
-                        break;
-                    case  Key.W:
-                        e.Handled = true;
-                        fastImageViewer.FitWidth();
-                        break;
-                    case Key.B:
-                        e.Handled = true;
-                        fastImageViewer.Fit();
-                        break;
-                    case Key.F:
-                        e.Handled = true;
-                        fastImageViewer.FitStock();
-                        break;
-                    case Key.Down :
-                        e.Handled = true;
-                        fastImageViewer.OnDownArrowPressed();
-                        break;
-                    case Key.Up :
-                        e.Handled = true;
-                        fastImageViewer.OnUpArrowPressed();
-                        break;
-                    case Key.Add:
-                        e.Handled = true;
-                        fastImageViewer.Zoom(1);
-                        break;
-                    case Key.Subtract:
-                        e.Handled = true;
-                        fastImageViewer.Zoom(-1);
-                        break;
-                }
-            }
-        };
+        _imgViewerContainer!.DoubleTapped += ImgViewerDoubleTapped;
+        _imgViewerContainer.PointerWheelChanged += ImgViewerMouseWheelChanged;
+        _imgViewerContainer.PointerPressed += ImgViewerPointerPressed;
+        _imgViewerContainer.PointerReleased += ImgViewerPointerReleased;
+        _imgViewerContainer.PointerMoved += ImgViewerPointerMoved;
+        _imgViewerContainer.KeyUp += ImgViewerKeyUp;
     }
+
+    
+
 
     protected override void OnUnloaded(RoutedEventArgs e)
     {
@@ -204,35 +100,7 @@ public partial class MainView : UserControl
             window.AddHandler(InputElement.KeyUpEvent, OnGlobalKeyUp,  RoutingStrategies.Bubble, true);
         }
     }
-    private void OnGlobalKeyUp(object? sender, KeyEventArgs e)
-    {
-        if (DataContext is not MainViewModel vm )
-            return;
 
-        switch (e.Key)
-        {
-            case Key.Space:
-            case Key.Right:
-                if (e.KeyModifiers.HasFlag(KeyModifiers.Alt))
-                    vm.PreviousCommand.Execute(null);
-                else
-                    vm.NextCommand.Execute(null);
-                e.Handled = true;
-                break;
-
-            case Key.Left:
-            case Key.Back:
-                vm.PreviousCommand.Execute(null);
-                e.Handled = true;
-                break;
-
-            case Key.Escape:
-                if (vm.IsFullscreen)
-                    vm.ToggleFullscreenCommand.Execute(null);
-                e.Handled = true;
-                break;
-        }
-    }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
@@ -284,6 +152,41 @@ public partial class MainView : UserControl
             _previousFocusedElement?.Focus();
         }
     }
+    private void OnGlobalKeyUp(object? sender, KeyEventArgs e)
+    {
+        if (SearchBox.IsFocused || DataContext is not MainViewModel vm )
+            return;
+        
+        switch (e.Key)
+        {
+            case Key.Space:
+            case Key.Right:
+                if (e.KeyModifiers.HasFlag(KeyModifiers.Alt))
+                    vm.PreviousCommand.Execute(null);
+                else
+                    vm.NextCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            case Key.Left:
+            case Key.Back:
+                vm.PreviousCommand.Execute(null);
+                e.Handled = true;
+                break;
+
+            case Key.Escape:
+                if (vm.IsFullscreen)
+                    vm.ToggleFullscreenCommand.Execute(null);
+                e.Handled = true;
+                break;
+            case Key.Home:
+                vm.FirstPageCommand.Execute(null);
+                break;
+            case Key.End:
+                vm.LastPageCommand.Execute(null);
+                break;
+        }
+    }
     private void SearchBox_KeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)
@@ -291,6 +194,130 @@ public partial class MainView : UserControl
             SearchButton.Command?.Execute(SearchButton.CommandParameter);
         }
     }
+    private void ImgViewerKeyUp(object? _, KeyEventArgs e)
+    {
+        if (_fastImageViewer != null)
+        {
+            switch (e.Key)
+            {
+                case Key.H:
+                    e.Handled = true;
+                    _fastImageViewer.FitHeight();
+                    break;
+                case  Key.W:
+                    e.Handled = true;
+                    _fastImageViewer.FitWidth();
+                    break;
+                case Key.B:
+                    e.Handled = true;
+                    _fastImageViewer.Fit();
+                    break;
+                case Key.F:
+                    e.Handled = true;
+                    _fastImageViewer.FitStock();
+                    break;
+                case Key.Down :
+                    e.Handled = true;
+                    _fastImageViewer.OnDownArrowPressed();
+                    break;
+                case Key.Up :
+                    e.Handled = true;
+                    _fastImageViewer.OnUpArrowPressed();
+                    break;
+                case Key.Add:
+                    e.Handled = true;
+                    _fastImageViewer.Zoom(1);
+                    break;
+                case Key.Subtract:
+                    e.Handled = true;
+                    _fastImageViewer.Zoom(-1);
+                    break;
+            }
+        }
+    }
+
+    private void ImgViewerPointerMoved(object? s, PointerEventArgs e)
+    {
+        if (_fastImageViewer != null)
+        {
+            _fastImageViewer.OnPointerMoved(s, e);
+        }
+    }
+
+    private void ImgViewerPointerReleased(object? s, PointerReleasedEventArgs e)
+    {
+        if (_fastImageViewer != null)
+            _fastImageViewer.OnPointerReleased(s, e);
+    }
+
+    private void ImgViewerPointerPressed(object? s, PointerPressedEventArgs e)
+    {
+        if (_fastImageViewer != null)
+            _fastImageViewer.OnPointerPressed(s, e);
+    }
+
+    private void ImgViewerMouseWheelChanged(object? s, PointerWheelEventArgs e)
+    {
+        if (DataContext is MainViewModel vm &&
+            vm.Config != null &&
+            ( vm.Config.ScrollAction == LibraryConfig.ScrollActions.TurnPage ||
+              vm.IsFullscreen == false) )
+        {
+            if (Math.Abs(e.Delta.Y - (-1.0)) < 0.01f) _ = vm.Next();
+                
+            else if (Math.Abs(e.Delta.Y - 1.0) < 0.01f) _ = vm.Previous(); 
+        }
+        else _fastImageViewer!.OnMouseWheel(s, e);
+    }
+
+    private void ImgViewerDoubleTapped(object? _, TappedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        { 
+            vm.ToggleFullscreenCommand.Execute(null);
+        }
+    }
+
+    private void ControllerStickUpdated(object? __, StickEventArgs e)
+    {
+        _ = Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (_fastImageViewer != null)
+            {
+                if (e.Stick == StickName.LStick)
+                {
+                    _fastImageViewer.OnLeftStickUpdate(e);
+                }
+                else if (e.Stick == StickName.RStick)
+                {
+                    _fastImageViewer.OnRightStickUpdate(e);
+                }
+
+            }
+        });
+    }
+    private void ControllerButtonChanged(object? __, ButtonEventArgs e)
+    {
+        _ = Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (DataContext is not MainViewModel vm)
+                return;
+            if (e.Pressed == false)
+            {
+                switch (e.Button)
+                {
+                    case ButtonName.LB:
+                        vm.PreviousCommand.Execute(null);
+                        break;
+                    case ButtonName.RB:
+                        vm.NextCommand.Execute(null);
+                        break;
+                }
+            }
+        });
+    }
+    
+
 
 
 }

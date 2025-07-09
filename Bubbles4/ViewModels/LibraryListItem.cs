@@ -5,20 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Bubbles4.ViewModels;
 
-public partial class LibraryListItem:ObservableObject
+public partial class LibraryListItem:ViewModelBase
 {
     public string Name { get; set; }
-    public MainViewModel MainViewModel { get; set; }
-    
-    [RelayCommand]
-    public void OnSelected()
-    {
-        MainViewModel.OnOpenLibraryPressed(Name);
-    }
-    
-    [RelayCommand]
-    public void OnDeleted()
-    {
-        Task.Run(async ()=> await MainViewModel.OnDeleteLibraryPressed(Name));
-    }
 }

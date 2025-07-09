@@ -48,7 +48,6 @@ public class BookDirectory:BookBase
         
         try {
             await FileIOThrottler.WaitAsync(ThumbnailCts.Token); // respects cancellation
-            //All inner LoadThumbnail exceptions are internally handled, no need to atomically try it 
 
             var thmb = await Task.Run(()=>ThumbnailService.LoadThumbnail(_thumbnailPath, 240), ThumbnailCts.Token);
             FileIOThrottler.Release();
@@ -68,21 +67,33 @@ public class BookDirectory:BookBase
         PagesCts[key]?.Cancel();
         PagesCts[key]?.Dispose();
         PagesCts[key] = new CancellationTokenSource();
+        var token = PagesCts[key].Token;
+        
         Bitmap? thmb = null;
         try
         {
-            await FileIOThrottler.WaitAsync(PagesCts[key]!.Token); // respects cancellation
-            PagesCts[key]!.Token.ThrowIfCancellationRequested();
-            thmb = await Task.Run(() => ThumbnailService.LoadThumbnail(key, 240), PagesCts[key]!.Token);
+            await FileIOThrottler.WaitAsync(token); // respects cancellation
+            token.ThrowIfCancellationRequested();
+            thmb = await Task.Run(() => ThumbnailService.LoadThumbnail(key, 240), token);
             FileIOThrottler.Release();
             await Dispatcher.UIThread.InvokeAsync(() => { callback(thmb); });
         }
-        catch (OperationCanceledException) {}
+        catch (OperationCanceledException)
+        {
+        }
         catch (KeyNotFoundException)
         {
             if (thmb != null)
             {
                 thmb.Dispose();
+            }
+        }
+        finally
+        {
+            if (PagesCts.ContainsKey(key))
+            {
+                PagesCts[key]?.Dispose();
+                PagesCts[key] = null;
             }
         }
     }
@@ -102,7 +113,11 @@ public class BookDirectory:BookBase
                 {
                     if (FileTypes.IsImage(file.FullName))
                     {
-                        pages.Add(new Page() { Path = file.FullName, Name = file.Name, Index = index++, Created = file.CreationTime, LastModified = file.LastWriteTime});
+                        pages.Add(new Page()
+                        {
+                            Path = file.FullName, Name = file.Name, Index = index++, Created = file.CreationTime,
+                            LastModified = file.LastWriteTime
+                        });
                     }
                 }
 
@@ -112,7 +127,11 @@ public class BookDirectory:BookBase
         }
         catch (OperationCanceledException)
         {
-
+        }
+        finally
+        {
+            PagesListCts?.Dispose();
+            PagesListCts = null;
         }
     }
     
@@ -139,6 +158,7 @@ public class BookDirectory:BookBase
 
             await Dispatcher.UIThread.InvokeAsync(() => callback(bmp));
         }
+        catch (OperationCanceledException){}
         catch (Exception e)
         {
             Console.WriteLine(e);

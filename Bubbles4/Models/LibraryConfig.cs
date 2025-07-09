@@ -7,7 +7,7 @@ public class LibraryConfig
     public enum ScrollActions { TurnPage, Scroll }
     public enum LookAndFeels {Viewer, Reader };
     //library view params
-    public bool Recursive { get; set; } 
+    public bool Recursive { get; set; } = true; 
     public LookAndFeels LookAndFeel { get; set; } = LookAndFeels.Viewer;
     //Page viewer params
     public FitTypes Fit {
@@ -47,7 +47,7 @@ public class LibraryConfig
     //Node Sort
     public NodeSortOptions NodeSortOption = NodeSortOptions.Alpha;
     public bool NodeSortAscending { get; set; } = true;
-    public bool ShowNavPane { get; set; } 
+    public bool ShowNavPane => !Recursive;
 
     public LibraryConfig(string path)
     {

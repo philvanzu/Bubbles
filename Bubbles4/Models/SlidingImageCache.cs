@@ -181,6 +181,11 @@ public class SlidingImageCache : IDisposable
         }
     }
 
+    public void ClearCache()
+    {
+        foreach(var bmp in _cache.Values.ToList()) bmp?.Dispose();
+        _cache.Clear();
+    }
     public void Dispose()
     {
         _mainViewModel.CurrentViewerData = null;

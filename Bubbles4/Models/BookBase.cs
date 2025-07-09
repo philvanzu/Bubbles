@@ -27,7 +27,7 @@ public abstract class BookBase
         this.Created = created;
     }
     
-    public static readonly SemaphoreSlim FileIOThrottler = new(1) ;
+    public static readonly SemaphoreSlim FileIOThrottler = new(8) ;
     protected CancellationTokenSource? ThumbnailCts;
     public ConcurrentDictionary<string, CancellationTokenSource?> PagesCts = new();
     

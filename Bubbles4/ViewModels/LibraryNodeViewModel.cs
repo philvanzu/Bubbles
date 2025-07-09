@@ -99,6 +99,17 @@ public partial class LibraryNodeViewModel : LibraryViewModel
         }
     }
 
+    public void Close()
+    {
+        if (this==Root) CloseRecursive();
+        else Root.Close();
+    }
+
+    protected void CloseRecursive()
+    {
+        foreach (var child in Children)child.CloseRecursive();
+        base.Close();
+    }
 
     private int CountBooks()
     {

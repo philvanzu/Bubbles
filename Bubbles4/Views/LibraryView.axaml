@@ -24,9 +24,11 @@
                                        ItemPreparedCommand="{Binding BookPreparedCommand}"
                                        ItemClearingCommand="{Binding BookClearingCommand}"
                                        x:Name="itemsRepeater">
+            <!--
             <i:Interaction.Behaviors>
                <bhv:AutoscrollToSelectedOffsetBehavior Width="180" Height="185" />
             </i:Interaction.Behaviors>
+            -->
             <ctrl:VirtualizedItemsRepeater.Layout>
                 <WrapLayout Orientation="Horizontal"/>
             </ctrl:VirtualizedItemsRepeater.Layout>

@@ -7,13 +7,14 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using Bubbles4.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace Bubbles4.ViewModels;
 
-public partial class PageViewModel:ViewModelBase
+public partial class PageViewModel:ViewModelBase, ISelectableItem
 {
     public BookViewModel Book { get; private set; }
     private Page _page;
@@ -49,6 +50,7 @@ public partial class PageViewModel:ViewModelBase
         }
         set
         {
+            Console.WriteLine("ivp saved to page");
             SetProperty(ref _ivp, value);
             if (value != null && value.IsValid)
             {
@@ -69,7 +71,11 @@ public partial class PageViewModel:ViewModelBase
     public DateTime Created => _page.Created;
     public DateTime LastModified => _page.LastModified;
     public int RandomIndex {get; set;}
-    
+
+    ~PageViewModel()
+    {
+        Unload();
+    }
     [RelayCommand] public void PointerPressed()=>IsSelected = true;
     [RelayCommand]
     private void OpenInExplorer()
@@ -155,8 +161,7 @@ public partial class PageViewModel:ViewModelBase
     }
     public async Task UnLoadAsync()
     {
-        Unload();
-        await Task.CompletedTask;
+        await Dispatcher.UIThread.InvokeAsync(() => Unload());
     }
     public async Task LoadThumbnailAsync()
     {

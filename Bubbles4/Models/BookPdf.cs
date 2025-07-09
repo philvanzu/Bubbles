@@ -31,7 +31,8 @@ public class BookPdf : BookBase
         try
         {
             using var doc = new PdfDocument(Path);
-            PageCount = doc.Pages.Count; 
+            PageCount = doc.Pages.Count;
+            
             for (int i = 0; i < PageCount; i++)
             {
                 var p = new Page
@@ -42,9 +43,7 @@ public class BookPdf : BookBase
                     Created = Created,
                     LastModified = LastModified
                 };
-                pages.Add(p);
-                PagesCts.TryAdd(p.Path, null);
-
+                pages.Add(p); 
             }
         }
         catch (TaskCanceledException) { }
@@ -113,11 +112,12 @@ public class BookPdf : BookBase
         if (!PagesCts.ContainsKey(key))
             throw new ArgumentException("Invalid page path in BookPdf.LoadThumbnailAsync");
 
+
         PagesCts[key]?.Cancel();
         PagesCts[key]?.Dispose();
         PagesCts[key] = new CancellationTokenSource();
         var token = PagesCts[key]!.Token;
-
+        
         //bit of not optimally design OO awkwardness here
         int index;
         int underscoreIndex = key.LastIndexOf('_');
@@ -130,8 +130,11 @@ public class BookPdf : BookBase
             catch (Exception ex) { Console.WriteLine(ex); }
             finally
             {
-                PagesCts[key]?.Dispose();
-                PagesCts[key] = null;
+                if (PagesCts.ContainsKey(key))
+                {
+                    PagesCts[key]?.Dispose();
+                    PagesCts[key] = null;    
+                }
             }
         }
     }

@@ -156,6 +156,8 @@ public class Preferences
     public bool CacheLibraryData { get; set; } = false;
     
     //ivp anim speed
+    //hide cursor delay
+    //turn page bouncer delay
 
     public string Serialize()
     {

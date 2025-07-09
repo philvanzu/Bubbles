@@ -86,8 +86,6 @@ namespace Bubbles4.Controls {
             turnPageTimer = new DispatcherTimer();
             turnPageTimer.Tick += OnTurnPageTick;
             turnPageTimer.Interval = TimeSpan.FromMilliseconds(1000);
-            
-            
         }
 
 
@@ -99,6 +97,16 @@ namespace Bubbles4.Controls {
             switch (change.Property.Name)
             {
                 case nameof(Data):
+
+                    var data = change.NewValue as ViewerData;
+                    if (data?.Image == _image && data?.Page == _page)
+                    {
+                        //Console.WriteLine("data change was no change");
+                        return;
+                    }
+                    
+                    if (BookChanged) _previousBook = _page?.Book;
+                    
                     bool skipSaveIvp = false;
                     if (_ivpAnim?.IsRunning == true)
                     {
@@ -108,12 +116,17 @@ namespace Bubbles4.Controls {
                         skipSaveIvp = true;
                     }
                     
-                    if (BookChanged) _previousBook = _page?.Book;
-                    var data = change.NewValue as ViewerData;
-                    
                     if (_page != null && UseIvp && !skipSaveIvp)
                         _page.Ivp = SaveToIVP();
 
+                    if (data is null || data.Image == null )
+                    {
+                        _image = null;
+                        _page = null;
+                        InvalidateVisual();
+                        return;
+                    }
+                    
                     bool isnext = true;
                     if (!BookChanged) isnext = data?.Page.Index - _page?.Index > 0;
                     //Console.WriteLine($"isnext :{isnext}");
@@ -162,6 +175,10 @@ namespace Bubbles4.Controls {
                             }
                             else Fit();
                         }
+                    }
+                    else
+                    {
+                        Console.WriteLine("_image is null");
                     }
                     InvalidateVisual();
                     break;
@@ -519,7 +536,7 @@ namespace Bubbles4.Controls {
                     }
                     else if (_page != null && _page.Ivp != null && UseIvp)
                     {
-                        Console.WriteLine("fullscreen on => ivp found, restoring it");
+                        //Console.WriteLine("fullscreen on => ivp found, restoring it");
                         RestoreFromIVP(_page.Ivp);
                     }
                     else if (Config != null)

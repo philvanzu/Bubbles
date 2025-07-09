@@ -22,7 +22,7 @@ using DynamicData.Binding;
 
 namespace Bubbles4.ViewModels;
 
-public partial class BookViewModel: ViewModelBase
+public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
 {
     private LibraryViewModel _library;
     private BookBase _model;
@@ -53,6 +53,9 @@ public partial class BookViewModel: ViewModelBase
     
     public LibraryConfig.SortOptions CurrentSortOption { get; set; }
     public bool CurrentSortAscending { get; set; } 
+    public event EventHandler<SelectedItemChangedEventArgs>? SelectionChanged;
+    public event EventHandler? SortOrderChanged;
+    public event EventHandler<int> ScrollToIndexRequested;
     public BookViewModel(BookBase book, LibraryViewModel library, MainViewModel mainViewModel)
     {
         this._mainViewModel = mainViewModel;
@@ -62,6 +65,13 @@ public partial class BookViewModel: ViewModelBase
         Pages = new ReadOnlyObservableCollection<PageViewModel>(_pagesMutable);
         CurrentSortOption = _mainViewModel.Config?.BookSortOption ?? LibraryConfig.SortOptions.Path;
         CurrentSortAscending = _mainViewModel.Config?.BookSortAscending ?? true;
+    }
+
+    ~BookViewModel()
+    {
+        UnloadPagesList();
+        if(_thumbnail != null)
+            _thumbnail.Dispose();
     }
     
     private IComparer<PageViewModel> GetComparer(LibraryConfig.SortOptions sort, bool ascending)
@@ -127,6 +137,12 @@ public partial class BookViewModel: ViewModelBase
         _pagesMutable.AddRange(sorted);
 
         OnPropertyChanged(nameof(Pages));
+        //InvokeSortOrderChanged();
+    }
+
+    public void InvokeSortOrderChanged()
+    {
+        SortOrderChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void ReverseSortOrder()
@@ -205,7 +221,7 @@ public partial class BookViewModel: ViewModelBase
                 foreach (var page in pgs)
                 {
                     _pages.Add(new PageViewModel(this, page));
-                    _model.PagesCts.TryAdd(page.Path, null);
+                    _model.PagesCts.TryAdd(page.Path, null);    
                 }
                 Sort();
                 Model.PageCount = _pages.Count;
@@ -236,19 +252,17 @@ public partial class BookViewModel: ViewModelBase
             _pages.Clear();
             _pagesMutable.Clear();
         }
+
         
         if (_model.PagesCts.Count > 0)
         {
             foreach (var kv in _model.PagesCts)
             {
-                if (kv.Value != null)
-                {
-                    kv.Value.Cancel();
-                    kv.Value.Dispose();
-                }
+                kv.Value?.Cancel();
+                kv.Value?.Dispose();
             }
             _model.PagesCts.Clear();
-        }
+        }    
         
         SelectedPage = null;
     }
@@ -328,6 +342,14 @@ public partial class BookViewModel: ViewModelBase
         }
     }
 
+    public void RequestScrollToIndex(int index)
+    {
+        ScrollToIndexRequested?.Invoke(this, index);
+    }
+    public int GetSelectedIndex()
+    {
+        return GetPageIndex(SelectedPage);
+    }
     public int GetPageIndex(PageViewModel? pageViewModel)
     {
         if(pageViewModel == null)return -1;
@@ -358,18 +380,26 @@ public partial class BookViewModel: ViewModelBase
     //private CancellationTokenSource? _imgLoadCts;
     partial void OnSelectedPageChanged(PageViewModel? value)
     {
+        PageViewModel? oldSelected=null;
         foreach (var page in Pages)
         {
             if (page != value && page.IsSelected)
             {
+                oldSelected = page;
                 //unload page in PageView and dispose pages data
                 page.IsSelected = false;
             }
         }
         _mainViewModel.CurrentPageViewModel = value;
-
+        InvokeSelectionChanged(value, oldSelected);
         _mainViewModel.UpdatePageNameStatus();
     }
+
+    public void InvokeSelectionChanged(ISelectableItem? newItem, ISelectableItem? oldItem)
+    {
+        SelectionChanged?.Invoke(this, new SelectedItemChangedEventArgs(this, newItem, oldItem));
+    }
+
 
 
     public bool NextPage()
@@ -565,5 +595,6 @@ public partial class BookViewModel: ViewModelBase
 
     
     #endregion
+
 
 }
