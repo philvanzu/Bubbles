@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Bubbles4.Models;
 using Bubbles4.Services;
 using Bubbles4.ViewModels;
 
@@ -22,12 +23,13 @@ public partial class MainWindow : Window
 
     private bool _hovered;
     private DateTime _lastMove;
-    private const float _hideCursorAfterElapsed = 5f;
+    private float _hideCursorAfterElapsed = 5f;
     private bool _cursorVisible = true;
     private readonly DispatcherTimer _cursorTimer;
     public MainWindow()
     {
         InitializeComponent();
+        
         PointerEntered += (_, _) => _hovered = true;
         PointerExited += (_, _) => _hovered = false;
         PointerMoved += (_, _) =>
@@ -57,7 +59,16 @@ public partial class MainWindow : Window
         };
         _cursorTimer.Start();
     }
-    
+
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        
+        if(AppStorage.Instance.UserSettings.HideCursorTime > 0)
+            _hideCursorAfterElapsed = AppStorage.Instance.UserSettings.HideCursorTime;
+        
+    }
+
     void HideCursor()
     {
         if (_cursorVisible)

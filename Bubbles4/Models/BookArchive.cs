@@ -17,6 +17,9 @@ public class BookArchive : BookBase
     private string? _coverKey; 
     private Task<List<Page>?>? _pagesListTask;
     private readonly SemaphoreSlim _pagesListLock = new(1, 1);
+    
+    //new static readonly SemaphoreSlim FileIOThrottler = new(1) ;
+    
     public BookArchive(string path, string name, int pageCount, DateTime lastModified, DateTime created)
         : base(path, name, lastModified, pageCount, created) { }
 
@@ -141,25 +144,12 @@ public class BookArchive : BookBase
         //Console.WriteLine($"[{_book.Path}] Completed extraction of {page.Path}");
     }
     
-    private async Task DispatchThumbnail(Stream stream, Action<Bitmap?> callback, CancellationToken ct)
+    private Bitmap? FetchThumbnail(Stream stream, CancellationToken ct)
     {
         //Console.WriteLine("Archive Loading Thumbnail image for {0}", Path);
-        var thumbnail = await Task.Run(() => ThumbnailService.LoadThumbnail(stream, 240), ct);
-        await Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            try
-            {
-                //Console.WriteLine("Archive returning {0} thumbnail : {1}x{2}px", Path, thumbnail.PixelSize.Width, thumbnail.PixelSize.Height);
-                callback(thumbnail);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                thumbnail?.Dispose(); throw;
-            }
-        });
+        return ImageLoader.DecodeImage(stream, ImageLoader.ThumbMaxSize);
     }
-    private async Task LoadPageThumbnail(Action<Bitmap?> callback, CancellationToken ct, string key)
+    private async Task<Bitmap?> LoadPageThumbnail(CancellationToken ct, string key)
     {
         Stream? stream = null;
         try
@@ -183,7 +173,13 @@ public class BookArchive : BookBase
                 FileIOThrottler.Release();
             }
 
-            if (stream != null) await DispatchThumbnail(stream, callback, ct);
+            if (stream == null) Console.WriteLine($"null archived file stream - aborting : {Path + key}");
+            else
+            {
+                var bitmap = FetchThumbnail(stream, ct);
+                if (bitmap == null) Console.WriteLine($"null bitmap from non null stream - aborting : {Path + key}");
+                return bitmap;
+            } 
 
         }
         catch ( OperationCanceledException){}
@@ -196,11 +192,13 @@ public class BookArchive : BookBase
             stream?.Dispose();
         }
 
+        return null;
+
     }
     
     #region public_methods
     
-    public override async Task LoadPagesList(Action<List<Page>?> callback)
+    public override async Task<List<Page>?> LoadPagesList()
     {
 
         PagesListCts?.Cancel();
@@ -219,7 +217,7 @@ public class BookArchive : BookBase
 
             var pages = await _pagesListTask;
             if (pages != null)
-                callback(pages);
+                return pages;
         }
         catch (TaskCanceledException)
         {
@@ -237,11 +235,13 @@ public class BookArchive : BookBase
             PagesListCts?.Dispose();
             PagesListCts = null;
         }
+
+        return null;
     }
 
     
 
-    public override async Task LoadThumbnailAsync(Action<Bitmap?> callback)
+    public override async Task<Bitmap?> LoadThumbnailAsync()
     {
         ThumbnailCts?.Cancel();
         ThumbnailCts?.Dispose();
@@ -252,7 +252,7 @@ public class BookArchive : BookBase
         {
             await EnsureCoverKeyInitialized(token);
             if(!string.IsNullOrEmpty(_coverKey))
-                await LoadPageThumbnail(callback, token, _coverKey);
+                return await LoadPageThumbnail(token, _coverKey);
         }
         catch (TaskCanceledException){}
         finally
@@ -260,9 +260,11 @@ public class BookArchive : BookBase
             ThumbnailCts?.Dispose();
             ThumbnailCts = null;
         }
+
+        return null;
     }
 
-    public override async Task LoadThumbnailAsync(Action<Bitmap?> callback, string key)
+    public override async Task<Bitmap?> LoadThumbnailAsync(string key)
     {
         //can't provide key argument without having a list of pages
         //no need to ensure _pagesListTask has completed, it's a given.
@@ -278,7 +280,7 @@ public class BookArchive : BookBase
         var token = PagesCts[key]!.Token;
         try
         {
-            await LoadPageThumbnail(callback, token, key);
+            return await LoadPageThumbnail(token, key);
         }
         finally
         {
@@ -294,7 +296,7 @@ public class BookArchive : BookBase
         }
     }
 
-    public override async Task LoadFullImageAsync(Page page, Action<Bitmap?> callback, CancellationToken token)
+    public override async Task<Bitmap?> LoadFullImageAsync(Page page, CancellationToken token)
     {
         var key = page.Path;
         
@@ -329,8 +331,9 @@ public class BookArchive : BookBase
 
             if (stream != null)
             {
+                //bmp = await Task.Run(() => ImageLoader.DecodeImage(stream,ImageLoader.ImageMaxSize), token);
                 bmp = await Task.Run(() => new Bitmap(stream), token);
-                await Dispatcher.UIThread.InvokeAsync(() => callback(bmp));
+                return bmp;
             }
         }
         catch (Exception ex)
@@ -338,12 +341,13 @@ public class BookArchive : BookBase
             if (!(ex is OperationCanceledException))
                 Console.WriteLine($"Thumbnail load failed: {ex}");
             bmp?.Dispose();
-            callback(null);
         }
         finally
         {
             stream?.Dispose(); 
         }
+
+        return null;
     }
 
     public override string IvpPath =>

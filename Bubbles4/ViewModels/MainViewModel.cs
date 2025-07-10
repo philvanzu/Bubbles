@@ -22,17 +22,6 @@ public partial class MainViewModel : ViewModelBase
     #region AppData
     private AppStorage AppData { get; init; }
 
-    public Preferences Preferences
-    {
-        get => AppData.Preferences;
-        set
-        {
-            AppData.Preferences = value;
-            AppData.Save();
-            OnPropertyChanged(nameof(Preferences));
-        }
-    }
-    
     [ObservableProperty] private LibraryConfig? _config = new LibraryConfig("");
     partial void OnConfigChanged(LibraryConfig? value)
     {
@@ -181,7 +170,7 @@ public partial class MainViewModel : ViewModelBase
 
             _ = Task.Run(async () =>
             {
-                if (AppData.Preferences.CacheLibraryData && Config.Recursive && Directory.Exists(libraryPath))
+                if (Config.CacheLibraryData && Config.Recursive && Directory.Exists(libraryPath))
                 {
                     try
                     {
@@ -233,7 +222,7 @@ public partial class MainViewModel : ViewModelBase
         _watcher.StopWatching();
         if (Library != null)
         {
-            if ( Library is LibraryNodeViewModel == false && AppData.Preferences.CacheLibraryData)
+            if ( Library is LibraryNodeViewModel == false && Config.CacheLibraryData)
             {
                 string json = Library.SerializeCollection();
                 string path =  Path.Combine(Library.Path, ".bblLibraryData");
@@ -289,7 +278,9 @@ public partial class MainViewModel : ViewModelBase
     private void ConfigureLibrary()
     {
         if (Library == null) return;
-        var config = (Config!.Path == Library.Path) ? Config : AppData.GetConfig(Library.Path);
+        var config = Config;
+        if (config == null) config = AppData.GetConfig(Library.Path);
+        if (config == null) config = new LibraryConfig(Library.Path);
         
         var dlgVm = new LibraryConfigViewModel(config!);
         CreateOrUpdateLibrary(dlgVm);
@@ -315,8 +306,14 @@ public partial class MainViewModel : ViewModelBase
                         {
                             AppData.AddOrUpdate(result.Path, result.Serialize());
                             AppData.Save();
-                            OnPropertyChanged(nameof(Libraries));
-                            OpenLibrary(result.Path);
+                            Config = result;
+                            
+                            if (dialogVm.IsCreatingLibrary)
+                            {
+                                OnPropertyChanged(nameof(Libraries));
+                                OpenLibrary(result.Path);    
+                            }
+                            
                         }
 
                     });
@@ -330,31 +327,22 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     private async Task EditPreferences()
     {
-        if (Library!= null)
+        var dialogVm = new PreferencesEditorViewModel();
+        
+        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow
+            : null;
+        if (window != null)
         {
-            var pref  = Preferences;
-            
-            var dialogVm = new PreferencesEditorViewModel()
+            var result = await _dialogService.ShowDialogAsync<UserSettings>(window, dialogVm);
+            if (result != null)
             {
-                MouseSensitivity = pref.MouseSensitivity,
-                ControllerStickSensitivity = pref.ControllerStickSensitivity,
-                CacheLibraryData = pref.CacheLibraryData,
-            };
-            
-            var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-                ? desktop.MainWindow
-                : null;
-            if (window != null)
-            {
-                var result = await _dialogService.ShowDialogAsync<Preferences>(window, dialogVm);
-                if (result != null)
+                await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    await Dispatcher.UIThread.InvokeAsync(() =>
-                    {
-                        Preferences = result;
-                    });
-                }    
-            }
+                    AppData.UserSettings = result;
+                    AppData.Save();
+                });
+            }    
         }
     }
 

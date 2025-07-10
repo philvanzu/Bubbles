@@ -74,109 +74,29 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
             _thumbnail.Dispose();
     }
     
-    private IComparer<PageViewModel> GetComparer(LibraryConfig.SortOptions sort, bool ascending)
-    {
-        return sort switch
-        {
-            LibraryConfig.SortOptions.Path => ascending
-                ? SortExpressionComparer<PageViewModel>.Ascending(x => x.Path)
-                : SortExpressionComparer<PageViewModel>.Descending(x => x.Path),
 
-            LibraryConfig.SortOptions.Alpha => ascending
-                ? SortExpressionComparer<PageViewModel>.Ascending(x => x.Name)
-                : SortExpressionComparer<PageViewModel>.Descending(x => x.Name),
-
-            LibraryConfig.SortOptions.Created => ascending
-                ? SortExpressionComparer<PageViewModel>.Ascending(x => x.Created)
-                : SortExpressionComparer<PageViewModel>.Descending(x => x.Created),
-
-            LibraryConfig.SortOptions.Modified => ascending
-                ? SortExpressionComparer<PageViewModel>.Ascending(x => x.LastModified)
-                : SortExpressionComparer<PageViewModel>.Descending(x => x.LastModified),
-
-            LibraryConfig.SortOptions.Natural => new PageViewModelNaturalComparer(ascending),
-
-            LibraryConfig.SortOptions.Random => RandomizeAndReturnComparer(),
-
-            _ => SortExpressionComparer<PageViewModel>.Ascending(x => x.Name)
-        };
-    }
-    private IComparer<PageViewModel> RandomizeAndReturnComparer()
-    {
-        int seed = CryptoRandom.NextInt();
-
-        int Hash(string input)
-        {
-            unchecked
-            {
-                int hash = 17;
-                foreach (char c in input)
-                    hash = hash * 31 + c;
-                return hash;
-            }
-        }
-
-        return Comparer<PageViewModel>.Create((x, y) =>
-        {
-            int xHash = Hash(x.Path) ^ seed;
-            int yHash = Hash(y.Path) ^ seed;
-            return xHash.CompareTo(yHash);
-        });
-    }
-    public void Sort(LibraryConfig.SortOptions? sort=null, bool? ascending=null)
-    {
-        if(sort == null) sort  = _mainViewModel.Config?.BookSortOption ?? LibraryConfig.SortOptions.Path;
-        if(ascending == null) ascending = _mainViewModel.Config?.BookSortAscending ?? true;
-        CurrentSortOption = sort.Value;
-        CurrentSortAscending = ascending.Value;
-        
-        var comparer = GetComparer(CurrentSortOption, CurrentSortAscending);
-        var sorted = _pages.OrderBy(p => p, comparer);
-
-        _pagesMutable.Clear();
-        _pagesMutable.AddRange(sorted);
-
-        OnPropertyChanged(nameof(Pages));
-        //InvokeSortOrderChanged();
-    }
-
-    public void InvokeSortOrderChanged()
-    {
-        SortOrderChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    public void ReverseSortOrder()
-    {
-        CurrentSortAscending = !CurrentSortAscending;
-        Sort(CurrentSortOption, CurrentSortAscending);
-    }
     
     public async Task PrepareThumbnailAsync()
     {
         if (_isThumbnailLoading) return;
         
-
-
         _isThumbnailLoading = true;
         try
         {
             //Console.WriteLine($"awaiting thumbnail from BookViewModel {Path}");
-            await _model.LoadThumbnailAsync(bitmap =>
+            var bitmap = await _model.LoadThumbnailAsync();
+            if(bitmap == null)
+                Console.WriteLine($"null bitmap returned for {Path}");
+            else
             {
-                if (_thumbnail != null)
-                {
-                    var oldBitmap = _thumbnail;
-                    _thumbnail = bitmap;
+                await Dispatcher.UIThread.InvokeAsync(() =>{
+                    if (_thumbnail != null)
+                        _thumbnail.Dispose();
+                    
+                    Thumbnail = bitmap;
                     OnPropertyChanged(nameof(Thumbnail));
-
-                    if (oldBitmap != null && !ReferenceEquals(oldBitmap, bitmap))
-                    {
-                        oldBitmap.Dispose();
-                    }
-                }
-                else Thumbnail = bitmap;
-                OnPropertyChanged(nameof(Thumbnail));
-            });
+                });    
+            }
         }
         catch (Exception ex){Console.WriteLine(ex);}
         finally
@@ -186,14 +106,14 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     }
     public async Task ClearThumbnailAsync()
     {
-
-        //Console.WriteLine($"unloading thmbnail idx {} at :{Name}");
-        if (_isThumbnailLoading) _model.CancelThumbnailLoad();
-        _thumbnail?.Dispose();
-        _thumbnail = null;
+        await Dispatcher.UIThread.InvokeAsync(()=>{
+            if (_isThumbnailLoading) _model.CancelThumbnailLoad();
+            _thumbnail?.Dispose();
+            _thumbnail = null;
         
-        OnPropertyChanged(nameof(Thumbnail));
-        await Task.CompletedTask;
+            OnPropertyChanged(nameof(Thumbnail));
+        });
+        //Console.WriteLine($"unloading thmbnail idx {} at :{Name}");
     }
     public async Task PreparePageThumbnailAsync(PageViewModel page)
     {
@@ -202,8 +122,9 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         page.IsThumbnailLoading = true;
         try
         {
-            await _model.LoadThumbnailAsync(bitmap => page.Thumbnail = bitmap, page.Path);
-
+            var bitmap  = await _model.LoadThumbnailAsync(page.Path);
+            if (bitmap == null) Console.WriteLine($"null bitmap returned for page {page.Path}");
+            else await Dispatcher.UIThread.InvokeAsync(() => page.Thumbnail = bitmap);
         }
         finally
         {
@@ -213,29 +134,28 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     
     public async Task LoadPagesListAsync()
     {
-        await _model.LoadPagesList(pgs =>
-        {
-            if (pgs != null)
+        var pgs = await _model.LoadPagesList();
+        if (pgs == null) Console.WriteLine($"null pages list returned for {Path}");
+        else
+            await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 _pages.Clear();
                 foreach (var page in pgs)
                 {
                     _pages.Add(new PageViewModel(this, page));
-                    _model.PagesCts.TryAdd(page.Path, null);    
+                    _model.PagesCts.TryAdd(page.Path, null);
                 }
+
                 Sort();
                 Model.PageCount = _pages.Count;
-                
+
                 ImageViewingParamsCollection = IvpCollection.Load(_model.IvpPath);
                 if (ImageViewingParamsCollection == null && _mainViewModel.Config?.UseIVPs == true)
                 {
                     ImageViewingParamsCollection = new();
                 }
-                    
-            }
-        });
-        
-        
+            });
+
     }
 
     public void UnloadPagesList()
@@ -274,7 +194,67 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         if(SelectedPage != null) SelectedPage.IsSelected = false;
         await _mainViewModel.Next();
     }
+    private IComparer<PageViewModel> GetComparer(LibraryConfig.SortOptions sort, bool ascending)
+    {
+        return sort switch
+        {
+            LibraryConfig.SortOptions.Path => ascending
+                ? SortExpressionComparer<PageViewModel>.Ascending(x => x.Path)
+                : SortExpressionComparer<PageViewModel>.Descending(x => x.Path),
 
+            LibraryConfig.SortOptions.Alpha => ascending
+                ? SortExpressionComparer<PageViewModel>.Ascending(x => x.Name)
+                : SortExpressionComparer<PageViewModel>.Descending(x => x.Name),
+
+            LibraryConfig.SortOptions.Created => ascending
+                ? SortExpressionComparer<PageViewModel>.Ascending(x => x.Created)
+                : SortExpressionComparer<PageViewModel>.Descending(x => x.Created),
+
+            LibraryConfig.SortOptions.Modified => ascending
+                ? SortExpressionComparer<PageViewModel>.Ascending(x => x.LastModified)
+                : SortExpressionComparer<PageViewModel>.Descending(x => x.LastModified),
+
+            LibraryConfig.SortOptions.Natural => new PageViewModelNaturalComparer(ascending),
+
+            LibraryConfig.SortOptions.Random => 
+                SortExpressionComparer<PageViewModel>.Ascending(x => x.RandomIndex),
+
+            _ => SortExpressionComparer<PageViewModel>.Ascending(x => x.Name)
+        };
+    }
+
+    public void ShufflePages()
+    {
+        foreach (var page in _pages)
+            page.RandomIndex = CryptoRandom.NextInt();
+    }
+    public void Sort(LibraryConfig.SortOptions? sort=null, bool? ascending=null)
+    {
+        if(sort == null) sort  = _mainViewModel.Config?.BookSortOption ?? LibraryConfig.SortOptions.Path;
+        if(ascending == null) ascending = _mainViewModel.Config?.BookSortAscending ?? true;
+        CurrentSortOption = sort.Value;
+        CurrentSortAscending = ascending.Value;
+        if(sort == LibraryConfig.SortOptions.Random)ShufflePages();
+        var comparer = GetComparer(CurrentSortOption, CurrentSortAscending);
+        var sorted = _pages.OrderBy(p => p, comparer);
+
+        _pagesMutable.Clear();
+        _pagesMutable.AddRange(sorted);
+
+        OnPropertyChanged(nameof(Pages));
+        //InvokeSortOrderChanged();
+    }
+
+    public void InvokeSortOrderChanged()
+    {
+        SortOrderChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void ReverseSortOrder()
+    {
+        CurrentSortAscending = !CurrentSortAscending;
+        Sort(CurrentSortOption, CurrentSortAscending);
+    }
     [RelayCommand]
     private async Task Delete()
     {

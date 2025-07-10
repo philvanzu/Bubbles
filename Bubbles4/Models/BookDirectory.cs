@@ -32,34 +32,35 @@ public class BookDirectory:BookBase
     }
     
     
-    public override async Task LoadThumbnailAsync(Action<Bitmap?> callback)
+    public override async Task<Bitmap?> LoadThumbnailAsync()
     {
         
         if (string.IsNullOrEmpty(_thumbnailPath))
         {
             FindThumbnailPath();
-            if (string.IsNullOrEmpty(_thumbnailPath)) return;
+            if (string.IsNullOrEmpty(_thumbnailPath)) return null;
         }
         
         ThumbnailCts?.Cancel();
         ThumbnailCts?.Dispose();
         ThumbnailCts = new CancellationTokenSource();
-        
-        
-        try {
-            await FileIOThrottler.WaitAsync(ThumbnailCts.Token); // respects cancellation
 
-            var thmb = await Task.Run(()=>ThumbnailService.LoadThumbnail(_thumbnailPath, 240), ThumbnailCts.Token);
-            FileIOThrottler.Release();
-            await Dispatcher.UIThread.InvokeAsync(() => { callback(thmb); });
-        }
-        catch (OperationCanceledException)
+
+        try
         {
-            
+            await FileIOThrottler.WaitAsync(ThumbnailCts.Token); // respects cancellation
+            var thmb = await Task.Run(()=>ImageLoader.LoadImage(_thumbnailPath, ImageLoader.ThumbMaxSize), ThumbnailCts.Token);
+            return thmb;
         }
-        catch (Exception ex) {Console.WriteLine(ex.ToString());}
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+        finally
+        {
+            FileIOThrottler.Release();
+        }
+        return null;
     }
-    public override async Task LoadThumbnailAsync(Action<Bitmap?> callback, string key)
+    public override async Task<Bitmap?> LoadThumbnailAsync(string key)
     {
         if(!PagesCts.ContainsKey(key)) 
             throw new ArgumentException($"Path {key} is not a valid PageCts key");
@@ -73,31 +74,29 @@ public class BookDirectory:BookBase
         try
         {
             await FileIOThrottler.WaitAsync(token); // respects cancellation
-            token.ThrowIfCancellationRequested();
-            thmb = await Task.Run(() => ThumbnailService.LoadThumbnail(key, 240), token);
-            FileIOThrottler.Release();
-            await Dispatcher.UIThread.InvokeAsync(() => { callback(thmb); });
+            return await Task.Run(()=>ImageLoader.LoadImage(key, ImageLoader.ThumbMaxSize), token);
         }
         catch (OperationCanceledException)
         {
         }
-        catch (KeyNotFoundException)
+        catch (Exception ex)
         {
-            if (thmb != null)
-            {
-                thmb.Dispose();
-            }
+            Console.WriteLine(ex);
+            if (thmb != null) thmb.Dispose();
         }
         finally
         {
+            FileIOThrottler.Release();
             if (PagesCts.ContainsKey(key))
             {
                 PagesCts[key]?.Dispose();
                 PagesCts[key] = null;
             }
         }
+
+        return null;
     }
-    public override async Task LoadPagesList(Action<List<Page>> callback)
+    public override async Task<List<Page>?> LoadPagesList()
     {
         PagesListCts?.Cancel();
         PagesListCts?.Dispose();
@@ -123,7 +122,7 @@ public class BookDirectory:BookBase
 
                 return pages;
             }, PagesListCts.Token);
-            await Dispatcher.UIThread.InvokeAsync(() => { callback(pages); });
+            return pages;
         }
         catch (OperationCanceledException)
         {
@@ -133,37 +132,38 @@ public class BookDirectory:BookBase
             PagesListCts?.Dispose();
             PagesListCts = null;
         }
+
+        return null;
     }
     
-    public override async Task LoadFullImageAsync(Page page, Action<Bitmap?> callback, CancellationToken token)
+    public override async Task<Bitmap?> LoadFullImageAsync(Page page, CancellationToken token)
     {
         if (!File.Exists(page.Path)) 
         {
-            callback(null);
-            return;
+            return null;
         }
 
-        Bitmap? bmp = null;
         try
         {
             await FileIOThrottler.WaitAsync(token);
             token.ThrowIfCancellationRequested();
             try
             {
-                bmp = await Task.Run(() => new Bitmap(page.Path), token);
+                //return await Task.Run(()=>ImageLoader.LoadImage(page.Path, ImageLoader.ImageMaxSize), token);
+                return new Bitmap(page.Path);
             }
             catch (OperationCanceledException) { }
             catch (Exception e){ Console.WriteLine($"Could not decode image file : {e}"); }
             finally { FileIOThrottler.Release(); }
 
-            await Dispatcher.UIThread.InvokeAsync(() => callback(bmp));
         }
         catch (OperationCanceledException){}
         catch (Exception e)
         {
             Console.WriteLine(e);
-            bmp?.Dispose();
         }
+
+        return null;
     }
     public override string IvpPath 
     {

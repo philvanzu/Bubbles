@@ -39,7 +39,6 @@ public class PointerPressedCommandBehavior : Behavior<Control>
         var parameter = AssociatedObject?.DataContext;
         if (Command?.CanExecute(parameter) == true)
             Command.Execute(parameter);
-        AutoScrollToSelectedBehavior.SuppressNextAutoScroll = true;
     }
 
 }

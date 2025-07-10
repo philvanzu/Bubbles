@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using Bubbles4.ViewModels;
 
 namespace Bubbles4.Models;
@@ -148,24 +149,23 @@ public class SlidingImageCache : IDisposable
         try
         {
             // Load bitmap off UI thread
-            await pg.Book.Model.LoadFullImageAsync(
-                pg.Model, 
-                bitmap =>
+            var bitmap = await pg.Book.Model.LoadFullImageAsync(pg.Model,token);
+            if (bitmap == null) Console.WriteLine($"null bitmap returned to image cache for {pg.Path}");
+            else await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (_cache.ContainsKey(pg))
                 {
-                    if (bitmap != null && _cache.ContainsKey(pg))
-                    {
-                        _cache[pg] = bitmap;
-                        if (pg == _mainViewModel.CurrentPageViewModel
-                               && _mainViewModel.CurrentViewerData?.Image != bitmap)
-                            _mainViewModel.CurrentViewerData = new ViewerData() { Page = pg, Image = bitmap };
-                    }
-                    else
-                    {
-                        bitmap?.Dispose();
-                    }
-                },
-                token
-            );
+                    _cache[pg] = bitmap;
+                    if (pg == _mainViewModel.CurrentPageViewModel
+                        && _mainViewModel.CurrentViewerData?.Image != bitmap)
+                        _mainViewModel.CurrentViewerData = new ViewerData() { Page = pg, Image = bitmap };
+                }
+                else
+                {
+                    bitmap?.Dispose();
+                }
+            });
+
         }
         catch (OperationCanceledException)
         {

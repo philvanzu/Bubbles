@@ -22,73 +22,44 @@ public partial class LibraryConfigViewModel : ObservableObject
     public string Path => _libraryConfig.Path;
 
     
-    private bool _recursive = true;
-    public bool Recursive
+    [ObservableProperty] private bool _recursive = true;
+    partial void OnRecursiveChanged(bool value)
     {
-        get => _recursive;
-        set
+        Navtree = !value;
+        if (!value) CacheLibraryData = false;
+    }
+
+    [ObservableProperty]private bool _navtree;
+    partial void OnNavtreeChanged(bool value)
+    {
+        Recursive = !value;
+    }
+
+    [ObservableProperty]private bool _viewer;
+    partial void OnViewerChanged(bool value)
+    {
+        if (value)
         {
-            SetProperty(ref _recursive, value);
-            _navtree = !value;
-            OnPropertyChanged(nameof(Navtree));
+            Reader = !value;
+            UseIVPs = value;
+            AnimateIVPs = value;    
         }
     }
 
-    private bool _navtree;
-    public bool Navtree
+    [ObservableProperty]private bool _reader;
+    partial void OnReaderChanged(bool value)
     {
-        get => _navtree;
-        set
-        {
-            SetProperty(ref _navtree, value);
-            _recursive = !value;
-            OnPropertyChanged(nameof(Recursive));
-        }
+        Viewer = !value;
+        UseIVPs = !value;
+        AnimateIVPs = !value;    
+
     }
+
+
+    [ObservableProperty] private bool _useIVPs;
+    [ObservableProperty] private bool _animateIVPs;
+    [ObservableProperty] private bool _cacheLibraryData;
     
-    private bool _viewer;
-    public bool Viewer
-    {
-        get => _viewer;
-        set
-        {
-            SetProperty(ref _viewer, value);
-            _reader = !value;
-            OnPropertyChanged(nameof(Reader));
-            if (value)
-            {
-                UseIVPs = value;
-                AnimateIVPs = value;    
-            }
-        }
-    }
-    private bool _reader;
-    public bool Reader
-    {
-        get => _reader;
-        set
-        {
-            SetProperty(ref _reader, value);
-            _viewer = !value;
-            OnPropertyChanged(nameof(Viewer));
-            if (value)
-            {
-                UseIVPs = !value;
-                AnimateIVPs = !value;    
-            }
-        }
-    }
-    
-    [ObservableProperty]bool _useIVPs;
-    [ObservableProperty]bool _animateIVPs;
-    [ObservableProperty]int _showPagingInfo;
-    [ObservableProperty]int _showPagingInfoFontSize;
-    [ObservableProperty]int _showAlbumPath;
-    [ObservableProperty]int _showAlbumPathFontSize;
-    [ObservableProperty]int _showPageName;
-    [ObservableProperty]int _showPageNameFontSize;
-    [ObservableProperty]int _showImageSize;
-    [ObservableProperty]int _showImageSizeFontSize;
     
     [ObservableProperty] private bool _pickDirectory;
     
@@ -97,6 +68,7 @@ public partial class LibraryConfigViewModel : ObservableObject
 
     [ObservableProperty] private LibraryConfig.SortOptions _booksSortOption = LibraryConfig.SortOptions.Path;
     [ObservableProperty] private Geometry _booksArrow;
+    
     
     private bool BooksAscending
     {
@@ -122,7 +94,8 @@ public partial class LibraryConfigViewModel : ObservableObject
 
     public string[] SortOptions => Enum.GetNames(typeof(LibraryConfig.SortOptions));
     
-    IDialogService? _dialogService;    
+    IDialogService? _dialogService;
+    public bool IsCreatingLibrary => _dialogService is not null;
     public LibraryConfigViewModel(LibraryConfig config, IDialogService? dlgService=null)
     {
         if (dlgService != null)
@@ -139,16 +112,16 @@ public partial class LibraryConfigViewModel : ObservableObject
         Reader = !Viewer;
         UseIVPs = config.UseIVPs;
         AnimateIVPs = config.AnimateIVPs;
-        ShowPagingInfo = config.ShowPagingInfo;
-        ShowAlbumPath = config.ShowAlbumPath;
-        ShowPageName = config.ShowPageName;
-        ShowImageSize = config.ShowImageSize;
-        _libraryConfig = config;
+        CacheLibraryData = config.CacheLibraryData;
         
         BooksSortOption = config.LibrarySortOption;
         BooksAscending = config.LibrarySortAscending; 
         PagesSortOption = config.BookSortOption;
         PagesAscending = config.BookSortAscending;
+        
+        _libraryConfig = config;
+        
+
         
         
         PagesArrow = PagesAscending ? _upGeometry : _downGeometry; 
@@ -199,14 +172,14 @@ public partial class LibraryConfigViewModel : ObservableObject
         _libraryConfig.LookAndFeel = Viewer? LibraryConfig.LookAndFeels.Viewer : LibraryConfig.LookAndFeels.Reader;
         _libraryConfig.UseIVPs = UseIVPs;
         _libraryConfig.AnimateIVPs = AnimateIVPs;
-        _libraryConfig.ShowPagingInfo = ShowPagingInfo;
-        _libraryConfig.ShowAlbumPath = ShowAlbumPath;
-        _libraryConfig.ShowPageName = ShowPageName;
-        _libraryConfig.ShowImageSize = ShowImageSize;
+        _libraryConfig.CacheLibraryData = CacheLibraryData;
+        
         _libraryConfig.LibrarySortOption = BooksSortOption;
         _libraryConfig.LibrarySortAscending = BooksAscending;
         _libraryConfig.BookSortOption = PagesSortOption;
         _libraryConfig.BookSortAscending = PagesAscending;
+        
+        
         
         // Close the window with a result
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime app)

@@ -31,9 +31,9 @@ public abstract class BookBase
     protected CancellationTokenSource? ThumbnailCts;
     public ConcurrentDictionary<string, CancellationTokenSource?> PagesCts = new();
     
-    public abstract Task LoadThumbnailAsync(Action<Bitmap?> callback);
-    public abstract Task LoadThumbnailAsync(Action<Bitmap?> callback, string key);
-    public abstract Task LoadFullImageAsync(Page page, Action<Bitmap?> callback, CancellationToken token);
+    public abstract Task<Bitmap?> LoadThumbnailAsync();
+    public abstract Task<Bitmap?> LoadThumbnailAsync(string key);
+    public abstract Task<Bitmap?> LoadFullImageAsync(Page page, CancellationToken token);
 
     public void CancelThumbnailLoad()
     {
@@ -43,7 +43,7 @@ public abstract class BookBase
     }
 
     protected CancellationTokenSource? PagesListCts;
-    public abstract Task LoadPagesList(Action<List<Page>?> callback);
+    public abstract Task<List<Page>?> LoadPagesList();
     public virtual void UnloadPagesList() { }
 
     public void CancelPagesListLoad()

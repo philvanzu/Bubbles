@@ -241,7 +241,6 @@
                                                           MainViewModel="{Binding}"
                                                           Data="{Binding CurrentViewerData}"
                                                           Config="{Binding Config}" 
-                                                          Preferences="{Binding Preferences}"
                                                           IsFullscreen="{Binding IsFullscreen}"/>
                                 
                                 <controls:StatusOverlay x:Name="StatusOverlay"
@@ -250,7 +249,6 @@
                                                         PageName="{Binding PageNameStatus}"
                                                         BookName="{Binding BookStatus}"
                                                         ImageSize="{Binding ImageStatus}"
-                                                        Config="{Binding Config}"
                                                         IsFullscreen="{Binding IsFullscreen}"/>
                                 </Panel>
                             </ContentControl>

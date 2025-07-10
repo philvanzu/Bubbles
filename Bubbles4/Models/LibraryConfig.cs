@@ -28,10 +28,7 @@ public class LibraryConfig
     } 
     public bool UseIVPs { get; set; } = true;
     public bool AnimateIVPs { get; set; } = true;
-    public int ShowPagingInfo { get; set; } // 0 : persistent // -1 : don't show // >0 : show for x seconds
-    public int ShowAlbumPath { get; set; } = 5;
-    public int ShowPageName { get; set; } = -1;
-    public int ShowImageSize { get; set; } = -1;
+    public bool CacheLibraryData { get; set; } = false;
     
     public enum NodeSortOptions {Alpha, Created, Modified}
     public enum SortOptions { Path, Natural, Alpha, Created, Modified, Random }

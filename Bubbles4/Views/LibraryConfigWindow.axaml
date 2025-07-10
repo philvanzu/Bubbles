@@ -62,6 +62,10 @@
             Animate Image Viewing Parameters restoration.
         </CheckBox>
         <Border Height="8"/>
+        
+        <CheckBox Content="Cache Recursive Libraries Data for faster loads (Will write a .bbl_lib file in your library root directory)" 
+                  IsChecked="{Binding CacheLibraryData}" IsEnabled="{Binding Recursive}"></CheckBox>
+        <Border Height="8"/>
         <Separator Width="400" />
         <Border Height="8"/>
         <StackPanel Orientation="Horizontal">
@@ -88,43 +92,8 @@
                       Data="{Binding PagesArrow}" />  
             </Button>
         </StackPanel>
-        <Border Height="8"/>
-        <Separator Width="400" />
-        <Border Height="8"/>
-        <TextBlock VerticalAlignment="Center" FontSize="16">Status Overlay Times in Fullscreen</TextBlock>
-        
-        <Border Height="16"/>
-        <TextBlock TextWrapping="Wrap">Show info for x seconds - (zero means persistent, negative number means don't show )</TextBlock>
-        <Border Height="16"/>
-        <Grid ColumnDefinitions="*,*">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock TextWrapping="Wrap" Text="Show Paging " 
-                               Width="150" HorizontalAlignment="Left"/>
-                    <TextBox Text="{Binding ShowPagingInfo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="60" HorizontalAlignment="Left"/>
-                </StackPanel>
-                <Border Height="16"/>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock TextWrapping="Wrap" Text="Show Book Title" 
-                               Width="150" HorizontalAlignment="Left"/>
-                    <TextBox Text="{Binding ShowAlbumPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="60" HorizontalAlignment="Left"/>
-                </StackPanel>
-            </StackPanel>
-            <StackPanel Grid.Column="1">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock TextWrapping="Wrap" Text="Show Page Title" 
-                               Width="150" HorizontalAlignment="Left"/>
 
-                    <TextBox Text="{Binding ShowPageName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="60" HorizontalAlignment="Left"/>
-                </StackPanel>
-                <Border Height="16"/>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock TextWrapping="Wrap" Text="Show Pixel Size" 
-                               Width="150" HorizontalAlignment="Left"/>
-                    <TextBox Text="{Binding ShowImageSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="60" HorizontalAlignment="Left"/>
-                </StackPanel>
-            </StackPanel>
-        </Grid>
+        
         
         <Border Height="16"/>
         <Separator Width="400" />

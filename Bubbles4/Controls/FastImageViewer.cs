@@ -54,13 +54,6 @@ namespace Bubbles4.Controls {
             get => GetValue(ConfigProperty);
             set => SetValue(ConfigProperty, value);
         }
-        public static readonly StyledProperty<Preferences> PreferencesProperty =
-            AvaloniaProperty.Register<FastImageViewer, Preferences>(nameof(Preferences));
-        public Preferences Preferences
-        {
-            get => GetValue(PreferencesProperty);
-            set => SetValue(PreferencesProperty, value);
-        }
 
         public static readonly StyledProperty<bool> IsFullscreenProperty =
                 AvaloniaProperty.Register<FastImageViewer, bool>(nameof(IsFullscreen));
@@ -85,7 +78,7 @@ namespace Bubbles4.Controls {
             
             turnPageTimer = new DispatcherTimer();
             turnPageTimer.Tick += OnTurnPageTick;
-            turnPageTimer.Interval = TimeSpan.FromMilliseconds(1000);
+            turnPageTimer.Interval = TimeSpan.FromMilliseconds(AppStorage.Instance.UserSettings.TurnPageBouncingTime);
         }
 
 
@@ -492,7 +485,7 @@ namespace Bubbles4.Controls {
                     if (_ivpAnim?.IsRunning == false) _ivpAnim = null;
                     //Console.WriteLine("animation tick");
                 }, 
-                300.0);
+                AppStorage.Instance.UserSettings.IvpAnimSpeed);
         }
 
         public ImageViewingParams? SaveToIVP()
@@ -614,7 +607,7 @@ namespace Bubbles4.Controls {
             }
             else if (pointerProperties.IsMiddleButtonPressed)
             {
-                var sensitivity = MapSensitivity(Preferences.MouseSensitivity);
+                var sensitivity = MapSensitivity(AppStorage.Instance.UserSettings.MouseSensitivity);
                 ZoomTo(_zoom * Math.Pow(1.01, sensitivity * -delta.Y));
             }
             else if (pointerProperties.IsRightButtonPressed)
@@ -638,7 +631,7 @@ namespace Bubbles4.Controls {
         {
             // Ignore input if stick is moving back toward neutral (delta opposite sign)
             if ((e.Y > 0 && e.DeltaY < 0) || (e.Y < 0 && e.DeltaY > 0)) return;
-            var sensitivity = MapSensitivity(Preferences.ControllerStickSensitivity);
+            var sensitivity = MapSensitivity(AppStorage.Instance.UserSettings.ControllerStickSensitivity);
             // Scale pan speed based on zoom level
             var scale = Math.Clamp(_zoom, 0.25, 4.0); // Avoid extreme panning at zoom extremes
             var delta = new Point(e.X, e.Y) * 15 * scale * sensitivity;
@@ -649,7 +642,7 @@ namespace Bubbles4.Controls {
         {
             // Ignore input if stick is moving back toward neutral (delta opposite sign)
             if ((e.Y > 0 && e.DeltaY < 0) || (e.Y < 0 && e.DeltaY > 0)) return;
-            var sensitivity = MapSensitivity(Preferences.ControllerStickSensitivity);
+            var sensitivity = MapSensitivity(AppStorage.Instance.UserSettings.ControllerStickSensitivity);
             // Adjust zoom factor based on current zoom level to keep zoom rate stable
             var zoomAdjustment = _zoom * (e.Y * -0.016 * sensitivity); // Negative to zoom in with upward stick
             ZoomTo(_zoom + zoomAdjustment);

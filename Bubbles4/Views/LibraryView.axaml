@@ -35,12 +35,13 @@
             <ctrl:VirtualizedItemsRepeater.ItemTemplate>
                 <DataTemplate>
                     <Grid Width="180" Height="185" >
-                        <Border ToolTip.Tip="{Binding Path}"
+                        <Border Background="Transparent" 
+                            ToolTip.Tip="{Binding Path}"
                                 Tag="{Binding IsSelected}">
+                            <i:Interaction.Behaviors>
+                                <bhv:PointerPressedCommandBehavior Command="{Binding OnSelection}" />
+                            </i:Interaction.Behaviors>
                             <StackPanel>
-                                <i:Interaction.Behaviors>
-                                    <bhv:PointerPressedCommandBehavior Command="{Binding OnSelection}" />
-                                </i:Interaction.Behaviors>
                                 <StackPanel.ContextMenu>
                                     <ContextMenu>
                                         <!-- You can use Interactions or Command bindings depending on how you handle viewmodel logic -->

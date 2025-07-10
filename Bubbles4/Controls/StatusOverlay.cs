@@ -1,13 +1,10 @@
 using System;
 using System.Globalization;
-using System.Threading;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Bubbles4.Models;
-using Bubbles4.Services;
 
 namespace Bubbles4.Controls;
 
@@ -48,14 +45,6 @@ public class StatusOverlay : Control
         set => SetValue(ImageSizeProperty, value);
     }
     
-    public static readonly StyledProperty<LibraryConfig?> ConfigProperty =
-        AvaloniaProperty.Register<StatusOverlay, LibraryConfig?>(nameof(Config));
-
-    public LibraryConfig? Config
-    {
-        get => GetValue(ConfigProperty);
-        set => SetValue(ConfigProperty, value);
-    }
     
     public static readonly StyledProperty<bool> IsFullscreenProperty =
         AvaloniaProperty.Register<StatusOverlay, bool>(nameof(IsFullscreen));
@@ -66,11 +55,12 @@ public class StatusOverlay : Control
         set => SetValue(IsFullscreenProperty, value);
     }
 
+    
     private double _pagingOpacity; // 0 = invisible, 1 = fully visible
     private double _bookOpacity;
     private double _pageOpacity;
     private double _imageSizeOpacity;
-    
+    private UserSettings _prefs;
     Point[] _offsets = new[]
     {
         new Point(-1, -1), new Point(1, -1), new Point(-1, 1), new Point(1, 1),
@@ -100,7 +90,7 @@ public class StatusOverlay : Control
         animTimer.Tick += OnAnimTick;
         animTimer.Interval = TimeSpan.FromMilliseconds(10);
         animTimer.Start();
-        
+        _prefs = AppStorage.Instance.UserSettings;
 
     }
 
@@ -114,8 +104,7 @@ public class StatusOverlay : Control
     }
     private void OnAnimTick(object? sender, EventArgs e)
     {
-        if (Config == null) return;
-
+        
         bool invalidateVisual = false;
 
         var now = DateTime.Now;
@@ -124,28 +113,28 @@ public class StatusOverlay : Control
         {
             new FadeField
             {
-                GetDisplayTime = () => Config.ShowPagingInfo,
+                GetDisplayTime = () => _prefs.ShowPagingInfo,
                 GetStartTime = () => _pagingTime,
                 SetStartTime = t => _pagingTime = t,
                 SetOpacity = o => _pagingOpacity = o
             },
             new FadeField
             {
-                GetDisplayTime = () => Config.ShowPageName,
+                GetDisplayTime = () => _prefs.ShowPageName,
                 GetStartTime = () => _pageTime,
                 SetStartTime = t => _pageTime = t,
                 SetOpacity = o => _pageOpacity = o
             },
             new FadeField
             {
-                GetDisplayTime = () => Config.ShowAlbumPath,
+                GetDisplayTime = () => _prefs.ShowAlbumPath,
                 GetStartTime = () => _bookTime,
                 SetStartTime = t => _bookTime = t,
                 SetOpacity = o => _bookOpacity = o
             },
             new FadeField
             {
-                GetDisplayTime = () => Config.ShowImageSize,
+                GetDisplayTime = () => _prefs.ShowImageSize,
                 GetStartTime = () => _imageSizeTime,
                 SetStartTime = t => _imageSizeTime = t,
                 SetOpacity = o => _imageSizeOpacity = o
@@ -187,67 +176,64 @@ public class StatusOverlay : Control
         switch (change.Property.Name)
         {
             case nameof(PagingStatus) :
-                if(Config == null) return;
+                
                 _pagingTime = null;
                 
-                if (Config!.ShowPagingInfo > 0)
+                if (_prefs.ShowPagingInfo > 0)
                 {
                     _pagingTime = DateTime.Now;
                     _pagingOpacity = 1;
                 }
-                else if (Config!.ShowPagingInfo == 0) _pagingOpacity = 1; //doesn't fade
+                else if (_prefs.ShowPagingInfo == 0) _pagingOpacity = 1; //doesn't fade
                 else _pagingOpacity = 0; // never show
                 
                 InvalidateVisual();
                 break;
             
             case nameof(BookName):
-                if (Config == null) return;
+                _prefs = AppStorage.Instance.UserSettings;
                 _bookTime = null;
                 
-                if (Config!.ShowAlbumPath > 0)
+                if (_prefs.ShowAlbumPath > 0)
                 {
                     _bookTime = DateTime.Now;
                     _bookOpacity = 1;
                 }
-                else if (Config!.ShowAlbumPath == 0) _bookOpacity = 1; //doesn't fade
+                else if (_prefs.ShowAlbumPath == 0) _bookOpacity = 1; //doesn't fade
                 else _bookOpacity = 0; // never show
                 
                 InvalidateVisual();
                 break;
             
             case nameof(PageName):
-                if (Config == null) return;
                 _pageTime = null;
                 
-                if (Config!.ShowPageName > 0)
+                if (_prefs.ShowPageName > 0)
                 {
                     _pageTime = DateTime.Now;
                     _pageOpacity = 1;
                 }
-                else if (Config!.ShowPageName == 0) _pageOpacity = 1; //doesn't fade
+                else if (_prefs.ShowPageName == 0) _pageOpacity = 1; //doesn't fade
                 else _pageOpacity = 0; // never show
                 
                 InvalidateVisual();
                 break;
 
             case nameof(ImageSize):
-                if (Config == null) return;
                 _imageSizeTime = null;
                 
-                if (Config!.ShowImageSize > 0)
+                if (_prefs.ShowImageSize > 0)
                 {
                     _imageSizeTime = DateTime.Now;
                     _imageSizeOpacity = 1;
                 }
-                else if (Config!.ShowImageSize == 0) _imageSizeOpacity = 1; //doesn't fade
+                else if (_prefs.ShowImageSize == 0) _imageSizeOpacity = 1; //doesn't fade
                 else _imageSizeOpacity = 0; // never show
                 
                 InvalidateVisual();
                 break;
-            case nameof(Config):
-                if (Config == null) return;
-                //Config is swapped when toggling fullscreen
+            case nameof(_prefs):
+                //_prefs is swapped when toggling fullscreen
                 //non fullscreen version never displays anything
                 PagingStatus = PagingStatus;
                 PageName = PageName;

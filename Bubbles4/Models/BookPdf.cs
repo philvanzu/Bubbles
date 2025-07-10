@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Bubbles4.Services;
 using PDFiumSharp;
 
 namespace Bubbles4.Models;
@@ -19,7 +20,7 @@ public class BookPdf : BookBase
             ? System.IO.Path.GetDirectoryName(Path)! + "\\.ivp"
             : System.IO.Path.GetDirectoryName(Path)! + "/.ivp";
 
-    public override async Task LoadPagesList(Action<List<Page>> callback)
+    public override async Task<List<Page>?> LoadPagesList()
     {
         PagesListCts?.Cancel();
         PagesListCts?.Dispose();
@@ -54,11 +55,11 @@ public class BookPdf : BookBase
             FileIOThrottler.Release(); 
         }
 
-        callback(pages);
+        return pages;
     }
 
 
-    private async Task DispatchThumbnailAsync(int index, Action<Bitmap> callback, CancellationToken token)
+    private async Task<Bitmap?> DispatchThumbnailAsync(int index, CancellationToken token)
     {
         await FileIOThrottler.WaitAsync(token);
         try
@@ -66,16 +67,16 @@ public class BookPdf : BookBase
             using var doc = new PdfDocument(Path);
             using var pdfPage = doc.Pages[index];
 
-            int thumbWidth = 150;
-            int thumbHeight = (int)(pdfPage.Height / pdfPage.Width * thumbWidth);
+            var targetDimensions = 
+                ImageLoader.GetTargetDimensions((int)pdfPage.Width, (int)pdfPage.Height, ImageLoader.ThumbMaxSize);
 
-            using var bitmap = new PDFiumBitmap(thumbWidth, thumbHeight, true);
+            using var bitmap = new PDFiumBitmap(targetDimensions.width, targetDimensions.height, true);
             pdfPage.Render(bitmap);
 
             using var ms = bitmap.AsBmpStream();
             var avaloniaBitmap = new Bitmap(ms);
 
-            await Dispatcher.UIThread.InvokeAsync(() => callback(avaloniaBitmap));
+            return avaloniaBitmap;
         }
         catch (Exception ex)
         {
@@ -85,9 +86,11 @@ public class BookPdf : BookBase
         {
             FileIOThrottler.Release();
         }
+
+        return null;
     }
 
-    public override async Task LoadThumbnailAsync(Action<Bitmap> callback)
+    public override async Task<Bitmap?> LoadThumbnailAsync()
     {
         ThumbnailCts?.Cancel();
         ThumbnailCts?.Dispose();
@@ -96,7 +99,7 @@ public class BookPdf : BookBase
 
         try
         {
-            await DispatchThumbnailAsync(0, callback, token);
+            return await DispatchThumbnailAsync(0, token);
         }
         catch (TaskCanceledException) { }
         catch (Exception ex) { Console.WriteLine(ex); }
@@ -105,9 +108,10 @@ public class BookPdf : BookBase
             ThumbnailCts?.Dispose();
             ThumbnailCts = null;
         }
+        return null;
     }
 
-    public override async Task LoadThumbnailAsync(Action<Bitmap> callback, string key)
+    public override async Task<Bitmap?> LoadThumbnailAsync(string key)
     {
         if (!PagesCts.ContainsKey(key))
             throw new ArgumentException("Invalid page path in BookPdf.LoadThumbnailAsync");
@@ -125,7 +129,7 @@ public class BookPdf : BookBase
         {  
             try
             {
-                await DispatchThumbnailAsync(index, callback, token);
+                return await  DispatchThumbnailAsync(index, token);
             }
             catch (Exception ex) { Console.WriteLine(ex); }
             finally
@@ -137,9 +141,11 @@ public class BookPdf : BookBase
                 }
             }
         }
+
+        return null;
     }
 
-    public override async Task LoadFullImageAsync(Page page, Action<Bitmap?> callback, CancellationToken token)
+    public override async Task<Bitmap?> LoadFullImageAsync(Page page, CancellationToken token)
     {
         Bitmap? bmp = null;
         await FileIOThrottler.WaitAsync(token);
@@ -148,27 +154,26 @@ public class BookPdf : BookBase
         {
             using var doc = new PdfDocument(Path);
             using var pdfPage = doc.Pages[page.Index];
+            var targetDimensions = ImageLoader.GetTargetDimensions((int)pdfPage.Width*8, (int)pdfPage.Height*8, ImageLoader.ImageMaxSize);
 
-            int width = (int)(pdfPage.Width * 2);
-            int height = (int)(pdfPage.Height * 2);
-
-            using var bitmap = new PDFiumBitmap(width, height, true);
+            using var bitmap = new PDFiumBitmap(targetDimensions.width, targetDimensions.height, true);
             pdfPage.Render(bitmap);
 
             using var ms = bitmap.AsBmpStream();
             bmp = new Bitmap(ms);
-            await Dispatcher.UIThread.InvokeAsync(() => callback(bmp));
+            return bmp;
         }
         catch (Exception ex)
         {
             if (ex is not OperationCanceledException)
                 Console.WriteLine($"Full image load failed: {ex}");
             bmp?.Dispose();
-            callback(null);
         }
         finally
         {
             FileIOThrottler.Release();
         }
+
+        return null;
     }
 }

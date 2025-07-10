@@ -134,31 +134,72 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         {
             var vmLookup = _books.ToDictionary(vm => vm.Path);
             var incomingPaths = new HashSet<string>(batch.Select(b => b.Path));
-
+            int removed = 0, added = 0;
             // Remove any existing items not in the incoming batch
             for (int i = _books.Count - 1; i >= 0; i--)
             {
                 if (!incomingPaths.Contains(_books[i].Path))
+                {
                     _books.RemoveAt(i);
+                    removed++;
+                }
+                    
             }
-
+    
             // Add new ones not already in the VM list
             foreach (var newBook in batch)
             {
                 if (!vmLookup.ContainsKey(newBook.Path))
+                {
                     _books.Add(new BookViewModel(newBook, this, _mainViewModel));
+                    added++;
+                }
+            }
+            Console.WriteLine($"Authoritative set included. removes: {removed}, added: {added}");
+            if (added > 0 || removed > 0)
+            {
+                Sort();
+                _mainViewModel.UpdateLibraryStatus();
+                OnPropertyChanged(nameof(Count));        
             }
         }
         else
         {
             _books.Clear();
             _books.AddRange(batch.Select(book => new BookViewModel(book, this, _mainViewModel)));
+            Sort();
+            _mainViewModel.UpdateLibraryStatus();
+            OnPropertyChanged(nameof(Count));
         }
 
-        Sort();
-        _mainViewModel.UpdateLibraryStatus();
-        OnPropertyChanged(nameof(Count));
+        
     }
+
+
+
+    [RelayCommand]
+    private async Task BookPrepared(object? parameter)
+    {
+        if (parameter is BookViewModel vm)
+        {
+            if (vm.Thumbnail != null) return;
+            await vm.PrepareThumbnailAsync();
+        }
+            
+    }
+
+    [RelayCommand]
+    private async Task BookClearing(object? parameter)
+    {
+        if (parameter is BookViewModel vm)
+        {
+            await vm.ClearThumbnailAsync();    
+        }
+            
+    }
+    
+
+    [ObservableProperty] BookViewModel? _selectedItem;
 
 
     private IComparer<BookViewModel> GetComparer(LibraryConfig.SortOptions sort, bool ascending)
@@ -249,31 +290,6 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         CurrentSortAscending = !CurrentSortAscending;
         Sort(CurrentSortOption, CurrentSortAscending);
     }
-    [RelayCommand]
-    private async Task BookPrepared(object? parameter)
-    {
-        if (parameter is BookViewModel vm)
-        {
-            await vm.PrepareThumbnailAsync();
-        }
-            
-    }
-
-    [RelayCommand]
-    private async Task BookClearing(object? parameter)
-    {
-        if (parameter is BookViewModel vm)
-        {
-            await vm.ClearThumbnailAsync();    
-        }
-            
-    }
-    
-
-    [ObservableProperty] BookViewModel? _selectedItem;
-
-
-
 
 
 

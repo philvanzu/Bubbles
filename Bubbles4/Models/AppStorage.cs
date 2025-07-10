@@ -21,15 +21,15 @@ public class AppStorage
     
     
 
-    public Preferences Preferences
+    public UserSettings UserSettings
     {
         get
         {
             string? json;
             _data.TryGetValue(_preferencesKey, out json);
-            Preferences? pref = (!string.IsNullOrEmpty(json)) ? Preferences.Deserialize(json) : null;
+            UserSettings? pref = (!string.IsNullOrEmpty(json)) ? UserSettings.Deserialize(json) : null;
             
-            return pref != null? pref : new Preferences();
+            return pref != null? pref : new UserSettings();
         }
         set
         {
@@ -149,24 +149,28 @@ public class AppStorage
 
     
 }
-public class Preferences
+public class UserSettings
 {
     public double MouseSensitivity { get; set; } = 0.5;
     public double ControllerStickSensitivity { get; set; } = 0.5;
-    public bool CacheLibraryData { get; set; } = false;
     
-    //ivp anim speed
-    //hide cursor delay
-    //turn page bouncer delay
-
+    
+    public double IvpAnimSpeed { get; set; } = 300;
+    public float HideCursorTime { get; set; } = 5f;
+    public double TurnPageBouncingTime { get; set; } = 500;
+    
+    public int ShowPagingInfo { get; set; } // 0 : persistent // -1 : don't show // >0 : show for x seconds
+    public int ShowAlbumPath { get; set; } = 5;
+    public int ShowPageName { get; set; } = -1;
+    public int ShowImageSize { get; set; } = -1;
     public string Serialize()
     {
         return JsonSerializer.Serialize(this);
     }
 
-    public static Preferences? Deserialize(string json)
+    public static UserSettings? Deserialize(string json)
     {
-        return JsonSerializer.Deserialize<Preferences>(json);
+        return JsonSerializer.Deserialize<UserSettings>(json);
     }
 }
 public class AppState

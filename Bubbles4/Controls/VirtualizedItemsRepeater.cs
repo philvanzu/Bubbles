@@ -3,6 +3,7 @@ using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
+using Avalonia.Input;
 using Avalonia.VisualTree;
 using Bubbles4.Models;
 using Bubbles4.ViewModels;
@@ -57,7 +58,31 @@ public class VirtualizedItemsRepeater : ItemsRepeater
         ElementPrepared += OnElementPreparedInternal;
         ElementClearing += OnElementClearingInternal;
         DataContextChanged += OnDataContextChanged;
-        
+//        PointerWheelChanged += OnPointerWheelChanged;
+
+    }
+
+    private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        base.OnPointerWheelChanged(e);
+
+        if (_elementSize is null)
+            return;
+
+        var scrollViewer = FindParentScrollViewer(this);
+        if (scrollViewer is null)
+            return;
+
+        double scrollDelta = Math.Sign(e.Delta.Y) * _elementSize.Value.Height;
+
+        var newOffsetY = scrollViewer.Offset.Y - scrollDelta;
+
+        // Clamp to valid range
+        newOffsetY = Math.Max(0, newOffsetY);
+        // Optionally: you could calculate maximum scroll based on estimated total items count and item size
+
+        scrollViewer.Offset = new Vector(scrollViewer.Offset.X, newOffsetY);
+        e.Handled = true;
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
