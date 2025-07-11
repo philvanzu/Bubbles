@@ -5,7 +5,6 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using Bubbles4.Services;
 
 namespace Bubbles4.Models;
@@ -62,13 +61,17 @@ public class BookDirectory:BookBase
     }
     public override async Task<Bitmap?> LoadThumbnailAsync(string key)
     {
-        if(!PagesCts.ContainsKey(key)) 
+        if (!PagesCts.ContainsKey(key))
+        {
             throw new ArgumentException($"Path {key} is not a valid PageCts key");
+
+        } 
+            
         
         PagesCts[key]?.Cancel();
         PagesCts[key]?.Dispose();
         PagesCts[key] = new CancellationTokenSource();
-        var token = PagesCts[key].Token;
+        var token = PagesCts[key]!.Token;
         
         Bitmap? thmb = null;
         try

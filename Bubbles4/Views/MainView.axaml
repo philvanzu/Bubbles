@@ -12,11 +12,8 @@
              x:DataType="vm:MainViewModel"
              x:Name="RootControl">
     <UserControl.Resources>
-        <converters:BooleanToGeometryConverter x:Key="BoolToArrowGeometry"/>
         <converters:BoolToGridLengthConverter x:Key="BoolToGridLengthConverter" />
         <converters:StringNotEmptyToBoolConverter x:Key="StringNotEmptyToBoolConverter" />
-        <converters:DebugConverter x:Key="DebugConverter"/>
-        <converters:NullToOpacityConverter x:Key="NullToOpacity"/>
         <converters:NullToBooleanConverter x:Key="NullToBoolean"/>
         <converters:NullToInverseBooleanConverter x:Key="NullToInverseBoolean"/>
         <converters:NullToColorConverter x:Key="NullToColor"/>
@@ -181,12 +178,12 @@
                                   ShowsPreview="True" />
                     <Grid Grid.Column="2" RowDefinitions="1.75*, Auto, *">
                         <!--Library View-->
-                        <Grid Grid.RowDefinitions=" *, 28" >
+                        <Grid RowDefinitions=" *, 28" >
                             <Grid>
                                 <Border  Background="#303030"
                                          BorderBrush="White" BorderThickness="1"
                                          MinWidth="374">
-                                    <views:LibraryView Grid.Row="0"  DataContext="{Binding Library}"/>    
+                                    <views:LibraryView DataContext="{Binding Library}"/>    
                                 </Border>
                                 <Border BorderBrush="White" BorderThickness="1"
                                     VerticalAlignment="Top"
@@ -262,7 +259,7 @@
 
             <!-- Status bar -->
             <Border Grid.Row="2" BorderThickness="1" BorderBrush="White">
-            <Grid  Grid.ColumnDefinitions="*, 250, 460" Background="#505050">
+            <Grid  ColumnDefinitions="*, 250, 460" Background="#505050">
                 <StackPanel Orientation="Horizontal">
                     <Separator Width="16"/>
                     <TextBlock Text="{Binding LibraryStatus}" Margin="8" VerticalAlignment="Center"/>

@@ -149,18 +149,21 @@ public partial class LibraryConfigViewModel : ObservableObject
             var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
                 ? desktop.MainWindow
                 : null;
-            
-            string? selectedPath;
-            selectedPath = await _dialogService.PickDirectoryAsync(window);
-
-            if (!string.IsNullOrEmpty(selectedPath) && Directory.Exists(selectedPath))
+            if (window != null)
             {
-                selectedPath = selectedPath.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
-                selectedPath += System.IO.Path.DirectorySeparatorChar;
-                _libraryConfig.Path = selectedPath;
-                OnPropertyChanged(nameof(Path));
-                OnPropertyChanged(nameof(CanOk));
+                string? selectedPath;
+                selectedPath = await _dialogService.PickDirectoryAsync(window);
+
+                if (!string.IsNullOrEmpty(selectedPath) && Directory.Exists(selectedPath))
+                {
+                    selectedPath = selectedPath.TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+                    selectedPath += System.IO.Path.DirectorySeparatorChar;
+                    _libraryConfig.Path = selectedPath;
+                    OnPropertyChanged(nameof(Path));
+                    OnPropertyChanged(nameof(CanOk));
+                }    
             }
+            
         });
 
     }

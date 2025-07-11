@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using Avalonia.Media;
 using Bubbles4.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -40,7 +39,7 @@ public partial class SortHeaderViewModel<TEnum> : ViewModelBase
     [ObservableProperty] private List<SortHeaderOption<TEnum>> _options = new();
     [ObservableProperty] private SortHeaderOption<TEnum> _selected = null!;
     
-    public event EventHandler StateChanged;
+    public event EventHandler? StateChanged;
     public SortHeaderViewModel()
     {
         foreach (var option in Enum.GetValues<TEnum>())
@@ -94,13 +93,13 @@ public partial class SortHeaderOption<TEnum> : ObservableObject
 
     partial void OnIsAscendingChanged(bool value)
     {
-        Arrow = IsAscending? _upGeometry : _downGeometry;
+        Arrow = value? _upGeometry : _downGeometry;
         _vm.AscendingChanged();
     }
 
-    partial void OnIsSelectedChanging(bool oldValue, bool newValue)
+    partial void OnIsSelectedChanging(bool value)
     {
-        if(newValue && _vm.Selected != this)
+        if(value && _vm.Selected != this)
             _vm.Selected = this;
     }
 

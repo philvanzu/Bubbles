@@ -7,5 +7,5 @@ namespace Bubbles4.ViewModels;
 
 public partial class LibraryListItem:ViewModelBase
 {
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
 }

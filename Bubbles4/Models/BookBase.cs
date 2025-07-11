@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
@@ -96,8 +95,8 @@ public class BookInfo
 {
     public enum Types {dir, archive, pdf};
     public Types Type { get; set; }
-    public string Path { get; set; }
-    public string Name { get; set; }
+    public string Path { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     public DateTime Modified { get; set; }
     public DateTime Created { get; set; }
 }

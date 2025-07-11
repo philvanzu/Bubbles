@@ -99,7 +99,7 @@ public partial class LibraryNodeViewModel : LibraryViewModel
         }
     }
 
-    public void Close()
+    public override void Close()
     {
         if (this==Root) CloseRecursive();
         else Root.Close();
@@ -217,8 +217,8 @@ public partial class LibraryNodeViewModel : LibraryViewModel
     
 
     
-    private int _childrenSortRunning = 0;
-    private int _childrenSortPending = 0;
+    private int _childrenSortRunning;
+    private int _childrenSortPending;
 
     public void EnqueueSortChildrenJob()
     {

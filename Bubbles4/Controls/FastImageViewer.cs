@@ -63,7 +63,7 @@ namespace Bubbles4.Controls {
             get => GetValue(IsFullscreenProperty);
             set => SetValue(IsFullscreenProperty, value);
         }
-        public static object OnIsFullscreenChanged { get; set; }
+        
         bool UseIvp => IsFullscreen && Config != null && Config.UseIVPs;
         bool InScrollMode => IsFullscreen && Config?.ScrollAction == LibraryConfig.ScrollActions.Scroll;
         bool BookChanged => _page?.Book != _previousBook;
@@ -121,11 +121,11 @@ namespace Bubbles4.Controls {
                     }
                     
                     bool isnext = true;
-                    if (!BookChanged) isnext = data?.Page.Index - _page?.Index > 0;
+                    if (!BookChanged) isnext = data.Page.Index - _page?.Index > 0;
                     //Console.WriteLine($"isnext :{isnext}");
                     
-                    _image = data?.Image;
-                    _page = data?.Page;
+                    _image = data.Image;
+                    _page = data.Page;
                     
                     if (_image != null)
                     {

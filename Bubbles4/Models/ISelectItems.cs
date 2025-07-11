@@ -1,13 +1,12 @@
 using System;
-using Avalonia.Controls;
 
 namespace Bubbles4.Models;
 
 public interface ISelectItems
 {
-    public event EventHandler<SelectedItemChangedEventArgs> SelectionChanged;
-    public event EventHandler SortOrderChanged;
-    public event EventHandler<int> ScrollToIndexRequested;
+    public event EventHandler<SelectedItemChangedEventArgs>? SelectionChanged;
+    public event EventHandler? SortOrderChanged;
+    public event EventHandler<int>? ScrollToIndexRequested;
     public void InvokeSelectionChanged(ISelectableItem? newItem, ISelectableItem? oldItem);
     public void InvokeSortOrderChanged();
     public void RequestScrollToIndex(int index);

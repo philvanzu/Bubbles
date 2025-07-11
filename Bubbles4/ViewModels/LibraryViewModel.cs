@@ -4,11 +4,9 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Input;
 using Avalonia.Threading;
 using Bubbles4.Models;
 using Bubbles4.Services;
@@ -33,7 +31,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     protected MainViewModel _mainViewModel;
     public event EventHandler<SelectedItemChangedEventArgs>? SelectionChanged;
     public event EventHandler? SortOrderChanged;
-    public event EventHandler<int> ScrollToIndexRequested;
+    public event EventHandler<int>? ScrollToIndexRequested;
     
     [ObservableProperty] private bool _isLoading;
     public LibraryViewModel(MainViewModel mainViewModel, string path)
@@ -117,9 +115,9 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
                 progress.Report(($"Loading Cached Library Data...", (double)++i/total, false));
             }    
         }
-        progress.Report(($"Loading Cached Library Data...", (double)-1, false));
+        progress.Report(($"Loading Cached Library Data...", -1, false));
         await Dispatcher.UIThread.InvokeAsync(()=>AddBatch(bookbases, false));        
-        progress.Report(($"Loading Cached Library Data...", (double)0, true));
+        progress.Report(($"Loading Cached Library Data...", 0, true));
     }
 
     public virtual void AddBatch(List<BookBase> batch, bool authoritative = true)
@@ -454,7 +452,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
 
     private ConcurrentQueue<(BookViewModel? add, BookViewModel? remove, bool sort )> _watcherProcessQueue = new(); 
     
-    private int _watcherRunning = 0;
+    private int _watcherRunning;
 
     public void EnqueueWatcherEvent((BookViewModel? add, BookViewModel? remove, bool sort) item)
     {

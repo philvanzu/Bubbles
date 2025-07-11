@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
 using Bubbles4.Models;
 using System.Threading.Tasks;
 using Avalonia;
@@ -89,7 +86,7 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty] public BookViewModel? _selectedBook;
     [ObservableProperty] private ViewerData? _currentViewerData;
-    [ObservableProperty] private PageViewModel? _currentPageViewModel=null;
+    [ObservableProperty] private PageViewModel? _currentPageViewModel;
     [ObservableProperty] private bool _isFullscreen;
     
     //toolbar
@@ -152,7 +149,7 @@ public partial class MainViewModel : ViewModelBase
             libraryPath += Path.DirectorySeparatorChar;
             
             var config = AppData.GetConfig(libraryPath) ?? new LibraryConfig(libraryPath);
-            var libraryName = Path.GetFileName(Path.GetDirectoryName(libraryPath.TrimEnd(Path.DirectorySeparatorChar))) ?? libraryPath;
+
             var info = new DirectoryInfo(libraryPath);
             Library = config.Recursive ? 
                 new LibraryViewModel(this, libraryPath) : 
@@ -222,7 +219,7 @@ public partial class MainViewModel : ViewModelBase
         _watcher.StopWatching();
         if (Library != null)
         {
-            if ( Library is LibraryNodeViewModel == false && Config.CacheLibraryData)
+            if ( Library is LibraryNodeViewModel == false && Config?.CacheLibraryData==true)
             {
                 string json = Library.SerializeCollection();
                 string path =  Path.Combine(Library.Path, ".bblLibraryData");
@@ -282,10 +279,9 @@ public partial class MainViewModel : ViewModelBase
         if (config == null) config = AppData.GetConfig(Library.Path);
         if (config == null) config = new LibraryConfig(Library.Path);
         
-        var dlgVm = new LibraryConfigViewModel(config!);
+        var dlgVm = new LibraryConfigViewModel(config);
         CreateOrUpdateLibrary(dlgVm);
     }
-    private bool CanConfigureLibrary()=> Library != null;
     
     private void CreateOrUpdateLibrary(LibraryConfigViewModel dialogVm)
     {
@@ -494,7 +490,7 @@ public partial class MainViewModel : ViewModelBase
                     //wait for the pages list loading task to complete.
                     await book.LoadingTask;
                 
-                //todo scroll to book in library view
+                
 
                 //select next page
                 more = !book.NextPage();
@@ -532,7 +528,7 @@ public partial class MainViewModel : ViewModelBase
                     //wait for the pages list loading task to complete.
                     await book.LoadingTask;
                 
-                //todo scroll to book in library view
+                
 
                 //select previous page
                 more = !book.PreviousPage();

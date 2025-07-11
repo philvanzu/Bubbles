@@ -7,9 +7,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Input;
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -30,7 +28,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     
     public string Path => _model.Path;
     public string Name => _model.Name;
-    public int PageCount => _pages?.Count??_model.PageCount;
+    public int PageCount => _pages.Count;
     public DateTime LastModified => _model.LastModified;
     public DateTime Created => _model.Created;
     public int RandomIndex;
@@ -55,7 +53,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     public bool CurrentSortAscending { get; set; } 
     public event EventHandler<SelectedItemChangedEventArgs>? SelectionChanged;
     public event EventHandler? SortOrderChanged;
-    public event EventHandler<int> ScrollToIndexRequested;
+    public event EventHandler<int>? ScrollToIndexRequested;
     public BookViewModel(BookBase book, LibraryViewModel library, MainViewModel mainViewModel)
     {
         this._mainViewModel = mainViewModel;
@@ -428,7 +426,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         return true;
     }
     
-    bool _ignoreWatcherEvents = false;
+    bool _ignoreWatcherEvents ;
     /// <summary>
     /// Rearrange pages LastModified values so that they are in the same order as
     /// their name when sorted by LastModified
@@ -534,7 +532,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         }
     }
     
-    private int _pagesLoading = 0;
+    private int _pagesLoading;
     void EnqueueRebuildPagesListJob()
     {
         if (_ignoreWatcherEvents) return;
