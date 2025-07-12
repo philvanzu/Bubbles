@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using Bubbles4.Models;
 using Bubbles4.Services;
 using Bubbles4.ViewModels;
+using Bubbles4.Views;
 
 namespace Bubbles4.Controls {
     public class FastImageViewer : Control
@@ -55,20 +56,14 @@ namespace Bubbles4.Controls {
             set => SetValue(ConfigProperty, value);
         }
 
-        public static readonly StyledProperty<bool> IsFullscreenProperty =
-                AvaloniaProperty.Register<FastImageViewer, bool>(nameof(IsFullscreen));
+        private bool _isFullscreen;
 
-        public bool IsFullscreen
-        {
-            get => GetValue(IsFullscreenProperty);
-            set => SetValue(IsFullscreenProperty, value);
-        }
         
-        bool UseIvp => IsFullscreen && Config != null && Config.UseIVPs;
-        bool InScrollMode => IsFullscreen && Config?.ScrollAction == LibraryConfig.ScrollActions.Scroll;
+        bool UseIvp => _isFullscreen && Config != null && Config.UseIVPs;
+        bool InScrollMode => _isFullscreen && Config?.ScrollAction == LibraryConfig.ScrollActions.Scroll;
         bool BookChanged => _page?.Book != _previousBook;
-        private bool KeepZoom => IsFullscreen && Config?.LookAndFeel == LibraryConfig.LookAndFeels.Reader && !BookChanged; 
-
+        private bool KeepZoom => _isFullscreen && Config?.LookAndFeel == LibraryConfig.LookAndFeels.Reader && !BookChanged; 
+        private bool _enterFullscreenAfterNextLayoutUpdate;
         public FastImageViewer()
         {
             Focusable = true;
@@ -76,42 +71,75 @@ namespace Bubbles4.Controls {
             
             this.LayoutUpdated += OnLayoutUpdated;
             
+            
             turnPageTimer = new DispatcherTimer();
             turnPageTimer.Tick += OnTurnPageTick;
             turnPageTimer.Interval = TimeSpan.FromMilliseconds(AppStorage.Instance.UserSettings.TurnPageBouncingTime);
         }
 
+        protected override void OnInitialized()
+        {
+            base.OnInitialized();
+            if (VisualRoot is MainWindow mainWindow)
+                mainWindow.ImgViewer = this;
+        }
 
+        protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            
+            base.OnAttachedToVisualTree(e);
+            bool fullscreen=_isFullscreen;
+            Control? element = this;
+            while (element != null)
+            {
+                if (element.Name == "FullscreenOverlay")
+                {
+                    fullscreen = true;
+                    break;
+                }
+                else if (element.Name == "EmbeddedImageViewer")
+                {
+                    fullscreen = false;
+                    break;
+                }
+                element = element.Parent as Control;
+            }
 
+            if (!_isFullscreen && fullscreen)
+            {
+                //Console.WriteLine("OnAttachedToVisualTree");
+                OnEnteringFullscreen();
+            }
+            
+        }
+
+        
+        
 
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
         {
             base.OnPropertyChanged(change);
-            switch (change.Property.Name)
-            {
-                case nameof(Data):
+            if(change.Property.Name ==  nameof(Data)){
 
                     var data = change.NewValue as ViewerData;
+                    var oldData = change.OldValue as ViewerData;
+                    
                     if (data?.Image == _image && data?.Page == _page)
                     {
                         //Console.WriteLine("data change was no change");
                         return;
                     }
+                    if(!_fullscreenToggled)
+                        SaveIvp();
+                    
+                    if (_ivpAnim?.IsRunning == true)
+                    {
+                        _ivpAnim.Stop(); 
+                        _ivpAnim = null;
+                    }
                     
                     if (BookChanged) _previousBook = _page?.Book;
                     
-                    bool skipSaveIvp = false;
-                    if (_ivpAnim?.IsRunning == true)
-                    {
-                        if(_page != null) _page.Ivp = _ivpAnim.EndIvp;
-                        _ivpAnim.Stop(); 
-                        _ivpAnim = null;
-                        skipSaveIvp = true;
-                    }
-                    
-                    if (_page != null && UseIvp && !skipSaveIvp)
-                        _page.Ivp = SaveToIVP();
-
                     if (data is null || data.Image == null )
                     {
                         _image = null;
@@ -119,6 +147,7 @@ namespace Bubbles4.Controls {
                         InvalidateVisual();
                         return;
                     }
+                    
                     
                     bool isnext = true;
                     if (!BookChanged) isnext = data.Page.Index - _page?.Index > 0;
@@ -132,7 +161,7 @@ namespace Bubbles4.Controls {
                         AdjustZoomLimits();
                         if (Data != null)
                         {
-                            if (IsFullscreen)
+                            if (_isFullscreen)
                             {
                                 var ivp = _page?.Ivp;
                                 if (ivp != null && UseIvp)
@@ -174,28 +203,117 @@ namespace Bubbles4.Controls {
                         Console.WriteLine("_image is null");
                     }
                     InvalidateVisual();
-                    break;
-                case nameof(Config):
-                    if (Config != null && UseIvp)
-                    {
-                        // load ivp?
-                        // save ivp?
-                    }
-                    break;
-                case nameof(IsFullscreen):
-                    if (MainViewModel != null)
-                    {
-                        _fullscreenToggled = true;
-                        if (!IsFullscreen && _page != null)
-                            _page.Ivp = SaveToIVP();
-                    }
-                        
-                    break;
-
             }
 
         }
+
+        void SaveIvp()
+        {
+            if (_page != null && UseIvp)
+            {
+                //Console.WriteLine($"fstoggled: {_fullscreenToggled}, fs:{_isFullscreen}, bounds:{Bounds.Size}");
+                _page.Ivp = _ivpAnim?.IsRunning == true ? _ivpAnim.EndIvp : GetIVP();
+            }
+                
+        }
+        public void OnEnteringFullscreen()
+        {
+            //Console.WriteLine("setting fstoggled on");
+            _fullscreenToggled = true;
+        }
         
+        public void OnExitingFullscreen()
+        {
+            SaveIvp();
+            _fullscreenToggled = true;
+        }
+        private void OnLayoutUpdated(object? sender, EventArgs e)
+        {
+
+            if (_image != null && Bounds.Size != _lastViewportSize)
+            {
+                
+                //Console.WriteLine($"LayoutUpdated last :{_lastViewportSize} || current:{Bounds.Size}, fs:{_isFullscreen}, toggled:{_fullscreenToggled}");
+                AdjustZoomLimits();
+                if (_fullscreenToggled || (_page != null && _page.Ivp != null && UseIvp))
+                {
+                    if (_fullscreenToggled)
+                    {
+                        _fullscreenToggled = false;
+                        _isFullscreen = !_isFullscreen;
+                    }
+                    
+                    //Console.WriteLine("fullscreen toggled");
+                    if (!_isFullscreen)
+                    {
+//                        Console.WriteLine("fullscreen off => fitbest");
+                        Fit();
+                    }
+                    else if (_page != null && _page.Ivp != null && UseIvp)
+                    {
+                        //Console.WriteLine("fullscreen on => ivp found, restoring it");
+                        RestoreFromIVP(_page.Ivp);
+                    }
+                    else if (Config != null)
+                    {
+                        //Console.WriteLine("fullscreen on => config.Fit");
+                        switch (Config?.Fit)
+                        {
+                            case LibraryConfig.FitTypes.Height:
+                                
+                                FitHeight();
+                                break;
+                            case LibraryConfig.FitTypes.Width:FitWidth();
+                                FitWidth();
+                                break;
+                            case LibraryConfig.FitTypes.Stock:FitStock();
+                                FitStock();
+                                break;
+                            default:
+                                Fit();
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        //Console.WriteLine("default fit : fitbest-");
+                        Fit();
+                    }
+                }
+                else
+                {
+                    //Console.WriteLine("Layout updated no toggle");
+                    var newSize = Bounds.Size;
+
+                    // Only apply proportional zoom change if both old and new sizes are valid
+                    if (_lastViewportSize.Width > 0 && _lastViewportSize.Height > 0 &&
+                        newSize.Width > 0 && newSize.Height > 0)
+                    {
+                        // Use height as the reference axis
+                        double heightRatio = newSize.Height / _lastViewportSize.Height;
+                        double widthRatio = newSize.Width / _lastViewportSize.Width;
+                        var oldZoom = _zoom;
+                        if (heightRatio < widthRatio) _zoom *= heightRatio;    
+                        else _zoom *= widthRatio;                         
+                        
+                        _zoom = Math.Clamp(_zoom, _minZoom, _maxZoom);
+
+                        // Maintain the position of the image center relative to viewport center
+                        var centerBefore = new Point(_lastViewportSize.Width / 2, _lastViewportSize.Height / 2);
+                        var imageCenterBefore = (centerBefore - _panOffset) / oldZoom;
+                        var centerAfter = new Point(newSize.Width / 2, newSize.Height / 2);
+                        _panOffset = centerAfter - imageCenterBefore * _zoom;
+                    }
+                }
+
+                
+                
+                
+                AdjustPanOffset();
+                InvalidateVisual();
+            }
+            _lastViewportSize = Bounds.Size;
+        }
         //Drawing
         public override void Render(DrawingContext context)
         {
@@ -475,7 +593,7 @@ namespace Bubbles4.Controls {
                         break;
                 }
             }
-            var start = SaveToIVP();
+            var start = GetIVP();
             if (start == null) return;
             
             _ivpAnim = new IvpAnimation(start, end,
@@ -488,7 +606,7 @@ namespace Bubbles4.Controls {
                 AppStorage.Instance.UserSettings.IvpAnimSpeed);
         }
 
-        public ImageViewingParams? SaveToIVP()
+        public ImageViewingParams? GetIVP()
         {
             if (_image == null || Bounds.Width == 0 || Bounds.Height == 0)
                 return null;
@@ -512,86 +630,7 @@ namespace Bubbles4.Controls {
             return new ImageViewingParams(ivp.filename, clampedZoom, ivp.centerX, ivp.centerY);
         }
 
-        private void OnLayoutUpdated(object? sender, EventArgs e)
-        {
 
-            if (_image != null && Bounds.Size != _lastViewportSize)
-            {
-                //Console.WriteLine($"LayoutUpdated lastVpSize :{_lastViewportSize} || current bounds:{Bounds.Size}");
-                AdjustZoomLimits();
-                if (_fullscreenToggled )
-                {
-                    //Console.WriteLine("fullscreen toggled");
-                    if (!IsFullscreen)
-                    {
-//                        Console.WriteLine("fullscreen off => fitbest");
-                        Fit();
-                    }
-                    else if (_page != null && _page.Ivp != null && UseIvp)
-                    {
-                        //Console.WriteLine("fullscreen on => ivp found, restoring it");
-                        RestoreFromIVP(_page.Ivp);
-                    }
-                    else if (Config != null)
-                    {
-                        //Console.WriteLine("fullscreen on => config.Fit");
-                        switch (Config?.Fit)
-                        {
-                            case LibraryConfig.FitTypes.Height:
-                                
-                                FitHeight();
-                                break;
-                            case LibraryConfig.FitTypes.Width:FitWidth();
-                                FitWidth();
-                                break;
-                            case LibraryConfig.FitTypes.Stock:FitStock();
-                                FitStock();
-                                break;
-                            default:
-                                Fit();
-                                break;
-                        }
-                    }
-                    else
-                    {
-                        //Console.WriteLine("default fit : fitbest-");
-                        Fit();
-                    }
-                }
-                else
-                {
-                    var newSize = Bounds.Size;
-
-                    // Only apply proportional zoom change if both old and new sizes are valid
-                    if (_lastViewportSize.Width > 0 && _lastViewportSize.Height > 0 &&
-                        newSize.Width > 0 && newSize.Height > 0)
-                    {
-                        // Use height as the reference axis
-                        double heightRatio = newSize.Height / _lastViewportSize.Height;
-                        double widthRatio = newSize.Width / _lastViewportSize.Width;
-                        var oldZoom = _zoom;
-                        if (heightRatio < widthRatio) _zoom *= heightRatio;    
-                        else _zoom *= widthRatio;                         
-                        
-                        _zoom = Math.Clamp(_zoom, _minZoom, _maxZoom);
-
-                        // Maintain the position of the image center relative to viewport center
-                        var centerBefore = new Point(_lastViewportSize.Width / 2, _lastViewportSize.Height / 2);
-                        var imageCenterBefore = (centerBefore - _panOffset) / oldZoom;
-                        var centerAfter = new Point(newSize.Width / 2, newSize.Height / 2);
-                        _panOffset = centerAfter - imageCenterBefore * _zoom;
-                    }
-                }
-
-                
-
-                
-                AdjustPanOffset();
-                InvalidateVisual();
-            }
-            _lastViewportSize = Bounds.Size;
-            _fullscreenToggled = false;
-        }
         public void OnPointerMoved(object? sender, PointerEventArgs e)
         {
             if (_image == null) return;
@@ -627,7 +666,7 @@ namespace Bubbles4.Controls {
             }
         }
 
-        public void OnLeftStickUpdate(StickEventArgs e)
+        public void OnStickPan(StickEventArgs e)
         {
             // Ignore input if stick is moving back toward neutral (delta opposite sign)
             if ((e.Y > 0 && e.DeltaY < 0) || (e.Y < 0 && e.DeltaY > 0)) return;
@@ -638,7 +677,7 @@ namespace Bubbles4.Controls {
             PanTo(_panOffset - delta);
         }
 
-        public void OnRightStickUpdate(StickEventArgs e)
+        public void OnStickZoom(StickEventArgs e)
         {
             // Ignore input if stick is moving back toward neutral (delta opposite sign)
             if ((e.Y > 0 && e.DeltaY < 0) || (e.Y < 0 && e.DeltaY > 0)) return;

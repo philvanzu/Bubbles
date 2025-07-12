@@ -384,12 +384,22 @@ public partial class MainViewModel : ViewModelBase
         (window as MainWindow)?.ToggleFullscreen();
         OnPropertyChanged(nameof(Config));
     }
-    [RelayCommand] public void ExitFullScreenCommand()
+    [RelayCommand] private void ExitFullScreen()
     {
         IsFullscreen = false;
         var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
             ? desktop.MainWindow : null;
         (window as MainWindow)?.ExitFullscreen();
+        OnPropertyChanged(nameof(Config));
+    }
+
+    [RelayCommand]
+    private void EnterFullScreen()
+    {
+        IsFullscreen = true;
+        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow : null;
+        (window as MainWindow)?.EnterFullscreen();
         OnPropertyChanged(nameof(Config));
     }
 
@@ -487,14 +497,15 @@ public partial class MainViewModel : ViewModelBase
                     book.IsSelected = true;
                 
                 if (book.LoadingTask != null)
+                {
                     //wait for the pages list loading task to complete.
                     await book.LoadingTask;
-                
+                    //Console.WriteLine($"loading task status : {book.LoadingTask.Status}");
+                }
                 
 
                 //select next page
                 more = !book.NextPage();
-                
                 if(more) 
                 {
                     // if next page doesn't exist in the selected book
@@ -527,8 +538,6 @@ public partial class MainViewModel : ViewModelBase
                 if (book.LoadingTask != null)
                     //wait for the pages list loading task to complete.
                     await book.LoadingTask;
-                
-                
 
                 //select previous page
                 more = !book.PreviousPage();
@@ -538,6 +547,7 @@ public partial class MainViewModel : ViewModelBase
                     // if next page doesn't exist in the selected book
                     Library.PreviousBook();
                     book = SelectedBook;
+                    //Console.WriteLine($"prevbook {book.Name} :: {book.PageCount} ");
                 }
             } while (more);
         }

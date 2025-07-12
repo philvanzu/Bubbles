@@ -237,8 +237,7 @@
                                                           HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                                                           MainViewModel="{Binding}"
                                                           Data="{Binding CurrentViewerData}"
-                                                          Config="{Binding Config}" 
-                                                          IsFullscreen="{Binding IsFullscreen}"/>
+                                                          Config="{Binding Config}"/>
                                 
                                 <controls:StatusOverlay x:Name="StatusOverlay"
                                                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"

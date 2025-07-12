@@ -1,6 +1,5 @@
 using System;
 using System.ComponentModel;
-using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
@@ -13,7 +12,6 @@ using Bubbles4.Controls;
 using Bubbles4.Models;
 using Bubbles4.Services;
 using Bubbles4.ViewModels;
-using SDL2;
 
 namespace Bubbles4.Views;
 
@@ -48,7 +46,8 @@ public partial class MainView : UserControl
         _sdlInput.Initialize();
 
         _sdlInput.StickUpdated +=  ControllerStickUpdated;
-        _sdlInput.ButtonChanged += ControllerButtonChanged;
+        _sdlInput.ButtonUp += ControllerButtonUp;
+        _sdlInput.ButtonDown += ControllerButtonDown;
 
 
         Task.Run(async() =>
@@ -56,7 +55,6 @@ public partial class MainView : UserControl
             try
             {
                 await _sdlInput.StartPollingAsync(_cts.Token);
-                return ;
             }
             catch (TaskCanceledException)
             {
@@ -79,7 +77,7 @@ public partial class MainView : UserControl
         _imgViewerContainer.KeyUp += ImgViewerKeyUp;
     }
 
-    
+
 
 
     protected override void OnUnloaded(RoutedEventArgs e)
@@ -134,20 +132,26 @@ public partial class MainView : UserControl
         if(_fullscreenOverlay==null || _imgViewerContainer == null || _originalParent==null) return;
         if (fullscreen)
         {
+            
             _previousFocusedElement = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
             // Move ImageViewer to fullscreen overlay
+            //Console.WriteLine("mainview, exiting fullscreen)");
             _originalParent.Children.Remove(_imgViewerContainer);
+            //ImageViewer.OnEnteringFullscreen();
             _fullscreenOverlay.Children.Add(_imgViewerContainer);
             _fullscreenOverlay.IsVisible = true;
+            //Console.WriteLine("mainview, exited fullscreen)");
             //save reference to the control who currently has focus
             _imgViewerContainer.Focus();
         }
         else
         {
             // Move ImageViewer back to original parent at original position
+            //Console.WriteLine("mainview, entering fullscreen)");
             _fullscreenOverlay.Children.Remove(_imgViewerContainer);
             _originalParent.Children.Insert(_originalIndex, _imgViewerContainer);
             _fullscreenOverlay.IsVisible = false;
+            //Console.WriteLine("mainview, entered fullscreen)");
             //restore focus to saved control
             _previousFocusedElement?.Focus();
         }
@@ -286,17 +290,17 @@ public partial class MainView : UserControl
             {
                 if (e.Stick == StickName.LStick)
                 {
-                    _fastImageViewer.OnLeftStickUpdate(e);
+                    _fastImageViewer.OnStickPan(e);
                 }
                 else if (e.Stick == StickName.RStick)
                 {
-                    _fastImageViewer.OnRightStickUpdate(e);
+                    _fastImageViewer.OnStickZoom(e);
                 }
 
             }
         });
     }
-    private void ControllerButtonChanged(object? __, ButtonEventArgs e)
+    private void ControllerButtonUp(object? __, ButtonEventArgs e)
     {
         _ = Dispatcher.UIThread.InvokeAsync(() =>
         {
@@ -307,16 +311,64 @@ public partial class MainView : UserControl
                 switch (e.Button)
                 {
                     case ButtonName.LB:
+                        Console.WriteLine("lb");
                         vm.PreviousCommand.Execute(null);
                         break;
-                    case ButtonName.RB:
+                    case ButtonName.LTrigger:
+                        Console.WriteLine("lt");
                         vm.NextCommand.Execute(null);
                         break;
+                    case ButtonName.A:
+                        vm.EnterFullScreenCommand.Execute(null);
+                        break;
+                    case ButtonName.B:
+                        vm.ExitFullScreenCommand.Execute(null);
+                        break;
+                    case ButtonName.RB:
+                        Console.WriteLine("rb");
+                        vm.PreviousBookCommand.Execute(null);
+                        break;
+                    case ButtonName.RTrigger:
+                        Console.WriteLine("rt");
+                        vm.NextBookCommand.Execute(null);
+                        break;
+                    case ButtonName.Select:
+                        vm.FirstPageCommand.Execute(null);
+                        break;
+                    case ButtonName.Start:
+                        vm.LastPageCommand.Execute(null);
+                        break;
+                    case ButtonName.DpadUp:
+                        if(vm.IsFullscreen)_fastImageViewer?.FitHeight();
+                        break;
+                    case ButtonName.DpadRight:
+                        if(vm.IsFullscreen)_fastImageViewer?.Fit();
+                        break;
+                    case ButtonName.DpadLeft:
+                        if(vm.IsFullscreen)_fastImageViewer?.FitWidth();
+                        break;
+                    case ButtonName.DpadDown:
+                        if(vm.IsFullscreen)_fastImageViewer?.FitStock();
+                        break;
+                    /*
+                    case ButtonName.X:
+                        StatusOverlay.ShowAll(false);
+                        break;
+                        */
                 }
             }
         });
     }
     
+    private void ControllerButtonDown(object? sender, ButtonEventArgs e)
+    {
+        /*
+        if (e.Button == ButtonName.X)
+        {
+            StatusOverlay.ShowAll(true);
+        }
+        */
+    }
 
 
 

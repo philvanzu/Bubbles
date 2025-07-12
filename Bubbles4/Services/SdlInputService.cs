@@ -10,12 +10,15 @@ namespace Bubbles4.Services;
 public class SdlInputService
 {
     public event EventHandler<StickEventArgs>? StickUpdated;
-    public event EventHandler<ButtonEventArgs>? ButtonChanged;
+    public event EventHandler<ButtonEventArgs>? ButtonUp;
+    public event EventHandler<ButtonEventArgs>? ButtonDown;
     private readonly Dictionary<SDL.SDL_GameControllerButton, bool> _buttonStates = new();
     private readonly Dictionary<SDL.SDL_GameControllerAxis, double> _axisStates = new();
-
+    private bool _rtrig, _ltrig;
+    
     public void Initialize()
     {
+        SDL.SDL_SetHint(SDL.SDL_HINT_VIDEO_ALLOW_SCREENSAVER, "0");
         if (SDL.SDL_Init(SDL.SDL_INIT_GAMECONTROLLER) != 0)
         {
             throw new Exception($"SDL_Init Error: {SDL.SDL_GetError()}");
@@ -77,7 +80,7 @@ public class SdlInputService
 
         } while (!token.IsCancellationRequested);
     }
-    
+
     public bool PollInput()
     {
         SDL.SDL_Event e;
@@ -92,6 +95,7 @@ public class SdlInputService
                         SDL.SDL_GameControllerClose(Controller);
                         Controller = IntPtr.Zero;
                     }
+
                     return false;
 
                 case SDL.SDL_EventType.SDL_CONTROLLERDEVICEADDED:
@@ -100,6 +104,7 @@ public class SdlInputService
                     {
                         OpenFirstController(); // Reopen controller if we weren't connected
                     }
+
                     break;
 
                 default:
@@ -107,42 +112,73 @@ public class SdlInputService
             }
         }
 
-        
+
         if (Controller == IntPtr.Zero)
         {
             //Console.WriteLine("Controller intPtr is zero");    
             return false;
         }
-            
+
 
         // Buttons to track
         var buttonsToTrack = new[]
         {
             (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_LEFTSHOULDER, ButtonName.LB),
-            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, ButtonName.RB)
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, ButtonName.RB),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_A, ButtonName.A),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_B, ButtonName.B),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_X, ButtonName.X),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_Y, ButtonName.Y),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_DPAD_DOWN, ButtonName.DpadDown),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_DPAD_LEFT, ButtonName.DpadLeft),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_DPAD_RIGHT, ButtonName.DpadRight),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_DPAD_UP, ButtonName.DpadUp),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_START, ButtonName.Start),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_BACK, ButtonName.Select),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_RIGHTSTICK, ButtonName.RThumb),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_LEFTSTICK, ButtonName.LThumb),
         };
-
+        bool pressed;
         foreach (var button in buttonsToTrack)
         {
-            bool pressed = SDL.SDL_GameControllerGetButton(Controller, button.Item1) != 0;
-            if (!_buttonStates.TryGetValue(button.Item1, out var prev) || prev != pressed)
-            {
-                _buttonStates[button.Item1] = pressed;
-                ButtonChanged?.Invoke(this, new ButtonEventArgs(button.Item2, pressed));
-            }
+            pressed = SDL.SDL_GameControllerGetButton(Controller, button.Item1) != 0;
+            if (!_buttonStates.TryGetValue(button.Item1, out var prev)) prev = false;
+            _buttonStates[button.Item1] = pressed;
+            if(prev && !pressed)
+                ButtonUp?.Invoke(this, new ButtonEventArgs(button.Item2, pressed));
+            else if (pressed && !prev)
+                ButtonDown?.Invoke(this, new ButtonEventArgs(button.Item2, pressed));
         }
+
         var (x, deltax) = PollAxisGetValueAndDelta(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_LEFTX);
-        var (y, deltay)  = PollAxisGetValueAndDelta(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_LEFTY);
+        var (y, deltay) = PollAxisGetValueAndDelta(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_LEFTY);
         if (IsOutsideDeadZone(x, y))
             StickUpdated?.Invoke(this, new StickEventArgs(StickName.LStick, x, y, deltax, deltay));
 
         (x, deltax) = PollAxisGetValueAndDelta(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_RIGHTX);
-        (y, deltay)  = PollAxisGetValueAndDelta(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_RIGHTY);
+        (y, deltay) = PollAxisGetValueAndDelta(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_RIGHTY);
         if (IsOutsideDeadZone(x, y))
             StickUpdated?.Invoke(this, new StickEventArgs(StickName.RStick, x, y, deltax, deltay));
 
-        return true;
-    }
+        
+        x = SDL.SDL_GameControllerGetAxis(Controller, SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_TRIGGERLEFT);
+        pressed = (Math.Abs(x) > 0.15);
+        if(pressed && !_ltrig)
+            ButtonDown?.Invoke(this, new ButtonEventArgs(ButtonName.LTrigger, pressed));
+        else if (!pressed && _ltrig)
+            ButtonUp?.Invoke(this, new ButtonEventArgs(ButtonName.LTrigger, pressed));
+        _ltrig = pressed;
+        
+        y = SDL.SDL_GameControllerGetAxis(Controller, SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
+        pressed = (Math.Abs(y) > 0.15);
+        if(pressed && !_rtrig)
+            ButtonDown?.Invoke(this, new ButtonEventArgs(ButtonName.RTrigger, pressed));
+        else if (!pressed && _rtrig)
+            ButtonUp?.Invoke(this, new ButtonEventArgs(ButtonName.RTrigger, pressed));
+        _rtrig = pressed;
+    
+    return true;
+}
 
     (double, double) PollAxisGetValueAndDelta(SDL.SDL_GameControllerAxis axis)
     {
@@ -164,7 +200,7 @@ public class SdlInputService
 
 public enum StickName{LStick, RStick}
 public enum AxisName {LTrigger, RTrigger}
-public enum ButtonName{LB, RB, A, B, X, Y, Left, Right, Up, Down, LStick, RStick, Menu, Select}
+public enum ButtonName{LB, RB, LTrigger, RTrigger, A, B, X, Y, DpadLeft, DpadRight, DpadUp, DpadDown, LThumb, RThumb, Start, Select}
 public class StickEventArgs : EventArgs
 {
     public StickName Stick { get; }

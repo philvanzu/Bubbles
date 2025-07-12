@@ -168,7 +168,28 @@ public class StatusOverlay : Control
 
         if (invalidateVisual) InvalidateVisual();
     }
-    
+
+    public void ShowAll(bool show)
+    {
+        if (show)
+        {
+            _pagingTime = DateTime.Now;
+            _pagingOpacity = 1;
+            _bookTime = DateTime.Now;
+            _bookOpacity = 1;
+            _pageTime = DateTime.Now;
+            _pageOpacity = 1;
+            _imageSizeTime = DateTime.Now;
+            _imageSizeOpacity = 1;
+        }
+        else
+        {
+            PagingStatus = PagingStatus;
+            BookName = BookName;
+            PageName = PageName;
+            ImageSize = ImageSize;
+        }
+    }
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);

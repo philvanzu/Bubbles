@@ -6,7 +6,6 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using Bubbles4.Services;
 using SharpCompress.Archives;
 
@@ -144,11 +143,6 @@ public class BookArchive : BookBase
         //Console.WriteLine($"[{_book.Path}] Completed extraction of {page.Path}");
     }
     
-    private Bitmap? FetchThumbnail(Stream stream, CancellationToken ct)
-    {
-        //Console.WriteLine("Archive Loading Thumbnail image for {0}", Path);
-        return ImageLoader.DecodeImage(stream, ImageLoader.ThumbMaxSize);
-    }
     private async Task<Bitmap?> LoadPageThumbnail(CancellationToken ct, string key)
     {
         Stream? stream = null;
@@ -176,8 +170,8 @@ public class BookArchive : BookBase
             if (stream == null) Console.WriteLine($"null archived file stream - aborting : {Path + key}");
             else
             {
-                var bitmap = FetchThumbnail(stream, ct);
-                if (bitmap == null) Console.WriteLine($"null bitmap from non null stream - aborting : {Path + key}");
+                var bitmap = await Task.Run<Bitmap?>(()=>ImageLoader.DecodeImage(stream, ImageLoader.ThumbMaxSize, ct), ct);
+                //if (bitmap == null) Console.WriteLine($"null bitmap from non null stream - aborting : {Path + key}");
                 return bitmap;
             } 
 
@@ -351,8 +345,7 @@ public class BookArchive : BookBase
     }
 
     public override string IvpPath =>
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? System.IO.Path.GetDirectoryName(Path)! + "\\.ivp"
-            : System.IO.Path.GetDirectoryName(Path)! + "/.ivp";
+        System.IO.Path.GetFileNameWithoutExtension(Path) + ".ivp";
+
     #endregion
 }

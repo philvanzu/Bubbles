@@ -43,12 +43,17 @@ public class BookDirectory:BookBase
         ThumbnailCts?.Cancel();
         ThumbnailCts?.Dispose();
         ThumbnailCts = new CancellationTokenSource();
-
-
+        var token = ThumbnailCts.Token;
+        
         try
         {
-            await FileIOThrottler.WaitAsync(ThumbnailCts.Token); // respects cancellation
-            var thmb = await Task.Run(()=>ImageLoader.LoadImage(_thumbnailPath, ImageLoader.ThumbMaxSize), ThumbnailCts.Token);
+            await FileIOThrottler.WaitAsync(token); // respects cancellation
+            token.ThrowIfCancellationRequested();
+            var thmb = await Task.Run(()=>
+            {
+                token.ThrowIfCancellationRequested();
+                return ImageLoader.LoadImage(_thumbnailPath, ImageLoader.ThumbMaxSize, token);
+            }, token);
             return thmb;
         }
         catch (OperationCanceledException) { }
@@ -56,6 +61,8 @@ public class BookDirectory:BookBase
         finally
         {
             FileIOThrottler.Release();
+            ThumbnailCts?.Dispose();
+            ThumbnailCts = null;
         }
         return null;
     }
@@ -77,7 +84,7 @@ public class BookDirectory:BookBase
         try
         {
             await FileIOThrottler.WaitAsync(token); // respects cancellation
-            return await Task.Run(()=>ImageLoader.LoadImage(key, ImageLoader.ThumbMaxSize), token);
+            return await Task.Run(()=>ImageLoader.LoadImage(key, ImageLoader.ThumbMaxSize, token), token);
         }
         catch (OperationCanceledException)
         {

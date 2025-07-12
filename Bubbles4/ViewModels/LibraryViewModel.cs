@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,6 +24,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     protected List<BookViewModel> _books = new();
     protected ObservableCollection<BookViewModel> _booksMutable = new();
     public ReadOnlyObservableCollection<BookViewModel> Books { get; }
+    [ObservableProperty] BookViewModel? _selectedItem;
     public LibraryConfig.SortOptions CurrentSortOption { get; set; }
     public bool CurrentSortAscending { get; set; }
 
@@ -180,7 +182,13 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     {
         if (parameter is BookViewModel vm)
         {
-            if (vm.Thumbnail != null) return;
+            /*
+            if (vm.Thumbnail != null)
+            {
+                OnPropertyChanged(nameof(vm.Thumbnail));
+                return;
+            }
+            */
             await vm.PrepareThumbnailAsync();
         }
             
@@ -191,13 +199,14 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     {
         if (parameter is BookViewModel vm)
         {
+            //Console.WriteLine($"Clearing Thumbnail for book: {vm.Path}");
             await vm.ClearThumbnailAsync();    
         }
             
     }
     
 
-    [ObservableProperty] BookViewModel? _selectedItem;
+    
 
 
     private IComparer<BookViewModel> GetComparer(LibraryConfig.SortOptions sort, bool ascending)
@@ -301,16 +310,20 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
             {
                 oldItem = book;
                 //unload book in BookView and dispose pages data
-                book.UnloadPagesList();
+                
                 book.IsSelected = false;
             }
         }
         if (value != null)
         {
+            value.LoadingTask = value.LoadPagesListAsync();
             //load book in bookview
-            value.LoadingTask = value.LoadPagesListAsync()
-                .ContinueWith(_ => value.LoadingTask = null
-                , TaskScheduler.FromCurrentSynchronizationContext());
+            _ = Task.Run(async () =>
+                {
+                    try { await value.LoadingTask;}
+                    catch(Exception x){Console.WriteLine(x);}                    
+                    finally {value.LoadingTask = null;}
+                });
         }
         InvokeSelectionChanged(SelectedItem, oldItem);
         _mainViewModel.UpdateBookStatus();

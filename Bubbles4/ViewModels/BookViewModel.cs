@@ -32,28 +32,25 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     public DateTime LastModified => _model.LastModified;
     public DateTime Created => _model.Created;
     public int RandomIndex;
-    [ObservableProperty] private IvpCollection? _imageViewingParamsCollection;
-
-    MainViewModel _mainViewModel;
-    public MainViewModel MainViewModel => _mainViewModel;
-    Bitmap? _thumbnail;
-    public Bitmap? Thumbnail
-    {
-        get => _thumbnail;
-        set => SetProperty(ref _thumbnail, value);
-    }
-    private bool _isThumbnailLoading;
+    public LibraryConfig.SortOptions CurrentSortOption { get; set; }
+    public bool CurrentSortAscending { get; set; } 
     public Task? LoadingTask { get; set; }
-    
+
     List<PageViewModel> _pages = new ();
     ObservableCollection<PageViewModel> _pagesMutable = new ();
     public ReadOnlyObservableCollection<PageViewModel> Pages { get; }
     
-    public LibraryConfig.SortOptions CurrentSortOption { get; set; }
-    public bool CurrentSortAscending { get; set; } 
+    [ObservableProperty] private IvpCollection? _ivps;
+    [ObservableProperty] bool _isSelected;
+    [ObservableProperty]Bitmap? _thumbnail;
+    [ObservableProperty]MainViewModel _mainViewModel;
+    
+    private bool _isThumbnailLoading;
+
     public event EventHandler<SelectedItemChangedEventArgs>? SelectionChanged;
     public event EventHandler? SortOrderChanged;
     public event EventHandler<int>? ScrollToIndexRequested;
+
     public BookViewModel(BookBase book, LibraryViewModel library, MainViewModel mainViewModel)
     {
         this._mainViewModel = mainViewModel;
@@ -68,73 +65,24 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     ~BookViewModel()
     {
         UnloadPagesList();
-        if(_thumbnail != null)
-            _thumbnail.Dispose();
+        if(Thumbnail != null)
+            Thumbnail.Dispose();
     }
     
+    partial void OnIsSelectedChanged(bool oldValue, bool newValue)
+    {
+        
+        if (newValue && _library.SelectedItem != this) _library.SelectedItem = this;
+        else if (oldValue && _library.SelectedItem == this) _library.SelectedItem = null;
 
-    
-    public async Task PrepareThumbnailAsync()
-    {
-        if (_isThumbnailLoading) return;
-        
-        _isThumbnailLoading = true;
-        try
-        {
-            //Console.WriteLine($"awaiting thumbnail from BookViewModel {Path}");
-            var bitmap = await _model.LoadThumbnailAsync();
-            if(bitmap == null)
-                Console.WriteLine($"null bitmap returned for {Path}");
-            else
-            {
-                await Dispatcher.UIThread.InvokeAsync(() =>{
-                    if (_thumbnail != null)
-                        _thumbnail.Dispose();
-                    
-                    Thumbnail = bitmap;
-                    OnPropertyChanged(nameof(Thumbnail));
-                });    
-            }
-        }
-        catch (Exception ex){Console.WriteLine(ex);}
-        finally
-        {
-            _isThumbnailLoading = false;
-        }
+        if (!newValue && oldValue) UnloadPagesList();
     }
-    public async Task ClearThumbnailAsync()
-    {
-        await Dispatcher.UIThread.InvokeAsync(()=>{
-            if (_isThumbnailLoading) _model.CancelThumbnailLoad();
-            _thumbnail?.Dispose();
-            _thumbnail = null;
-        
-            OnPropertyChanged(nameof(Thumbnail));
-        });
-        //Console.WriteLine($"unloading thmbnail idx {} at :{Name}");
-    }
-    public async Task PreparePageThumbnailAsync(PageViewModel page)
-    {
-        if (page.Thumbnail != null || page.IsThumbnailLoading || string.IsNullOrEmpty(page.Path))
-            return;
-        page.IsThumbnailLoading = true;
-        try
-        {
-            var bitmap  = await _model.LoadThumbnailAsync(page.Path);
-            if (bitmap == null) Console.WriteLine($"null bitmap returned for page {page.Path}");
-            else await Dispatcher.UIThread.InvokeAsync(() => page.Thumbnail = bitmap);
-        }
-        finally
-        {
-            page.IsThumbnailLoading = false;
-        }
-    }
-    
     public async Task LoadPagesListAsync()
     {
         var pgs = await _model.LoadPagesList();
         if (pgs == null) Console.WriteLine($"null pages list returned for {Path}");
         else
+        {
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 _pages.Clear();
@@ -147,22 +95,26 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
                 Sort();
                 Model.PageCount = _pages.Count;
 
-                ImageViewingParamsCollection = IvpCollection.Load(_model.IvpPath);
-                if (ImageViewingParamsCollection == null && _mainViewModel.Config?.UseIVPs == true)
+                Ivps = IvpCollection.Load(_model.IvpPath);
+                if (Ivps.Collection.Count > 0)
                 {
-                    ImageViewingParamsCollection = new();
+                    var pgNames = pgs.Select(p => p.Name).ToList();
+                    var ivpNames = Ivps.Collection.Select(x => x.filename).ToArray();
+                    foreach (var name in ivpNames)
+                        if(!pgNames.Contains(name))
+                            Ivps.Remove(name); 
                 }
             });
-
+        }
     }
 
     public void UnloadPagesList()
     {
         _model.CancelPagesListLoad();
-        if (ImageViewingParamsCollection != null && _mainViewModel.Config?.UseIVPs == true)
+        if (Ivps != null)
         {
-            ImageViewingParamsCollection.Save(_model.IvpPath);
-            ImageViewingParamsCollection = null;
+            Ivps.Save(_model.IvpPath);
+            Ivps = null;
         }
         foreach (var page in Pages) page.Unload();
         if (Pages.Count > 0)
@@ -184,13 +136,82 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         
         SelectedPage = null;
     }
+    
+    public async Task PrepareThumbnailAsync()
+    {
+        if (_isThumbnailLoading) return;
+        
+        _isThumbnailLoading = true;
+        try
+        {
+            _ = Task.Run(async () =>
+            {
+                var bitmap = await Model.LoadThumbnailAsync();
+                if(bitmap != null)
+                    Dispatcher.UIThread.Post(()=>{
+                        if (Thumbnail != null)
+                            Thumbnail.Dispose();
+
+                        Thumbnail = bitmap;
+                    });    
+            });
+        }
+        catch (Exception ex){Console.WriteLine(ex);}
+        finally
+        {
+            _isThumbnailLoading = false;
+        }
+        await Task.CompletedTask;
+    }
+
+    public async Task ClearThumbnailAsync()
+    {
+        
+        if (_isThumbnailLoading) _model.CancelThumbnailLoad();
+        Thumbnail?.Dispose();
+        Thumbnail = null;
+    
+        await Task.CompletedTask;
+        //Console.WriteLine($"unloading thmbnail idx {} at :{Name}");
+    }
+    public async Task PreparePageThumbnailAsync(PageViewModel page)
+    {
+        if (page.Thumbnail != null || page.IsThumbnailLoading || string.IsNullOrEmpty(page.Path))
+            return;
+        page.IsThumbnailLoading = true;
+        try
+        {
+            _ = Task.Run(async () =>
+            {
+                var bitmap  = await _model.LoadThumbnailAsync(page.Path);
+                if (bitmap != null)
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if(page.Thumbnail != null)
+                            page.Thumbnail.Dispose();
+                    
+                        page.Thumbnail = bitmap;
+                    });    
+                }
+            });
+            
+        }
+        finally
+        {
+            page.IsThumbnailLoading = false;
+        }
+        await Task.CompletedTask;
+    }
+    
+
 
     [RelayCommand]
     public async Task OnSelection()
     {
         IsSelected = true;
         if(SelectedPage != null) SelectedPage.IsSelected = false;
-        await _mainViewModel.Next();
+        await MainViewModel.Next();
     }
     private IComparer<PageViewModel> GetComparer(LibraryConfig.SortOptions sort, bool ascending)
     {
@@ -228,8 +249,8 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     }
     public void Sort(LibraryConfig.SortOptions? sort=null, bool? ascending=null)
     {
-        if(sort == null) sort  = _mainViewModel.Config?.BookSortOption ?? LibraryConfig.SortOptions.Path;
-        if(ascending == null) ascending = _mainViewModel.Config?.BookSortAscending ?? true;
+        if(sort == null) sort  = MainViewModel.Config?.BookSortOption ?? LibraryConfig.SortOptions.Path;
+        if(ascending == null) ascending = MainViewModel.Config?.BookSortAscending ?? true;
         CurrentSortOption = sort.Value;
         CurrentSortAscending = ascending.Value;
         if(sort == LibraryConfig.SortOptions.Random)ShufflePages();
@@ -265,7 +286,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
             : null;
         if (window != null)
         {
-            var result = await _mainViewModel.DialogService.ShowDialogAsync<bool>(window, dialog);
+            var result = await MainViewModel.DialogService.ShowDialogAsync<bool>(window, dialog);
             if (result)
             {
                 try
@@ -307,18 +328,6 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         }
     }
 
-    [ObservableProperty] bool _isSelected;
-    partial void OnIsSelectedChanged(bool oldValue, bool newValue)
-    {
-        if (newValue && _library.SelectedItem != this)
-        {
-            _library.SelectedItem = this;
-        }
-        else if (oldValue && _library.SelectedItem == this)
-        {
-            _library.SelectedItem = null;
-        }
-    }
 
     public void RequestScrollToIndex(int index)
     {
@@ -385,7 +394,11 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         int index = -1;
         if(SelectedPage != null) index = GetPageIndex(SelectedPage);
         
-        if (Pages.Count <= 0) return false;
+        if (Pages.Count <= 0)
+        {
+            Console.WriteLine($"nextpage book has zero pages");
+            return false;
+        }
         if (index == -1) index = 0;
         else
         {
@@ -401,7 +414,11 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     {
         int index = Pages.Count;
         if(SelectedPage != null ) index = GetPageIndex(SelectedPage);
-        if (Pages.Count <= 0) return false;
+        if (Pages.Count <= 0)
+        {
+            Console.WriteLine($"prevpage book has zero pages");
+            return false;
+        }
         else
         {
             int newIndex = index - 1;

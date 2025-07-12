@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using Bubbles4.Services;
 using PDFiumSharp;
 
@@ -16,9 +14,7 @@ public class BookPdf : BookBase
         : base(path, name, lastModified, pageCount, created) { }
 
     public override string IvpPath =>
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? System.IO.Path.GetDirectoryName(Path)! + "\\.ivp"
-            : System.IO.Path.GetDirectoryName(Path)! + "/.ivp";
+        System.IO.Path.GetFileNameWithoutExtension(Path) + ".ivp";
 
     public override async Task<List<Page>?> LoadPagesList()
     {

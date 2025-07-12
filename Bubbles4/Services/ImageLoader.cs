@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using Avalonia.Media.Imaging;
 using SkiaSharp;
 
@@ -10,13 +11,15 @@ public static class ImageLoader
     public const int ThumbMaxSize = 200;
     public const int ImageMaxSize = 4000;
 
-    public static Bitmap? LoadImage(string imagePath, int maxSize)
+    public static Bitmap? LoadImage(string imagePath, int maxSize, CancellationToken token)
     {
         try
         {
             using var stream = File.OpenRead(imagePath);
-            return DecodeImage(stream, maxSize);
+            token.ThrowIfCancellationRequested();
+            return DecodeImage(stream, maxSize, token);
         }
+        catch (OperationCanceledException){}
         catch (Exception e)
         {
             Console.WriteLine(e);
@@ -25,6 +28,34 @@ public static class ImageLoader
         return null;
     }
     
+    public static Bitmap? DecodeImage(Stream stream, int maxSize, CancellationToken token)
+    {
+        try
+        {
+            token.ThrowIfCancellationRequested();
+            if (stream.CanSeek)
+                stream.Seek(0, SeekOrigin.Begin);
+
+            token.ThrowIfCancellationRequested();
+            return Bitmap.DecodeToWidth(stream, maxSize); // Decode directly from stream
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+
+        return null;
+    }
+    public static (int width, int height) GetTargetDimensions(int imageWidth, int imageHeight, int maxSize)
+    {
+        float scale =  Math.Min(1f, maxSize / (float)Math.Max(imageWidth, imageHeight));
+        int targetWidth = (int)(imageWidth * scale);
+        int targetHeight = (int)(imageHeight * scale);
+        return (targetWidth, targetHeight);
+    }
+
+    /*
     public static Bitmap? DecodeImage(Stream stream, int maxSize)
     {
         try
@@ -61,34 +92,11 @@ public static class ImageLoader
         data.SaveTo(memoryStream);
         memoryStream.Position = 0;
 
-        return new Avalonia.Media.Imaging.Bitmap(memoryStream);
-    }
-
-    public static (int width, int height) GetTargetDimensions(int imageWidth, int imageHeight, int maxSize)
-    {
-        float scale =  Math.Min(1f, maxSize / (float)Math.Max(imageWidth, imageHeight));
-        int targetWidth = (int)(imageWidth * scale);
-        int targetHeight = (int)(imageHeight * scale);
-        return (targetWidth, targetHeight);
-    }
-
-    /*old method
-    public static Bitmap? LoadThumbnail(Stream stream, int maxWidth)
-    {
-        try
-        {
-            if (stream.CanSeek)
-                stream.Seek(0, SeekOrigin.Begin);
-
-            return Bitmap.DecodeToWidth(stream, maxWidth); // Decode directly from stream
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-        }
-
-        return null;
+        return new Bitmap(memoryStream);
     }
 */
+  
+
+
   
 }

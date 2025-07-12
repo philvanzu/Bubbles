@@ -2,11 +2,8 @@ using System;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Presenters;
 using Avalonia.Input;
-using Avalonia.VisualTree;
 using Bubbles4.Models;
-using Bubbles4.ViewModels;
 
 namespace Bubbles4.Controls;
 
@@ -27,7 +24,7 @@ public class VirtualizedItemsRepeater : ItemsRepeater
         set => SetValue(SelectedItemProperty, value);
     }
 
-    private Size? _elementSize = null;
+    private Size? _elementSize;
     
     public ICommand? ItemPreparedCommand
     {
@@ -51,7 +48,7 @@ public class VirtualizedItemsRepeater : ItemsRepeater
     /// </summary>
     public event EventHandler<object?>? ItemCleared;
 
-    private ISelectItems? _itemsSelector = null;
+    private ISelectItems? _itemsSelector;
     public VirtualizedItemsRepeater()
     {
         this.
@@ -62,7 +59,7 @@ public class VirtualizedItemsRepeater : ItemsRepeater
 
     }
 
-    private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    private void OnPointerWheelChanged(object? _, PointerWheelEventArgs e)
     {
         base.OnPointerWheelChanged(e);
 
@@ -135,7 +132,7 @@ public class VirtualizedItemsRepeater : ItemsRepeater
         if (_elementSize == null && e.Element.Width > 0 && e.Element.Height > 0)
             _elementSize = new Size(e.Element.Width, e.Element.Height);
         
-        var context = e.Element?.DataContext;
+        var context = e.Element.DataContext;
         ItemPreparedCommand?.Execute(context);
 
         ItemPrepared?.Invoke(this, context);
@@ -143,7 +140,7 @@ public class VirtualizedItemsRepeater : ItemsRepeater
 
     private void OnElementClearingInternal(object? sender, ItemsRepeaterElementClearingEventArgs e)
     {
-        var context = e.Element?.DataContext;
+        var context = e.Element.DataContext;
         ItemClearingCommand?.Execute(context);
 
         ItemCleared?.Invoke(this, context);
@@ -160,7 +157,7 @@ public class VirtualizedItemsRepeater : ItemsRepeater
         
         var viewport = scrollViewer.Viewport;
         int columns = Math.Max(1, (int)(viewport.Width / itemWidth));
-        int rows = Math.Max(1, (int)(viewport.Height / itemHeight));
+        //int rows = Math.Max(1, (int)(viewport.Height / itemHeight));
         int row = index / columns;
 
         double itemTop = row * itemHeight;

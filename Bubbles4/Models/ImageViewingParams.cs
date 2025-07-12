@@ -1,21 +1,19 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 
 namespace Bubbles4.Models;
 
 public class ImageViewingParams
 {
-    public string filename { get; set; } = "";
+    public string filename { get; set; }
     public double zoom { get; set; } 
     public double centerX { get; set; }
     public double centerY { get; set; }
-
-    public ImageViewingParams()
-    {
-
-    }
 
     public ImageViewingParams(string filename, double zoom, double centerX, double centerY)
     {
@@ -33,7 +31,10 @@ public class ImageViewingParams
 public class IvpCollection
 {
     public List<ImageViewingParams> Collection { get; set; } = new();
+    [JsonIgnore] public bool IsDirty { get; private set; }
 
+    
+    
     public ImageViewingParams? Get(string filename)
     {
         return Collection.FirstOrDefault(x => x.filename == filename);
@@ -43,26 +44,62 @@ public class IvpCollection
     {
         Remove(ivp.filename);
         Collection.Add(ivp);
+        IsDirty = true;
     }
 
     public void Remove(string filename)
     {
         Collection.RemoveAll(x => x.filename == filename);
+        IsDirty = true;
     }
-    public static IvpCollection? Load(string? path)
+    
+    public void Save(string path)
+    {
+        if (IsDirty == false) return;
+        IsDirty = false;
+        if (Collection.Count > 0)
+        {
+            try
+            {
+                using var writer = File.CreateText(path);
+                string json = JsonSerializer.Serialize(this);
+                File.WriteAllText(path, json);    
+            }
+            catch (Exception ex){Console.Error.WriteLine(ex);}
+        }
+    }
+    public static IvpCollection Load(string? path)
     {
         if (File.Exists(path))
         {
-            var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<IvpCollection>(json)!;    
+            try{
+                var json = File.ReadAllText(path);
+                var ivps = JsonSerializer.Deserialize<IvpCollection>(json);
+                return ivps ?? new IvpCollection();
+            }
+            catch (JsonException ex)
+            {
+                Console.Error.WriteLine($"Corrupt IVP file at {path}: {ex.Message}");
+
+                try
+                {
+                    File.Delete(path);
+                    Console.Error.WriteLine($"Deleted corrupt IVP file: {path}");
+                }
+                catch (Exception deleteEx)
+                {
+                    Console.Error.WriteLine($"Failed to delete corrupt file: {deleteEx.Message}");
+                }
+
+                return new IvpCollection();
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Unexpected error loading IVP file: {ex.Message}");
+                return new IvpCollection();
+            }
         }
-        return null;
+        else return new IvpCollection();
     }
 
-    public void Save(string path)
-    {
-        using var writer = File.CreateText(path);
-        string json = JsonSerializer.Serialize(this);
-        File.WriteAllText(path, json);
-    }
 }

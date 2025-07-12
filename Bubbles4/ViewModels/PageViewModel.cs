@@ -35,29 +35,15 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
         } 
     }
 
-    private ImageViewingParams? _ivp;
     public ImageViewingParams? Ivp
     {
-        get
-        {
-            if (_ivp == null) 
-                _ivp = Book.ImageViewingParamsCollection?.Get(Name);
-            
-            if(_ivp != null && !_ivp.IsValid) 
-                _ivp = null;
-            
-            return _ivp; 
-        }
+        get => Book.Ivps?.Get(Name);
         set
         {
-            Console.WriteLine("ivp saved to page");
-            SetProperty(ref _ivp, value);
-            if (value != null && value.IsValid)
-            {
-                value.filename = Name;
-                Book.ImageViewingParamsCollection?.AddOrUpdate(value);
-            }
-                
+            value.filename = Name;
+            Book.Ivps?.AddOrUpdate(value);
+            //Console.WriteLine($"ivp saved: {Path}");
+
         }
     }
     

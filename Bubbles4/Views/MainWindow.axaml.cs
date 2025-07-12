@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Bubbles4.Controls;
 using Bubbles4.Models;
 using Bubbles4.Services;
 using Bubbles4.ViewModels;
@@ -26,6 +27,8 @@ public partial class MainWindow : Window
     private float _hideCursorAfterElapsed = 5f;
     private bool _cursorVisible = true;
     private readonly DispatcherTimer _cursorTimer;
+    public FastImageViewer? ImgViewer { get; set; }
+    
     public MainWindow()
     {
         InitializeComponent();
@@ -68,6 +71,7 @@ public partial class MainWindow : Window
             _hideCursorAfterElapsed = AppStorage.Instance.UserSettings.HideCursorTime;
         
     }
+    
 
     void HideCursor()
     {
@@ -103,11 +107,17 @@ private static Cursor GetInvisibleCursor()
     {
         if (_isFullscreen)
         {
+            //Console.WriteLine("window, exiting fullscreen)");
+            if(ImgViewer != null)ImgViewer.OnExitingFullscreen();
             ExitFullscreen();
+            //Console.WriteLine("window, exited fullscreen)");
         }
         else
         {
+            //Console.WriteLine("window, entering fullscreen)");
             EnterFullscreen();
+            //Console.WriteLine("window, entered fullscreen)");
+            //if(ImgViewer != null)ImgViewer.OnEnteringFullscreen();
         }
     }
 

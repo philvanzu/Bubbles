@@ -37,8 +37,8 @@ public abstract class BookBase
     public void CancelThumbnailLoad()
     {
         ThumbnailCts?.Cancel();
-        ThumbnailCts?.Dispose();
-        ThumbnailCts = null;
+        //ThumbnailCts?.Dispose();
+        //ThumbnailCts = null;
     }
 
     protected CancellationTokenSource? PagesListCts;
