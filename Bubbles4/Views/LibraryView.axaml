@@ -19,7 +19,7 @@
         <vm:LibraryViewModel />
     </Design.DataContext>
     
-        <ScrollViewer x:Name="scrollViewer">
+        <ScrollViewer x:Name="scrollViewer" IsDeferredScrollingEnabled="true">
         <ctrl:VirtualizedItemsRepeater ItemsSource="{Binding Books}" 
                                        ItemPreparedCommand="{Binding BookPreparedCommand}"
                                        ItemClearingCommand="{Binding BookClearingCommand}"
@@ -30,7 +30,8 @@
             </i:Interaction.Behaviors>
             -->
             <ctrl:VirtualizedItemsRepeater.Layout>
-                <WrapLayout Orientation="Horizontal"/>
+                <!--<WrapLayout Orientation="Horizontal"/>-->
+                <UniformGridLayout Orientation="Horizontal" MaximumRowsOrColumns="0"/>
             </ctrl:VirtualizedItemsRepeater.Layout>
             <ctrl:VirtualizedItemsRepeater.ItemTemplate>
                 <DataTemplate>

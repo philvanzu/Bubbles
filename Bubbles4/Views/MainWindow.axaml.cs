@@ -29,6 +29,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _cursorTimer;
     public FastImageViewer? ImgViewer { get; set; }
     
+    
     public MainWindow()
     {
         InitializeComponent();
@@ -168,24 +169,38 @@ private static Cursor GetInvisibleCursor()
 
         if (enable)
         {
-            Win32.SetWindowLong(hwnd, Win32.GWL_STYLE,
-                Win32.GetWindowLong(hwnd, Win32.GWL_STYLE) & ~Win32.WS_OVERLAPPEDWINDOW);
+            // Remove window borders and title bar
+            var style = Win32.GetWindowLong(hwnd, Win32.GWL_STYLE);
+            style &= ~(Win32.WS_CAPTION | Win32.WS_THICKFRAME | Win32.WS_OVERLAPPEDWINDOW);
+            Win32.SetWindowLong(hwnd, Win32.GWL_STYLE, style);
+
+            var exStyle = Win32.GetWindowLong(hwnd, Win32.GWL_EXSTYLE);
+            exStyle &= ~(Win32.WS_EX_DLGMODALFRAME | Win32.WS_EX_WINDOWEDGE | Win32.WS_EX_CLIENTEDGE | Win32.WS_EX_STATICEDGE);
+            Win32.SetWindowLong(hwnd, Win32.GWL_EXSTYLE, exStyle);
 
             if (Screens.Primary != null)
-                Win32.SetWindowPos(hwnd, IntPtr.Zero, 0, 0,
-                    Screens.Primary.WorkingArea.Width,
-                    Screens.Primary.WorkingArea.Height,
-                    Win32.SWP_NOZORDER | Win32.SWP_FRAMECHANGED);
+            {
+                var width = Screens.Primary.Bounds.Width;
+                var height = Screens.Primary.Bounds.Height;
+
+                // Move window to (0,0) and size it to full screen
+                Win32.SetWindowPos(hwnd, Win32.HWND_TOP,
+                    0, 0, width, height,
+                    Win32.SWP_NOZORDER | Win32.SWP_FRAMECHANGED | Win32.SWP_SHOWWINDOW);
+            }
         }
         else
         {
-            Win32.SetWindowLong(hwnd, Win32.GWL_STYLE,
-                Win32.GetWindowLong(hwnd, Win32.GWL_STYLE) | Win32.WS_OVERLAPPEDWINDOW);
+            // Restore window styles
+            var style = Win32.GetWindowLong(hwnd, Win32.GWL_STYLE);
+            style |= Win32.WS_OVERLAPPEDWINDOW;
+            Win32.SetWindowLong(hwnd, Win32.GWL_STYLE, style);
 
-            Win32.SetWindowPos(hwnd, IntPtr.Zero, 100, 100, 800, 600, 
-                Win32.SWP_NOZORDER | Win32.SWP_FRAMECHANGED);
+            Win32.SetWindowPos(hwnd, IntPtr.Zero, 100, 100, 800, 600,
+                Win32.SWP_NOZORDER | Win32.SWP_FRAMECHANGED | Win32.SWP_SHOWWINDOW);
         }
     }
+
     
 
     

@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using Avalonia;
+using Avalonia.Skia;
+using Avalonia.Win32;
 
 namespace Bubbles4.Desktop;
 
@@ -14,8 +17,23 @@ sealed class Program
 
     // Avalonia configuration, don't remove; also used by visual designer.
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
+    {
+        var builder  =  AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
             .LogToTrace();
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            builder = builder
+                .With(new SkiaOptions
+                {
+                    // No UseGpu in Avalonia 11. GPU backend is used automatically if available.
+                    MaxGpuResourceSizeBytes = 256 * 1024 * 1024,
+                });
+        }
+        return builder;
+    }
+        
+       
 }

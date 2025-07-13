@@ -32,6 +32,7 @@
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="3.119.0" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.3" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Win32" Version="3.119.0" />
+    <PackageVersion Include="Vanara.PInvoke.User32" Version="4.1.6" />
     <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.15" />
   </ItemGroup>
 </Project>

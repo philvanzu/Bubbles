@@ -1,17 +1,19 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:Bubbles4"
+             xmlns:avaloniaThemes="clr-namespace:Avalonia.Themes.Fluent;assembly=Avalonia.Themes.Fluent"
              xmlns:controls="clr-namespace:Bubbles4.Controls"
              x:Class="Bubbles4.App"
-             RequestedThemeVariant="Default">
+             RequestedThemeVariant="Dark">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
 
+    
     <Application.Styles>
-        <FluentTheme />
+        <FluentTheme   />
         <Style Selector="Border.selected">
             <Setter Property="Background" Value="#4480c0ff"/>
             <Setter Property="BorderBrush" Value="#ff3399ff"/>

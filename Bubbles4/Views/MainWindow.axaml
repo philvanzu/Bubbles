@@ -10,7 +10,7 @@
         x:Class="Bubbles4.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/Bubbles.ico"
-        Title="Bubbles4"
+        Title="Bubbles"
         Focusable="True"
         Width="800" Height="600">
 
