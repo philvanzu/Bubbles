@@ -40,7 +40,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     ObservableCollection<PageViewModel> _pagesMutable = new ();
     public ReadOnlyObservableCollection<PageViewModel> Pages { get; }
     
-    [ObservableProperty] private IvpCollection? _ivps;
+    [ObservableProperty] private BookMetadata? _ivps;
     [ObservableProperty] bool _isSelected;
     [ObservableProperty]Bitmap? _thumbnail;
     [ObservableProperty]MainViewModel _mainViewModel;
@@ -50,7 +50,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     public event EventHandler<SelectedItemChangedEventArgs>? SelectionChanged;
     public event EventHandler? SortOrderChanged;
     public event EventHandler<int>? ScrollToIndexRequested;
-
+    Object? _bookmarkBlocker;
     public BookViewModel(BookBase book, LibraryViewModel library, MainViewModel mainViewModel)
     {
         this._mainViewModel = mainViewModel;
@@ -95,7 +95,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
                 Sort();
                 Model.PageCount = _pages.Count;
 
-                Ivps = IvpCollection.Load(_model.IvpPath);
+                Ivps = BookMetadata.Load(_model.IvpPath);
                 if (Ivps.Collection.Count > 0)
                 {
                     var pgNames = pgs.Select(p => p.Name).ToList();
@@ -104,18 +104,45 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
                         if(!pgNames.Contains(name))
                             Ivps.Remove(name); 
                 }
+                
+                //bookmark loading
+                if (MainViewModel?.Config?.LookAndFeel == LibraryConfig.LookAndFeels.Reader)
+                {
+                    if (File.Exists(Model.BookmarkPath))
+                    {
+                        Dispatcher.UIThread.Post(()=> _ = PromptLoadBookmark()); 
+                    }
+                }
             });
         }
     }
 
     public void UnloadPagesList()
     {
-        _model.CancelPagesListLoad();
+        
+        var selectedIdx = GetPageIndex(SelectedPage);
+        bool bookmark = selectedIdx > 0 
+                        && selectedIdx < PageCount - 1 
+                        && MainViewModel?.Config?.LookAndFeel == LibraryConfig.LookAndFeels.Reader;
+        if (bookmark)
+        {
+            var name = SelectedPage!.Name;
+            if (MainViewModel?.ShutdownCoordinator.IsShuttingDown == true)
+            {
+                _bookmarkBlocker = new Object();
+                MainViewModel.ShutdownCoordinator.RegisterBlocker(_bookmarkBlocker);
+            }
+                
+            Dispatcher.UIThread.Post(()=> _ = PromptBookmarkSelectedPage(name));
+        }
+        
         if (Ivps != null)
         {
             Ivps.Save(_model.IvpPath);
             Ivps = null;
         }
+        
+        _model.CancelPagesListLoad();
         foreach (var page in Pages) page.Unload();
         if (Pages.Count > 0)
         {
@@ -136,6 +163,8 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         
         SelectedPage = null;
     }
+
+
     
     public async Task PrepareThumbnailAsync()
     {
@@ -279,11 +308,10 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     {
         var dialog = new OkCancelViewModel
         {
+            Title = "Delete File?",
             Content = $"Do you want to delete [{Path}] permanently?"
         };
-        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
+        var window = MainViewModel.MainWindow;
         if (window != null)
         {
             var result = await MainViewModel.DialogService.ShowDialogAsync<bool>(window, dialog);
@@ -327,7 +355,71 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
             Console.Error.WriteLine($"Failed to open path: {ex.Message}");
         }
     }
+    public async Task PromptBookmarkSelectedPage( string pageName)
+    {
+        var dialog = new OkCancelViewModel
+        {
+            Title ="Bookmark current page?",
+            Content = $"Do you want to bookmark your current position in {Name}?",
+        };
+        var window = MainViewModel.MainWindow;
+        if (window != null)
+        {
+            var result = await MainViewModel.DialogService.ShowDialogAsync<bool>(window, dialog);
+            if (result)
+            {
+                try
+                {
+                    File.WriteAllText(Model.BookmarkPath, pageName);
+                    if (_bookmarkBlocker != null)
+                    {
+                        MainViewModel.ShutdownCoordinator.UnregisterBlocker(_bookmarkBlocker);
+                        _bookmarkBlocker = null;
+                    }
+                        
+                }
+                catch (Exception ex) { Console.Error.WriteLine($"bookmark file creation failed: {ex.Message}"); }
+            }    
+        }
+    }
 
+    public async Task PromptLoadBookmark()
+    {
+        string? name = null;
+        try
+        {
+            name = File.ReadAllText(Model.BookmarkPath);
+        }
+        catch (Exception ex) {Console.WriteLine(ex); }
+        finally
+        {
+            try {File.Delete(Model.BookmarkPath);}
+            catch (Exception ex) {Console.WriteLine(ex); }
+        }
+
+        PageViewModel? bookmarked = null;
+        if (name != null)
+            bookmarked = _pages.FirstOrDefault(x => x.Name == name);
+        if (bookmarked != null)
+        {
+            var dialog = new OkCancelViewModel
+            {
+                Title ="Load Bookmark?",
+                Content = $"Do you want to load bookmarked page [{bookmarked.Name}]?"
+            };
+            var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+                ? desktop.MainWindow
+                : null;
+            if (window != null)
+            {
+                var result = await MainViewModel.DialogService.ShowDialogAsync<bool>(window, dialog);
+                if (result)
+                {
+                    bookmarked.IsSelected = true;
+                }    
+            }    
+        }
+    }
 
     public void RequestScrollToIndex(int index)
     {

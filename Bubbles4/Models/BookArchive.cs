@@ -344,8 +344,9 @@ public class BookArchive : BookBase
         return null;
     }
 
-    public override string IvpPath =>
-        System.IO.Path.GetFileNameWithoutExtension(Path) + ".ivp";
+    public override string MetaDataPath =>
+        System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Path), 
+            System.IO.Path.GetFileNameWithoutExtension(Path));
 
     #endregion
 }

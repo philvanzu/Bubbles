@@ -631,6 +631,37 @@ namespace Bubbles4.Controls {
         }
 
 
+
+
+        public void OnStickPan(StickEventArgs e)
+        {
+            // Ignore input if stick is moving back toward neutral (delta opposite sign)
+            if ((e.Y > 0 && e.DeltaY < 0) || (e.Y < 0 && e.DeltaY > 0)) return;
+            var sensitivity = MapSensitivity(AppStorage.Instance.UserSettings.ControllerStickSensitivity);
+            // Scale pan speed based on zoom level
+            var scale = Math.Clamp(_zoom, 0.25, 4.0); // Avoid extreme panning at zoom extremes
+            var delta = new Point(e.X, e.Y) * 15 * scale * sensitivity;
+            PanTo(_panOffset - delta);
+        }
+
+        public void OnStickZoom(StickEventArgs e)
+        {
+            // Ignore input if stick is moving back toward neutral (delta opposite sign)
+            if ((e.Y > 0 && e.DeltaY < 0) || (e.Y < 0 && e.DeltaY > 0)) return;
+            var sensitivity = MapSensitivity(AppStorage.Instance.UserSettings.ControllerStickSensitivity);
+            // Adjust zoom factor based on current zoom level to keep zoom rate stable
+            var zoomAdjustment = _zoom * (e.Y * -0.016 * sensitivity); // Negative to zoom in with upward stick
+            ZoomTo(_zoom + zoomAdjustment);
+        }
+
+        private double _lastPinchScale=0;
+        public void OnPinched(object? sender, PinchEventArgs e)
+        {
+            double delta = e.Scale / _lastPinchScale;
+            _lastPinchScale = e.Scale;
+
+            ZoomTo(_zoom * delta);
+        }
         public void OnPointerMoved(object? sender, PointerEventArgs e)
         {
             if (_image == null) return;
@@ -665,28 +696,6 @@ namespace Bubbles4.Controls {
                 }
             }
         }
-
-        public void OnStickPan(StickEventArgs e)
-        {
-            // Ignore input if stick is moving back toward neutral (delta opposite sign)
-            if ((e.Y > 0 && e.DeltaY < 0) || (e.Y < 0 && e.DeltaY > 0)) return;
-            var sensitivity = MapSensitivity(AppStorage.Instance.UserSettings.ControllerStickSensitivity);
-            // Scale pan speed based on zoom level
-            var scale = Math.Clamp(_zoom, 0.25, 4.0); // Avoid extreme panning at zoom extremes
-            var delta = new Point(e.X, e.Y) * 15 * scale * sensitivity;
-            PanTo(_panOffset - delta);
-        }
-
-        public void OnStickZoom(StickEventArgs e)
-        {
-            // Ignore input if stick is moving back toward neutral (delta opposite sign)
-            if ((e.Y > 0 && e.DeltaY < 0) || (e.Y < 0 && e.DeltaY > 0)) return;
-            var sensitivity = MapSensitivity(AppStorage.Instance.UserSettings.ControllerStickSensitivity);
-            // Adjust zoom factor based on current zoom level to keep zoom rate stable
-            var zoomAdjustment = _zoom * (e.Y * -0.016 * sensitivity); // Negative to zoom in with upward stick
-            ZoomTo(_zoom + zoomAdjustment);
-        }
-
         public void OnPointerPressed(object? sender, PointerPressedEventArgs e)
         {
             _lastPointerPosition = e.GetPosition(this);
@@ -711,13 +720,22 @@ namespace Bubbles4.Controls {
         }
         public void OnMouseWheel(object? sender, PointerWheelEventArgs e)
         {
-            if (_image == null || !InScrollMode)
-                return;
+            if (Config?.ScrollAction == LibraryConfig.ScrollActions.TurnPage || !_isFullscreen )
+            {
+                if (Math.Abs(e.Delta.Y - (-1.0)) < 0.01f) _ = MainViewModel?.Next();
+                
+                else if (Math.Abs(e.Delta.Y - 1.0) < 0.01f) _ = MainViewModel?.Previous(); 
+            }
+            else
+            {
+                if (_image == null || !InScrollMode)
+                    return;
             
-            // Scrolling deltas (usually Y for vertical scrolling, but X can be used for shift+wheel or trackpads)
-            var delta = e.Delta;
+                // Scrolling deltas (usually Y for vertical scrolling, but X can be used for shift+wheel or trackpads)
+                var delta = e.Delta;
             
-            Scroll(delta.X, delta.Y);           
+                Scroll(delta.X, delta.Y);    
+            }
         }
 
 
@@ -908,5 +926,7 @@ namespace Bubbles4.Controls {
                 return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
             }
         }
+
+
     }
 }

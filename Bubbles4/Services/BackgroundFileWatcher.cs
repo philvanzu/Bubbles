@@ -7,7 +7,7 @@ using Bubbles4.Models;
 
 namespace Bubbles4.Services;
 
-public class BackgroundFileWatcher : IDisposable
+public class BackgroundFileWatcher
 {
     private FileSystemWatcher? _watcher;
     private Channel<FileSystemEventArgs> _eventChannel = Channel.CreateUnbounded<FileSystemEventArgs>();
@@ -18,6 +18,11 @@ public class BackgroundFileWatcher : IDisposable
 
     private volatile bool _buffering = false;
 
+    ~BackgroundFileWatcher()
+    {
+        StopWatching();
+    }
+    
     public void StartWatching(string path, bool recursive,
         Action<FileSystemEventArgs> onChanged)
     {
@@ -147,10 +152,5 @@ public class BackgroundFileWatcher : IDisposable
         _cts?.Dispose();
         _cts = null;
         _processingTask = null;
-    }
-
-    public void Dispose()
-    {
-        StopWatching();
     }
 }

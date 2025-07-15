@@ -15,6 +15,7 @@ namespace Bubbles4;
 
 public partial class App : Application
 {
+    
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -41,6 +42,7 @@ public partial class App : Application
                     Height = appState.WindowHeight,
                     WindowState = appState.WindowState
                 };
+                mvm.MainWindow = mainWindow;
                 mainWindow.Opened += (sender, e) =>
                 {
                     Dispatcher.UIThread.Post(async () =>
@@ -55,6 +57,14 @@ public partial class App : Application
                             Console.WriteLine($"Initialization failed: {ex}");
                         }    
                     });
+                };
+                mainWindow.Closing += (sender, e) =>
+                {
+                    mvm.OnShutdown();
+                    if (mvm.ShutdownCoordinator?.IsShutdownBlocked == true)
+                    {
+                        e.Cancel = true;
+                    }
                 };
                 mainWindow.Closed += (sender, e) =>
                 {

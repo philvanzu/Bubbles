@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Controls.Shapes;
 using Avalonia.Media.Imaging;
 
 namespace Bubbles4.Models;
@@ -51,7 +52,9 @@ public abstract class BookBase
         PagesListCts?.Dispose();
         PagesListCts = null;
     }
-    public abstract string IvpPath { get; }
+    public abstract string MetaDataPath { get; }
+    public string IvpPath => MetaDataPath + ".ivp";
+    public string BookmarkPath => MetaDataPath + ".bblbookmark";
 
     public string Serialize()
     {

@@ -23,7 +23,8 @@
             </i:Interaction.Behaviors>
             -->
             <ctrl:VirtualizedItemsRepeater.Layout>
-                <WrapLayout Orientation="Horizontal"/>
+                <!--<WrapLayout Orientation="Horizontal"/>-->
+                <UniformGridLayout Orientation="Horizontal" MaximumRowsOrColumns="0"/>
             </ctrl:VirtualizedItemsRepeater.Layout>
             <ctrl:VirtualizedItemsRepeater.ItemTemplate>
                 <DataTemplate>

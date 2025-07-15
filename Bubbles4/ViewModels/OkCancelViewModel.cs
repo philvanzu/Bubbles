@@ -13,7 +13,9 @@ public partial class OkCancelViewModel: ViewModelBase
         get => _content;
         set => SetProperty(ref _content, value);
     }
-
+    public string OkText { get; set; } = "OK";
+    public string CancelText { get; set; } = "Cancel";
+    public string Title { get; set; }="Ok Cancel Dialog"; 
     [RelayCommand]
     public void OnOkPressed()
     {

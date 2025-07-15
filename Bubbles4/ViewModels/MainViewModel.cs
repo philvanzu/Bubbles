@@ -17,9 +17,11 @@ namespace Bubbles4.ViewModels;
 public partial class MainViewModel : ViewModelBase
 {
     #region AppData
+
     private AppStorage AppData { get; init; }
 
     [ObservableProperty] private LibraryConfig? _config = new LibraryConfig("");
+
     partial void OnConfigChanged(LibraryConfig? value)
     {
         if (value != null)
@@ -28,21 +30,26 @@ public partial class MainViewModel : ViewModelBase
             BookSortHeader.Value = (value.BookSortOption, value.BookSortAscending);
             NodeSortHeader.Value = (value.NodeSortOption, value.NodeSortAscending);
         }
+
         OnPropertyChanged(nameof(ShowNavPane));
     }
 
-    public bool ShowNavPane=>Config?.ShowNavPane ?? false;
+    public bool ShowNavPane => Config?.ShowNavPane ?? false;
     public ObservableCollection<LibraryListItem> Libraries => MakeLibraries();
+
     ObservableCollection<LibraryListItem> MakeLibraries()
     {
-        var libraries  = new ObservableCollection<LibraryListItem>() {new LibraryListItem(){Name = "Add New Library"}};
+        var libraries = new ObservableCollection<LibraryListItem>()
+            { new LibraryListItem() { Name = "Add New Library" } };
         foreach (var s in AppData.LibrariesList)
-            libraries.Add(new LibraryListItem() { Name = s});
+            libraries.Add(new LibraryListItem() { Name = s });
         return libraries;
     }
+
     public string LibraryName => Library == null ? "Select Library" : Library.Path;
-    
-    [ObservableProperty]private LibraryListItem? _selectedLibraryItem;
+
+    [ObservableProperty] private LibraryListItem? _selectedLibraryItem;
+
     partial void OnSelectedLibraryItemChanged(LibraryListItem? value)
     {
         if (value == null) return;
@@ -50,15 +57,16 @@ public partial class MainViewModel : ViewModelBase
         else OpenLibrary(value.Name);
     }
 
-    [ObservableProperty]private FullSortHeaderViewModel _librarySortHeader;
-    [ObservableProperty]private FullSortHeaderViewModel _bookSortHeader;
-    [ObservableProperty]private ShortSortHeaderViewModel _nodeSortHeader;
+    [ObservableProperty] private FullSortHeaderViewModel _librarySortHeader;
+    [ObservableProperty] private FullSortHeaderViewModel _bookSortHeader;
+    [ObservableProperty] private ShortSortHeaderViewModel _nodeSortHeader;
 
     #endregion
-    
+
     #region Library exposure
 
     [ObservableProperty] private LibraryViewModel? _library;
+
     partial void OnLibraryChanged(LibraryViewModel? value)
     {
         if (value is LibraryNodeViewModel node)
@@ -68,9 +76,11 @@ public partial class MainViewModel : ViewModelBase
         }
         else LibraryRoot = null;
     }
+
     [ObservableProperty] private LibraryNodeViewModel? _libraryRoot;
-    
+
     [ObservableProperty] private LibraryNodeViewModel? _selectedLibraryNode;
+
     partial void OnSelectedLibraryNodeChanged(LibraryNodeViewModel? value)
     {
         if (value != null && value != Library)
@@ -78,7 +88,8 @@ public partial class MainViewModel : ViewModelBase
             Library = value;
             Library.Sort();
         }
-        if(LibraryRoot != null)
+
+        if (LibraryRoot != null)
             LibraryRoot.SelectedNode = value;
     }
 
@@ -88,10 +99,10 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private ViewerData? _currentViewerData;
     [ObservableProperty] private PageViewModel? _currentPageViewModel;
     [ObservableProperty] private bool _isFullscreen;
-    
+
     //toolbar
     [ObservableProperty] private string _searchString = string.Empty;
-    
+
     //status bar
     [ObservableProperty] private string? _imageStatus;
     [ObservableProperty] private string? _pageNameStatus;
@@ -99,7 +110,7 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string? _bookStatus;
     [ObservableProperty] private string? _libraryStatus;
     [ObservableProperty] private string? _pagingStatus;
-    
+
     private readonly BackgroundFileWatcher _watcher = new();
     public SlidingImageCache _cache;
 
@@ -107,6 +118,21 @@ public partial class MainViewModel : ViewModelBase
     public IDialogService DialogService => _dialogService;
     ProgressDialogViewModel _progressDialog;
     [ObservableProperty] private ProgressViewModel _statusProgress = new();
+    
+    private MainWindow _window;
+    public MainWindow? MainWindow { 
+        get => _window;
+        set
+        {
+            if (value == null) return;
+            _window = value;
+            ShutdownCoordinator.Window = value;
+        }
+    }
+
+    public ShutdownCoordinator ShutdownCoordinator { get; private set; } = new();
+    
+
     public MainViewModel(IDialogService dialogService)
     {
         _dialogService = dialogService;
@@ -127,13 +153,16 @@ public partial class MainViewModel : ViewModelBase
             OpenLibrary(libraryPath);
     }
 
-    public void OnClose()
+
+    public void OnShutdown()
     {
-        if(!string.IsNullOrEmpty(Library?.Path))
+        if (ShutdownCoordinator.IsShuttingDown == true) return;
+        ShutdownCoordinator.IsShuttingDown = true;
+
+        if (Library != null) 
             CloseLibrary();
-        else AppData.Save();
-        
-        _watcher.Dispose();
+        AppData.Save();
+        _watcher.StopWatching();
     }
     
     [RelayCommand]
@@ -230,6 +259,8 @@ public partial class MainViewModel : ViewModelBase
             }
             CurrentViewerData = null;
             OnPropertyChanged(nameof(CurrentViewerData));
+
+            Library.Close();
             if (Config != null)
             {
                 var save = Library;
@@ -238,7 +269,6 @@ public partial class MainViewModel : ViewModelBase
                 AppData.Save();
                 Config = null;
             }
-            Library.Close();
             _cache.ClearCache();
             Library = null;
             if(LibraryRoot!=null) LibraryRoot = null;
@@ -285,17 +315,14 @@ public partial class MainViewModel : ViewModelBase
     
     private void CreateOrUpdateLibrary(LibraryConfigViewModel dialogVm)
     {
-        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
 
-        if (window != null)
+        if (MainWindow != null)
         {
             Dispatcher.UIThread.InvokeAsync(async() =>
             {
                 try
                 {
-                    var result = await _dialogService.ShowDialogAsync<LibraryConfig>(window, dialogVm);
+                    var result = await _dialogService.ShowDialogAsync<LibraryConfig>(MainWindow, dialogVm);
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         if (result != null)
@@ -325,12 +352,9 @@ public partial class MainViewModel : ViewModelBase
     {
         var dialogVm = new PreferencesEditorViewModel();
         
-        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
-        if (window != null)
+        if (MainWindow != null)
         {
-            var result = await _dialogService.ShowDialogAsync<UserSettings>(window, dialogVm);
+            var result = await _dialogService.ShowDialogAsync<UserSettings>(MainWindow, dialogVm);
             if (result != null)
             {
                 await Dispatcher.UIThread.InvokeAsync(() =>
@@ -360,12 +384,10 @@ public partial class MainViewModel : ViewModelBase
         {
             Content = $"Do you want to delete the recorded setting for the library at [{path}] ?"
         };
-        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
-        if (window != null)
+
+        if (MainWindow != null)
         {
-            var result = await _dialogService.ShowDialogAsync<bool>(window, dialog);
+            var result = await _dialogService.ShowDialogAsync<bool>(MainWindow, dialog);
             if (result)
             {
                 AppData.Remove(path);
@@ -379,17 +401,15 @@ public partial class MainViewModel : ViewModelBase
     void ToggleFullscreen()
     {
         IsFullscreen = !IsFullscreen;
-        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow : null;
-        (window as MainWindow)?.ToggleFullscreen();
+
+        MainWindow?.ToggleFullscreen();
         OnPropertyChanged(nameof(Config));
     }
     [RelayCommand] private void ExitFullScreen()
     {
         IsFullscreen = false;
-        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow : null;
-        (window as MainWindow)?.ExitFullscreen();
+        
+        MainWindow?.ExitFullscreen();
         OnPropertyChanged(nameof(Config));
     }
 
@@ -397,9 +417,7 @@ public partial class MainViewModel : ViewModelBase
     private void EnterFullScreen()
     {
         IsFullscreen = true;
-        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow : null;
-        (window as MainWindow)?.EnterFullscreen();
+        MainWindow?.EnterFullscreen();
         OnPropertyChanged(nameof(Config));
     }
 

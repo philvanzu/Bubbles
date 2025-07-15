@@ -28,7 +28,7 @@ public class ImageViewingParams
 
 }
 
-public class IvpCollection
+public class BookMetadata
 {
     public List<ImageViewingParams> Collection { get; set; } = new();
     [JsonIgnore] public bool IsDirty { get; private set; }
@@ -68,14 +68,14 @@ public class IvpCollection
             catch (Exception ex){Console.Error.WriteLine(ex);}
         }
     }
-    public static IvpCollection Load(string? path)
+    public static BookMetadata Load(string? path)
     {
         if (File.Exists(path))
         {
             try{
                 var json = File.ReadAllText(path);
-                var ivps = JsonSerializer.Deserialize<IvpCollection>(json);
-                return ivps ?? new IvpCollection();
+                var ivps = JsonSerializer.Deserialize<BookMetadata>(json);
+                return ivps ?? new BookMetadata();
             }
             catch (JsonException ex)
             {
@@ -91,15 +91,15 @@ public class IvpCollection
                     Console.Error.WriteLine($"Failed to delete corrupt file: {deleteEx.Message}");
                 }
 
-                return new IvpCollection();
+                return new BookMetadata();
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"Unexpected error loading IVP file: {ex.Message}");
-                return new IvpCollection();
+                return new BookMetadata();
             }
         }
-        else return new IvpCollection();
+        else return new BookMetadata();
     }
 
 }

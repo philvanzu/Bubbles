@@ -17,24 +17,24 @@ namespace Bubbles4.Views;
 
 public partial class MainView : UserControl
 {
-    private Panel? _fullscreenOverlay;
-    private ContentControl? _imgViewerContainer;
+    private Panel _fullscreenOverlay;
+    private TouchControl _imgViewerContainer;
     private Panel? _originalParent;
     private int _originalIndex;
     private IInputElement? _previousFocusedElement;
     private readonly SdlInputService _sdlInput=new();
     private readonly CancellationTokenSource _cts = new();
-    private FastImageViewer? _fastImageViewer;
+    private FastImageViewer _fastImageViewer;
     
     public MainView()
     {
         InitializeComponent();
         
         // Find your controls by name, assuming you have x:Name on them
-        _fullscreenOverlay = this.FindControl<Panel>("FullscreenOverlay");
-        _imgViewerContainer = this.FindControl<ContentControl>("ImageViewerContainer");
+        _fullscreenOverlay = FullscreenOverlay;
+        _imgViewerContainer = ImageViewerContainer;
         if(_imgViewerContainer!= null) _imgViewerContainer.Focusable = true;
-        _fastImageViewer = this.FindControl<FastImageViewer>("ImageViewer");
+        _fastImageViewer = ImageViewer;
 
         // Remember original parent and index to restore later
         _originalParent = (Panel)_imgViewerContainer?.Parent!;
@@ -68,13 +68,13 @@ public partial class MainView : UserControl
 
         });
 
-
-        _imgViewerContainer!.DoubleTapped += ImgViewerDoubleTapped;
-        _imgViewerContainer.PointerWheelChanged += ImgViewerMouseWheelChanged;
-        _imgViewerContainer.PointerPressed += ImgViewerPointerPressed;
-        _imgViewerContainer.PointerReleased += ImgViewerPointerReleased;
-        _imgViewerContainer.PointerMoved += ImgViewerPointerMoved;
+        _imgViewerContainer.DoubleTapped += ImgViewerDoubleTapped;
+        _imgViewerContainer.PointerWheelChanged += _fastImageViewer.OnMouseWheel;
+        _imgViewerContainer.PointerPressed += _fastImageViewer.OnPointerPressed;
+        _imgViewerContainer.PointerReleased += _fastImageViewer.OnPointerReleased;
+        _imgViewerContainer.PointerMoved += _fastImageViewer.OnPointerMoved;
         _imgViewerContainer.KeyUp += ImgViewerKeyUp;
+        _imgViewerContainer.Pinched += _fastImageViewer.OnPinched;
     }
 
 
@@ -99,12 +99,6 @@ public partial class MainView : UserControl
         }
     }
 
-
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnDetachedFromVisualTree(e);
-        if (DataContext is MainViewModel vm) vm.OnClose();
-    }
 
     private void MainView_DataContextChanged(object? sender, EventArgs e)
     {
@@ -238,40 +232,6 @@ public partial class MainView : UserControl
                     break;
             }
         }
-    }
-
-    private void ImgViewerPointerMoved(object? s, PointerEventArgs e)
-    {
-        if (_fastImageViewer != null)
-        {
-            _fastImageViewer.OnPointerMoved(s, e);
-        }
-    }
-
-    private void ImgViewerPointerReleased(object? s, PointerReleasedEventArgs e)
-    {
-        if (_fastImageViewer != null)
-            _fastImageViewer.OnPointerReleased(s, e);
-    }
-
-    private void ImgViewerPointerPressed(object? s, PointerPressedEventArgs e)
-    {
-        if (_fastImageViewer != null)
-            _fastImageViewer.OnPointerPressed(s, e);
-    }
-
-    private void ImgViewerMouseWheelChanged(object? s, PointerWheelEventArgs e)
-    {
-        if (DataContext is MainViewModel vm &&
-            vm.Config != null &&
-            ( vm.Config.ScrollAction == LibraryConfig.ScrollActions.TurnPage ||
-              vm.IsFullscreen == false) )
-        {
-            if (Math.Abs(e.Delta.Y - (-1.0)) < 0.01f) _ = vm.Next();
-                
-            else if (Math.Abs(e.Delta.Y - 1.0) < 0.01f) _ = vm.Previous(); 
-        }
-        else _fastImageViewer!.OnMouseWheel(s, e);
     }
 
     private void ImgViewerDoubleTapped(object? _, TappedEventArgs e)

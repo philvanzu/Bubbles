@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Bubbles4.Models;
@@ -80,10 +81,11 @@ public class StatusOverlay : Control
     const float fadeTime = 1.5f;
     private readonly DispatcherTimer animTimer;
 
-
+    
     
     public StatusOverlay()
     {
+
         Focusable = false;
         IsHitTestVisible = false;
         animTimer = new DispatcherTimer();
@@ -94,7 +96,7 @@ public class StatusOverlay : Control
 
     }
 
-
+    
     private class FadeField
     {
         public required Func<int> GetDisplayTime;

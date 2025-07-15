@@ -13,8 +13,9 @@ public class BookPdf : BookBase
     public BookPdf(string path, string name, int pageCount, DateTime lastModified, DateTime created)
         : base(path, name, lastModified, pageCount, created) { }
 
-    public override string IvpPath =>
-        System.IO.Path.GetFileNameWithoutExtension(Path) + ".ivp";
+    public override string MetaDataPath => 
+        System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Path), 
+            System.IO.Path.GetFileNameWithoutExtension(Path));
 
     public override async Task<List<Page>?> LoadPagesList()
     {

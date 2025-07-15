@@ -175,14 +175,10 @@ public class BookDirectory:BookBase
 
         return null;
     }
-    public override string IvpPath 
-    {
-        get
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                return Path + "\\.ivp";
-            return Path + "/.ivp";
-        }
-        
-    } 
+
+    public override string MetaDataPath =>
+        Path + (Path.EndsWith(System.IO.Path.DirectorySeparatorChar) ? "" : System.IO.Path.DirectorySeparatorChar);
+
+
+
 }

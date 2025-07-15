@@ -231,7 +231,7 @@
                     <!--Image Viewer // Page view -->                    
                     <Panel x:Name="EmbeddedImageViewer" Grid.Column="4">
                         <Panel>
-                            <ContentControl x:Name="ImageViewerContainer" Background="#303030">
+                            <controls:TouchControl x:Name="ImageViewerContainer" Background="#303030">
                                 <Panel>
                                 <controls:FastImageViewer x:Name="ImageViewer"
                                                           HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
@@ -247,7 +247,7 @@
                                                         ImageSize="{Binding ImageStatus}"
                                                         IsFullscreen="{Binding IsFullscreen}"/>
                                 </Panel>
-                            </ContentControl>
+                            </controls:TouchControl>
                             
                         </Panel>
                     </Panel>

@@ -24,7 +24,8 @@
                 <ScrollViewer Grid.Row="1">
                     <TreeView Width="250" 
                               ItemsSource="{Binding LibraryRoot.Children}" 
-                              SelectedItem="{Binding SelectedLibraryNode, Mode=TwoWay}">
+                              SelectedItem="{Binding SelectedLibraryNode, Mode=TwoWay}"
+                                >
                         <TreeView.DataTemplates>
                             <TreeDataTemplate DataType="{x:Type vm:LibraryNodeViewModel}" 
                                               ItemsSource="{Binding Children}">
