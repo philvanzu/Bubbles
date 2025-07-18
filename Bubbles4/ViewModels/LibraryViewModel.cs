@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,7 +20,7 @@ namespace Bubbles4.ViewModels;
 public partial class LibraryViewModel : ViewModelBase, ISelectItems
 {
     public string Path { get; }
-    protected List<BookViewModel> _books = new();
+    protected readonly List<BookViewModel> _books = new();
     protected ObservableCollection<BookViewModel> _booksMutable = new();
     public ReadOnlyObservableCollection<BookViewModel> Books { get; }
     [ObservableProperty] BookViewModel? _selectedItem;
@@ -49,14 +48,20 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
 
     public virtual void Close()
     {
+        //__book0__issue__hack
+        //if( Books.Count != 0 )Books[0].Thumbnail?.Dispose();
+        
         if(SelectedItem != null) 
             SelectedItem.IsSelected = false;
         
         SelectedItem = null;
+        
         Clear();
     }
     public void Clear()
     {
+        //__book0__issue__hack
+        //if( Books.Count != 0 )Books[0].Thumbnail?.Dispose();
         _books.Clear();
         _booksMutable.Clear();
         OnPropertyChanged(nameof(Count));
@@ -178,7 +183,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
 
 
     [RelayCommand]
-    private async Task BookPrepared(object? parameter)
+    private void BookPrepared(object? parameter)
     {
         if (parameter is BookViewModel vm)
         {
@@ -189,18 +194,18 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
                 return;
             }
             */
-            await vm.PrepareThumbnailAsync();
+            vm.PrepareThumbnail();
         }
             
     }
 
     [RelayCommand]
-    private async Task BookClearing(object? parameter)
+    private void BookClearing(object? parameter)
     {
         if (parameter is BookViewModel vm)
         {
             //Console.WriteLine($"Clearing Thumbnail for book: {vm.Path}");
-            await vm.ClearThumbnailAsync();    
+            vm.ClearThumbnail();    
         }
             
     }
@@ -268,6 +273,9 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
             .Where(b => MatchesKeywords(b, _filters))
             .OrderBy(b => b, comparer);
 
+        //__book0__issue__hack
+        //if( Books.Count != 0 )Books[0].Thumbnail?.Dispose();
+        
         _booksMutable.Clear();
         _booksMutable.AddRange(filtered);
 
@@ -467,7 +475,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     
     private int _watcherRunning;
 
-    public void EnqueueWatcherEvent((BookViewModel? add, BookViewModel? remove, bool sort) item)
+    private void EnqueueWatcherEvent((BookViewModel? add, BookViewModel? remove, bool sort) item)
     {
         Console.WriteLine($"watch removed: {item.remove}, added: {item.add}");
         _watcherProcessQueue.Enqueue(item);
@@ -487,7 +495,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         }
     }
     
-    public async Task ProcessWatcherEvents()
+    private async Task ProcessWatcherEvents()
     {
         bool dosort = false;
         HashSet<string> addedPaths = new(StringComparer.OrdinalIgnoreCase);

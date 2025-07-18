@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Bubbles4.Models;
+using Bubbles4.ViewModels;
 
 namespace Bubbles4.Controls;
 
@@ -125,7 +126,8 @@ public class VirtualizedItemsRepeater : ItemsRepeater
             if(idx != -1) ScrollIntoView(idx);
         }
     }
-
+    
+    
     private void OnElementPreparedInternal(object? sender, ItemsRepeaterElementPreparedEventArgs e)
     {
         
@@ -133,6 +135,22 @@ public class VirtualizedItemsRepeater : ItemsRepeater
             _elementSize = new Size(e.Element.Width, e.Element.Height);
         
         var context = e.Element.DataContext;
+        
+        //__item0__issue__hack
+        if (context is BookViewModel book && book.IsFirstBook)
+        {
+            int row  = ViewportRow();
+            if (row > 3) return; //actual hack
+            Console.WriteLine($"first book prepared : Viewport at row {row}");
+        }
+
+        if (context is PageViewModel page && page.IsFirstPage)
+        {
+            int row  = ViewportRow();
+            if (row > 2) return;//actual hack
+            Console.WriteLine($"first page prepared : Viewport at row {row}");
+        }    
+
         ItemPreparedCommand?.Execute(context);
 
         ItemPrepared?.Invoke(this, context);
@@ -141,11 +159,34 @@ public class VirtualizedItemsRepeater : ItemsRepeater
     private void OnElementClearingInternal(object? sender, ItemsRepeaterElementClearingEventArgs e)
     {
         var context = e.Element.DataContext;
+        
+        //__item0__issue__hack
+        if (context is BookViewModel book && book.IsFirstBook)
+        {
+            int row  = ViewportRow();
+            if (row < 4) return;//actual hack
+            Console.WriteLine($"first book clearing : Viewport at row {row}");
+        }
+        if (context is PageViewModel page && page.IsFirstPage)
+        {
+            int row  = ViewportRow();
+            if (row < 3) return;//actual hack
+            Console.WriteLine($"first page clearing : Viewport at row {row}");
+        }    
+        
         ItemClearingCommand?.Execute(context);
-
         ItemCleared?.Invoke(this, context);
     }
-    
+
+    private int ViewportRow()
+    {
+        var scrollViewer = FindParentScrollViewer(this);
+        if (_elementSize == null || scrollViewer == null)
+            return -1;
+        
+        double itemHeight = _elementSize.Value.Height;
+        return (int)( scrollViewer.Offset.Y / itemHeight);
+    }
     private void ScrollIntoView(int index)
     {
         var scrollViewer = FindParentScrollViewer(this);

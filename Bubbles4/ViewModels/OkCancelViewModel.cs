@@ -15,7 +15,9 @@ public partial class OkCancelViewModel: ViewModelBase
     }
     public string OkText { get; set; } = "OK";
     public string CancelText { get; set; } = "Cancel";
-    public string Title { get; set; }="Ok Cancel Dialog"; 
+    public string Title { get; set; }="Ok Cancel Dialog";
+    public bool ShowOkButton { get; set; } = true;
+    public bool ShowCancelButton { get; set; } = true;
     [RelayCommand]
     public void OnOkPressed()
     {
@@ -36,6 +38,15 @@ public partial class OkCancelViewModel: ViewModelBase
             window?.Close(false); // Return the result from ShowDialog
         }
 
+    }
+
+    public void Refresh()
+    {
+        OnPropertyChanged(nameof(OkText));
+        OnPropertyChanged(nameof(CancelText));
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(ShowOkButton));
+        OnPropertyChanged(nameof(Content));
     }
 
 }

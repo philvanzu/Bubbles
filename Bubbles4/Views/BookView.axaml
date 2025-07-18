@@ -13,46 +13,44 @@
              x:DataType="vm:BookViewModel">
 
     
-    <ScrollViewer>
+    <ScrollViewer x:Name="ScrollViewer" IsDeferredScrollingEnabled="True">
         <ctrl:VirtualizedItemsRepeater ItemsSource="{Binding Pages}"
                                        ItemPreparedCommand="{Binding PagePreparedCommand}"
-                                       ItemClearingCommand="{Binding PageClearingCommand}">
-            <!--
-            <i:Interaction.Behaviors>
-                <bhv:AutoscrollToSelectedOffsetBehavior Width="132" Height="152" />
-            </i:Interaction.Behaviors>
-            -->
+                                       ItemClearingCommand="{Binding PageClearingCommand}"
+                                       x:Name="PagesRepeater">
+
             <ctrl:VirtualizedItemsRepeater.Layout>
-                <!--<WrapLayout Orientation="Horizontal"/>-->
                 <UniformGridLayout Orientation="Horizontal" MaximumRowsOrColumns="0"/>
             </ctrl:VirtualizedItemsRepeater.Layout>
             <ctrl:VirtualizedItemsRepeater.ItemTemplate>
                 <DataTemplate>
                         <Grid Width="132" Height="152">
-                            <Border>
-                            <StackPanel >
-                                
+                            <Border Background="Transparent"
+                                    ToolTip.Tip="{Binding Name}"
+                                    Tag="{Binding IsSelected}">
                                 <i:Interaction.Behaviors>
-                                    <bhv:PointerPressedCommandBehavior Command="{Binding PointerPressed}" />
+                                    <bhv:PointerPressedCommandBehavior 
+                                        Command="{Binding ListItemPointerPressedCommand}" />
                                 </i:Interaction.Behaviors>
-                                
-                                <StackPanel.ContextMenu>
-                                    <ContextMenu>
-                                        <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}" />
-                                        <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
-                                    </ContextMenu>
-                                </StackPanel.ContextMenu>
+                                <StackPanel >
+                                    <StackPanel.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}" />
+                                            <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+                                        </ContextMenu>
+                                    </StackPanel.ContextMenu>
 
-                                <Border BorderBrush="White" BorderThickness="1" CornerRadius="5" Width="128" Height="128">
-                                    <Grid>
-                                        <Image Source="{Binding Thumbnail}" Stretch="Uniform"/>
-                                    </Grid>
-                                </Border>
-                                <TextBlock Name="FileNameTextBlock" HorizontalAlignment="Left" Margin="3" Text="{Binding Name}" />
-                            </StackPanel>
+                                    <Border BorderBrush="White" BorderThickness="1" CornerRadius="5" Width="128" Height="128">
+                                        <Grid>
+                                            <Image Source="{Binding Thumbnail}" Stretch="Uniform"/>
+                                        </Grid>
+                                    </Border>
+                                    <TextBlock Name="FileNameTextBlock" HorizontalAlignment="Left" Margin="3" Text="{Binding Name}" />
+                                </StackPanel>
                             </Border>
-                            <Border Width="132" Height="152" Background="#55ffffff" 
+                            <Border Background="#55ffffff" 
                                     IsVisible="{Binding IsSelected}"
+                                    IsHitTestVisible="False"
                                     BorderBrush="transparent" BorderThickness="1" CornerRadius="5"/>
                         </Grid>
                 </DataTemplate>

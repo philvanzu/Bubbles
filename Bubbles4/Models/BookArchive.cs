@@ -345,7 +345,7 @@ public class BookArchive : BookBase
     }
 
     public override string MetaDataPath =>
-        System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Path), 
+        System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Path)!, 
             System.IO.Path.GetFileNameWithoutExtension(Path));
 
     #endregion

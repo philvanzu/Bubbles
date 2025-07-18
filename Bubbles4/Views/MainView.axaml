@@ -6,7 +6,6 @@
              xmlns:vm="clr-namespace:Bubbles4.ViewModels"
              xmlns:views="clr-namespace:Bubbles4.Views"
              xmlns:controls="clr-namespace:Bubbles4.Controls"
-             
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Bubbles4.Views.MainView"
              x:DataType="vm:MainViewModel"
@@ -37,7 +36,9 @@
                         <MenuItem Header="Close Library" Command="{Binding CloseLibraryCommand}"
                                   IsEnabled="{Binding Library, Converter={StaticResource NullToInverseBoolean}}"/>
                         <MenuItem Header="Edit Preferences" Command="{Binding EditPreferencesCommand}" />
-                        <MenuItem Header="Control Scheme helper" Command="{Binding EditPreferencesCommand}" />
+                        <MenuItem Header="Edit Control Scheme" 
+                                  Command="{Binding EditPreferencesCommand}"
+                                  CommandParameter="true"/>
                         <MenuItem Header="About..." Command="{Binding EditPreferencesCommand}" />
                     </MenuItem>
                 </Menu>

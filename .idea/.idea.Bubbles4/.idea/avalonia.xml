@@ -20,6 +20,7 @@
         <entry key="Bubbles4/Views/ProgressDialogView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/ProgressView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/SortHeaderView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/UserSettingsEditorView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
       </map>
     </option>
   </component>

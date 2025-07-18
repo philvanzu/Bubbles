@@ -13,22 +13,13 @@
              x:Class="Bubbles4.Views.LibraryView"
              x:DataType="vm:LibraryViewModel">
     
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-         to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:LibraryViewModel />
-    </Design.DataContext>
-    
-        <ScrollViewer x:Name="scrollViewer" IsDeferredScrollingEnabled="true">
+   
+        <ScrollViewer x:Name="ScrollViewer" IsDeferredScrollingEnabled="True">
         <ctrl:VirtualizedItemsRepeater ItemsSource="{Binding Books}" 
                                        ItemPreparedCommand="{Binding BookPreparedCommand}"
                                        ItemClearingCommand="{Binding BookClearingCommand}"
-                                       x:Name="itemsRepeater">
-            <!--
-            <i:Interaction.Behaviors>
-               <bhv:AutoscrollToSelectedOffsetBehavior Width="180" Height="185" />
-            </i:Interaction.Behaviors>
-            -->
+                                       x:Name="BooksRepeater">
+
             <ctrl:VirtualizedItemsRepeater.Layout>
                 <!--<WrapLayout Orientation="Horizontal"/>-->
                 <UniformGridLayout Orientation="Horizontal" MaximumRowsOrColumns="0"/>
@@ -40,7 +31,8 @@
                             ToolTip.Tip="{Binding Path}"
                                 Tag="{Binding IsSelected}">
                             <i:Interaction.Behaviors>
-                                <bhv:PointerPressedCommandBehavior Command="{Binding OnSelection}" />
+                                <bhv:PointerPressedCommandBehavior 
+                                    Command="{Binding OnSelection}" />
                             </i:Interaction.Behaviors>
                             <StackPanel>
                                 <StackPanel.ContextMenu>

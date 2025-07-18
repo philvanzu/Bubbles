@@ -32,16 +32,20 @@ public partial class App : Application
             if (desktop.Args != null)
             {
                 string? libraryPath = desktop.Args.FirstOrDefault();
-                var mvm = new MainViewModel(dialogService);
                 var appState = AppStorage.Instance.AppState;
+                
                 var mainWindow = new MainWindow
                 {
-                    DataContext = mvm,
                     Position = appState.WindowPosition,
                     Width = appState.WindowWidth,
                     Height = appState.WindowHeight,
                     WindowState = appState.WindowState
                 };
+                var mvm = new MainViewModel(mainWindow, dialogService);
+                mainWindow.DataContext = mvm;
+                InputManager.MainViewModel = mvm;
+                
+  
                 mvm.MainWindow = mainWindow;
                 mainWindow.Opened += (sender, e) =>
                 {
@@ -49,6 +53,7 @@ public partial class App : Application
                     {
                         try
                         {
+                            InputManager.Instance.Initialize();
                             await Task.Delay(1000);
                             mvm.Initialize(libraryPath);
                         }
@@ -64,7 +69,10 @@ public partial class App : Application
                     if (mvm.ShutdownCoordinator?.IsShutdownBlocked == true)
                     {
                         e.Cancel = true;
+                        return;
                     }
+                    
+                    AppStorage.Instance.Save();
                 };
                 mainWindow.Closed += (sender, e) =>
                 {

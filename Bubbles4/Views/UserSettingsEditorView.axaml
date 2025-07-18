@@ -1,0 +1,253 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Bubbles4.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="Bubbles4.Views.UserSettingsEditorView"
+        x:DataType="vm:UserSettingsEditorViewModel"
+        Title="Edit Preferences"
+        Width="800"
+        SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="#505050">
+    
+    <Grid RowDefinitions="32, *">
+        <StackPanel Orientation="Horizontal">
+            <ToggleButton 
+                x:Name="Tab1Toggle"
+                Content="User Settings" 
+                IsChecked="True" />
+            <ToggleButton
+                x:Name="Tab2Toggle"
+                Content="Control Scheme" />
+        </StackPanel>
+        
+        
+        <Border Grid.Row="1" BorderBrush="White" BorderThickness="1"  Background="#303030">
+            <Grid Grid.RowDefinitions="*, 48">
+            <!--User Settings Tab-->
+                <ContentControl  x:Name="TabPage1">
+            
+                    <StackPanel Margin="16">
+                        <TextBlock FontSize="17" HorizontalAlignment="Center">Edit Global Preference</TextBlock>
+                        <Separator Width="300"/>
+                        <TextBlock>Mouse Sensitivity : </TextBlock>
+                        <Slider Minimum="0" Maximum="1" Value="{Binding MouseSensitivity, Mode=TwoWay}"/>
+                        <Border Height="16"/>
+                        <TextBlock> Controller Sticks Sensitivity : </TextBlock>
+                        <Slider Minimum="0" Maximum="1" Value="{Binding ControllerStickSensitivity, Mode=TwoWay}"/>
+                        <Border Height="16"/>
+                        <Grid ColumnDefinitions="Auto, 16, Auto" RowDefinitions="Auto, Auto, Auto">
+                            <TextBlock Grid.Column="0" Grid.Row="0"  Text="Image Viewing Params Animation takes (ms)"/>
+                            <TextBox Grid.Column="2" Grid.Row="0" Text="{Binding IvpAnimSpeed}"/>
+                        
+                            <TextBlock Grid.Column="0" Grid.Row="1" Text="Hide Cursor in Fullscreen After seconds"/>
+                            <TextBox Grid.Column="2" Grid.Row="1" Text="{Binding HideCursorTime}"/>
+                        
+                            <TextBlock Grid.Column="0" Grid.Row="2" Text="Fullscreen Scrolling Turn Page Bouncer lasts (ms)"/>
+                            <TextBox Grid.Column="2" Grid.Row="2" Text="{Binding TurnpageBouncingTime}"/>
+                        </Grid>
+                        <Border Height="8"/>
+                        <Separator Width="400" />
+                        <Border Height="8"/>
+                        <TextBlock VerticalAlignment="Center" FontSize="16">Status Overlay Times in Fullscreen</TextBlock>
+                    
+                        <Border Height="16"/>
+                        <TextBlock TextWrapping="Wrap">Show info for x seconds - (zero means persistent, negative number means don't show )</TextBlock>
+                        <Border Height="16"/>
+                        <Grid ColumnDefinitions="*,*">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock TextWrapping="Wrap" Text="Show Paging " 
+                                               Width="150" HorizontalAlignment="Left"/>
+                                    <TextBox Text="{Binding ShowPagingInfo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="60" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                                <Border Height="16"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock TextWrapping="Wrap" Text="Show Book Title" 
+                                               Width="150" HorizontalAlignment="Left"/>
+                                    <TextBox Text="{Binding ShowAlbumPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="60" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock TextWrapping="Wrap" Text="Show Page Title" 
+                                               Width="150" HorizontalAlignment="Left"/>
+
+                                    <TextBox Text="{Binding ShowPageName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="60" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                                <Border Height="16"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock TextWrapping="Wrap" Text="Show Pixel Size" 
+                                               Width="150" HorizontalAlignment="Left"/>
+                                    <TextBox Text="{Binding ShowImageSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"  Width="60" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>  
+            
+                </ContentControl>    
+                <Border Grid.Row="0"  x:Name="FocusDump" Focusable="True" IsVisible="True" Background="Transparent"/>
+                
+                <!--Control Scheme Tab-->
+                <ContentControl Grid.Row="0" x:Name="TabPage2" IsVisible="False">
+                    <Border BorderBrush="White" BorderThickness="1">
+                        <Grid  Height="600" HorizontalAlignment="Left">
+                            
+                            <Grid ColumnDefinitions="400, 400">
+                                <TextBlock Grid.Column="0" Text="Global Key Bindings"
+                                           FontSize="16" FontWeight="Bold" Margin="8"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Top"/>
+                                <Button Grid.Column="0" Content="Reset to Defaults"
+                                        Command="{Binding ResetBindingsCommand}"
+                                        Margin="8 8 8 4" VerticalAlignment="Bottom" HorizontalAlignment="Center"/>
+                                <ScrollViewer Grid.Column="0" AllowAutoHide="False" Margin="0 32 0 50">
+                                    <StackPanel>
+                                        <ItemsRepeater  
+                                            ItemsSource="{Binding ActionBindings}" 
+                                            Margin="8">
+                                            <ItemsRepeater.Layout>
+                                                <StackLayout Orientation="Vertical" Spacing="16"/>
+                                            </ItemsRepeater.Layout>
+                                            <ItemsRepeater.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border BorderBrush="White"
+                                                            BorderThickness="1"
+                                                            Width="330"
+                                                            Padding="8">
+                                                        <Grid>
+                                                            <StackPanel>
+                                                                <TextBlock 
+                                                                    Text="{Binding ActionName}" 
+                                                                           FontSize="16" FontWeight="Bold"
+                                                                           VerticalAlignment="Top"/>
+                                                                <Grid ColumnDefinitions="50, 200">
+                                                                    <Button Grid.Column="0" 
+                                                                            ToolTip.Tip="Add new KeyBinding"
+                                                                            Content="+"
+                                                                            Command="{Binding AddListenerBindingCommand}"
+                                                                            HorizontalAlignment="Left"
+                                                                            VerticalAlignment="Bottom"/>  
+                                                                    <ItemsRepeater Grid.Column="1" 
+                                                                    ItemsSource="{Binding  Inputs}"
+                                                                    Margin="48 8"
+                                                                    Width="200"
+                                                                    HorizontalAlignment="Left">
+                                                                    <ItemsRepeater.Layout>
+                                                                        <StackLayout Orientation="Vertical"/>
+                                                                    </ItemsRepeater.Layout>
+                                                                    <ItemsRepeater.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            
+                                                                                <Grid ColumnDefinitions="48, *, 48">
+                                                                                    <Grid>
+                                                                                        <TextBlock Text="⌨️" 
+                                                                                                   IsVisible="{Binding IsKeyCombo}"
+                                                                                                   VerticalAlignment="Bottom"/>
+                                                                                        <TextBlock Text="🎮" 
+                                                                                                   IsVisible="{Binding IsGamepadButton}"
+                                                                                                   VerticalAlignment="Bottom"/>
+                                                                                    </Grid>
+                                                                                    <TextBlock Grid.Column="1"  Text="{Binding Name}" 
+                                                                                               HorizontalAlignment="Left"
+                                                                                               VerticalAlignment="Bottom"/>
+                                                                                    <Button Grid.Column="2" Width="24" Height="24" Padding="2" Background="Transparent" BorderBrush="Transparent"
+                                                                                            ToolTip.Tip="Remove Key Binding"
+                                                                                            Command="{Binding RemoveCommand}">
+                                                                                            
+                                                                                        <Path Stroke="White" StrokeThickness="1.5" Fill="Transparent" Stretch="Uniform" 
+                                                                                              Data="M6,7 L6,19 C6,20.1046 6.89543,21 8,21 L16,21 C17.1046,21 18,20.1046 18,19 L18,7 M9,7 L9,4 C9,3.44772 9.44772,3 10,3 L14,3 C14.5523,3 15,3.44772 15,4 L15,7 M10,10 L10,17 M14,10 L14,17"/>
+                                                                                    </Button>
+                                                                                </Grid>
+                                                                            
+                                                                            </DataTemplate>
+                                                                        </ItemsRepeater.ItemTemplate>
+                                                                    </ItemsRepeater>
+                                                                </Grid>
+                                                                
+                                                            
+                                                                
+                                                            </StackPanel>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsRepeater.ItemTemplate>
+                                        </ItemsRepeater>
+                                    </StackPanel>
+                                </ScrollViewer>
+                                    
+                                <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                                    <TextBlock Text="Dynamic Zoom and Span Controls"
+                                               FontSize="16"
+                                               FontWeight="Bold"
+                                               HorizontalAlignment="Center"
+                                               Margin="8"/>
+                                    <Border Margin="8"
+                                        BorderBrush="White"
+                                        BorderThickness="1"
+                                        Width="330"  
+                                        HorizontalAlignment="Center">
+                                        
+                                        <StackPanel Margin="8">
+                                            <TextBlock Text="🖱 Pan"
+                                                       FontSize="16" FontWeight="Bold"/>
+                                            
+                                            <ComboBox Grid.Column="0" x:Name="MPanComboBox"
+                                                      Margin="16"
+                                                      Width="250"
+                                                      ItemsSource="{Binding MouseButtons}"
+                                                      SelectedItem="{Binding DragPanBtn, Mode=TwoWay}"/>
+                                            <Separator HorizontalAlignment="Stretch" Margin = "8"/>                                          
+                                            <TextBlock  Text="🖱 Zoom" FontSize="16" FontWeight="Bold"/>
+                                            <ComboBox Grid.Column="0" x:Name="MZoomComboBox"
+                                                Margin="16"
+                                                Width="250"
+                                                ItemsSource="{Binding MouseButtons}"
+                                                SelectedItem="{Binding DragZoomBtn, Mode=TwoWay}"/>
+                                            <Separator HorizontalAlignment="Stretch" Margin = "8"/>
+                                            <TextBlock   Text="🖱 Draw Zoom" FontSize="16" FontWeight="Bold"/>
+                                            <ComboBox Grid.Column="0" x:Name="MDrawComboBox"
+                                                    Margin="16"
+                                                    Width="250"
+                                                    ItemsSource="{Binding MouseButtons}"
+                                                    SelectedItem="{Binding DrawZoomRectBtn, Mode=TwoWay}"/>
+                                            <Separator HorizontalAlignment="Stretch" Margin = "8"/>
+                                            <TextBlock  Text="🎮 ThumbStick Pan" FontSize="16" FontWeight="Bold"/>
+                                            <ComboBox Grid.Column="0" x:Name="SPanComboBox"
+                                                Margin="16"
+                                                Width="250"
+                                                ItemsSource="{Binding StickNames}"
+                                                SelectedItem="{Binding StickPan, Mode=TwoWay}"/>
+                                            <Separator HorizontalAlignment="Stretch" Margin = "8"/>
+                                            <TextBlock Text="🎮 ThumbStick Zoom" FontSize="16" FontWeight="Bold"/>
+                                            <ComboBox Grid.Column="0" x:Name="SZoomComboBox"
+                                                Margin="16"
+                                                Width="250"
+                                                ItemsSource="{Binding StickNames}"
+                                                SelectedItem="{Binding StickZoom, Mode=TwoWay}"/>
+                                        </StackPanel>  
+                                    </Border>
+                                    <Button Content="Reset to Defaults"
+                                            Command="{Binding ResetControlsCommand}"
+                                            Margin="8" VerticalAlignment="Bottom" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                        
+                            </Grid>
+                            
+                        </Grid>
+                    </Border>
+                </ContentControl>
+            
+                
+                <Button Grid.Row="1" Content="OK" 
+                        Command="{Binding OkPressedCommand}" 
+                        Width="80" 
+                        HorizontalAlignment="Center"/>
+                
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

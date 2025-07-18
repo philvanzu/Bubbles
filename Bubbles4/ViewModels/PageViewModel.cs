@@ -20,8 +20,9 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
     private Page _page;
     public Page Model => _page;
     public CancellationTokenSource? ImgLoadCts { get; set; }
+    
+    public bool IsFirst { get; set; }
     private Bitmap? _thumbnail;
-     
     public Bitmap? Thumbnail
     {
         get => _thumbnail;
@@ -34,16 +35,20 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
             */
         } 
     }
+    
 
     public ImageViewingParams? Ivp
     {
         get => Book.Ivps?.Get(Name);
         set
         {
-            value.filename = Name;
-            Book.Ivps?.AddOrUpdate(value);
+            if (value != null)
+            {
+                value.filename = Name;
+                Book.Ivps?.AddOrUpdate(value);
+            }
+            else Book.Ivps?.Remove(Name);
             //Console.WriteLine($"ivp saved: {Path}");
-
         }
     }
     
@@ -62,7 +67,7 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
     {
         Unload();
     }
-    [RelayCommand] public void PointerPressed()=>IsSelected = true;
+    [RelayCommand] private void ListItemPointerPressed()=>IsSelected = true;
     [RelayCommand]
     private void OpenInExplorer()
     {
@@ -89,7 +94,7 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
     }
 
     
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanDelete))]
     private async Task Delete()
     {
         var dialog = new OkCancelViewModel
@@ -116,10 +121,10 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
             }    
         }
     }
-    private bool CanDelete => Book.Model is BookDirectory;
+    private bool CanDelete() => Book.Model is BookDirectory;
     [ObservableProperty] bool _isSelected;
-    
 
+    public bool IsFirstPage => Book.GetPageIndex(this) == 0;
     
     public PageViewModel(BookViewModel book, Page page)
     {
@@ -145,14 +150,7 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
         Thumbnail?.Dispose();
         Thumbnail = null;
     }
-    public async Task UnLoadAsync()
-    {
-        await Dispatcher.UIThread.InvokeAsync(() => Unload());
-    }
-    public async Task LoadThumbnailAsync()
-    {
-        await Book.PreparePageThumbnailAsync(this);
-    }
+
     
 
     

@@ -86,13 +86,16 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 _pages.Clear();
-                foreach (var page in pgs)
-                {
-                    _pages.Add(new PageViewModel(this, page));
-                    _model.PagesCts.TryAdd(page.Path, null);
-                }
 
-                Sort();
+                if (pgs.Count > 0)
+                {
+                    foreach (var page in pgs)
+                    {
+                        _pages.Add(new PageViewModel(this, page));
+                        _model.PagesCts.TryAdd(page.Path, null);
+                    }
+                }
+                Sort();                
                 Model.PageCount = _pages.Count;
 
                 Ivps = BookMetadata.Load(_model.IvpPath);
@@ -166,14 +169,20 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
 
 
     
-    public async Task PrepareThumbnailAsync()
+    public void PrepareThumbnail()
     {
+        bool firstbook = _library.GetBookIndex(this) == 0;
+        if (firstbook)
+        {
+            //Console.WriteLine("firstbook prepared");
+        }
+
         if (_isThumbnailLoading) return;
         
         _isThumbnailLoading = true;
-        try
+        _ = Task.Run(async () =>
         {
-            _ = Task.Run(async () =>
+            try
             {
                 var bitmap = await Model.LoadThumbnailAsync();
                 if(bitmap != null)
@@ -182,55 +191,76 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
                             Thumbnail.Dispose();
 
                         Thumbnail = bitmap;
-                    });    
-            });
-        }
-        catch (Exception ex){Console.WriteLine(ex);}
-        finally
-        {
-            _isThumbnailLoading = false;
-        }
-        await Task.CompletedTask;
-    }
-
-    public async Task ClearThumbnailAsync()
-    {
+                    }); 
+            }
+            catch (Exception ex){Console.WriteLine(ex);}
+            finally
+            {
+                _isThumbnailLoading = false;
+            }
+        });
         
+    }
+    
+    //__book0__issue__hack
+    public bool IsFirstBook=>_library.GetBookIndex(this) == 0;
+    
+    public void ClearThumbnail()
+    {
         if (_isThumbnailLoading) _model.CancelThumbnailLoad();
         Thumbnail?.Dispose();
         Thumbnail = null;
     
-        await Task.CompletedTask;
         //Console.WriteLine($"unloading thmbnail idx {} at :{Name}");
     }
-    public async Task PreparePageThumbnailAsync(PageViewModel page)
+    
+    [RelayCommand]
+    private void PagePrepared(object? parameter)
     {
-        if (page.Thumbnail != null || page.IsThumbnailLoading || string.IsNullOrEmpty(page.Path))
-            return;
-        page.IsThumbnailLoading = true;
-        try
+        if (parameter is PageViewModel vm)
         {
-            _ = Task.Run(async () =>
+            PreparePageThumbnail(vm);
+        }
+            
+    }
+
+    [RelayCommand]
+    private void PageClearing(object? parameter)
+    {
+        if (parameter is PageViewModel vm)
+        {
+            vm.Unload();       
+        }
+            
+    }
+    public void PreparePageThumbnail(PageViewModel page)
+    {
+        if ( page.IsThumbnailLoading )
+            return;
+        
+        page.IsThumbnailLoading = true;
+        _ = Task.Run(async () =>
+        {
+            try
             {
-                var bitmap  = await _model.LoadThumbnailAsync(page.Path);
+                var bitmap = await _model.LoadThumbnailAsync(page.Path);
                 if (bitmap != null)
                 {
                     Dispatcher.UIThread.Post(() =>
                     {
-                        if(page.Thumbnail != null)
+                        if (page.Thumbnail != null)
                             page.Thumbnail.Dispose();
-                    
+
                         page.Thumbnail = bitmap;
-                    });    
+                    });
                 }
-            });
-            
-        }
-        finally
-        {
-            page.IsThumbnailLoading = false;
-        }
-        await Task.CompletedTask;
+            }
+            finally
+            {
+                page.IsThumbnailLoading = false;
+            }
+        });
+
     }
     
 
@@ -434,25 +464,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         if(pageViewModel == null)return -1;
         return Pages.IndexOf(pageViewModel);
     }
-    [RelayCommand]
-    private async Task PagePrepared(object? parameter)
-    {
-        if (parameter is PageViewModel vm)
-        {
-            await vm.LoadThumbnailAsync();
-        }
-            
-    }
 
-    [RelayCommand]
-    private async Task PageClearing(object? parameter)
-    {
-        if (parameter is PageViewModel vm)
-        {
-            await vm.UnLoadAsync();       
-        }
-            
-    }
     
     [ObservableProperty] PageViewModel? _selectedPage;
 

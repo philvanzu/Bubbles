@@ -223,6 +223,7 @@ public class ButtonEventArgs : EventArgs
 {
     public ButtonName Button { get; }
     public bool Pressed { get; }
+    public bool Handled { get; set; }
 
     public ButtonEventArgs(ButtonName button, bool pressed)
     {

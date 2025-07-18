@@ -26,6 +26,8 @@ public class DialogService : IDialogService
         window.DataContext = viewModel;
         return await window.ShowDialog<TResult>(owner);
     }
+    
+    
 
     public void ShowModelessDialog(Window owner, object viewModel)
     {
@@ -33,13 +35,13 @@ public class DialogService : IDialogService
         window.DataContext = viewModel;
         window.Show(owner);
     }
-    private Window CreateWindowForViewModel(object viewModel)
+    public  Window CreateWindowForViewModel(object viewModel)
     {
         return viewModel switch
         {
             LibraryConfigViewModel vm => new LibraryConfigWindow(vm),
-            OkCancelViewModel vm => new OkCancelWindow(vm), // <-- Add this line
-            PreferencesEditorViewModel vm => new PreferencesEditorView(vm),
+            OkCancelViewModel vm => new OkCancelWindow(vm), 
+            UserSettingsEditorViewModel vm => new UserSettingsEditorView(vm),
             ProgressDialogViewModel vm => new ProgressDialogView(vm),
             _ => throw new NotImplementedException($"No view mapped for view model: {viewModel.GetType().Name}")
         };

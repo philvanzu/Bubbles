@@ -14,14 +14,7 @@
         Focusable="True"
         Width="800" Height="600">
 
-        <Window.KeyBindings>
-                <KeyBinding Gesture="F11" Command="{Binding ToggleFullscreenCommand}" />
-                <KeyBinding Gesture="Alt+Enter" Command="{Binding ToggleFullscreenCommand}" />
-                <KeyBinding Gesture="PageDown" Command="{Binding NextBookCommand}" />
-                <KeyBinding Gesture="PageUp" Command="{Binding PreviousBookCommand}" />
 
-                <!-- See other input events sent directly to the viewer in mainview codebehind and FastImageViewer.cs-->
-        </Window.KeyBindings>
         
         <views:MainView />
         

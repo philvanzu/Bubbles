@@ -90,8 +90,17 @@ public partial class MainViewModel : ViewModelBase
         }
 
         if (LibraryRoot != null)
+        {
+            if (LibraryRoot.SelectedNode != null)
+            {
+                if (LibraryRoot.SelectedNode.SelectedItem != null)
+                    LibraryRoot.SelectedNode.SelectedItem.IsSelected = false;
+            }
             LibraryRoot.SelectedNode = value;
+        }
+            
     }
+    
 
     #endregion
 
@@ -133,8 +142,9 @@ public partial class MainViewModel : ViewModelBase
     public ShutdownCoordinator ShutdownCoordinator { get; private set; } = new();
     
 
-    public MainViewModel(IDialogService dialogService)
+    public MainViewModel(MainWindow window, IDialogService dialogService)
     {
+        _window = window;
         _dialogService = dialogService;
         _cache = new SlidingImageCache(this);
         _librarySortHeader = new FullSortHeaderViewModel();
@@ -145,6 +155,7 @@ public partial class MainViewModel : ViewModelBase
         _nodeSortHeader.StateChanged += OnNodeSortHeaderStateChanged;
         AppData = AppStorage.Instance;
         _progressDialog = new ProgressDialogViewModel(_dialogService);
+        
     }
 
     public void Initialize(string? libraryPath)
@@ -161,7 +172,7 @@ public partial class MainViewModel : ViewModelBase
 
         if (Library != null) 
             CloseLibrary();
-        AppData.Save();
+        
         _watcher.StopWatching();
     }
     
@@ -348,13 +359,19 @@ public partial class MainViewModel : ViewModelBase
     
 
     [RelayCommand]
-    private async Task EditPreferences()
+    private async Task EditPreferences(string? showInputTab=null)
     {
-        var dialogVm = new PreferencesEditorViewModel();
+        var dialogVm = new UserSettingsEditorViewModel(_dialogService);
         
         if (MainWindow != null)
         {
-            var result = await _dialogService.ShowDialogAsync<UserSettings>(MainWindow, dialogVm);
+            var dlgWin = new UserSettingsEditorView(dialogVm);
+            if (showInputTab == "true")
+            {
+                dlgWin.Tab2Toggle.IsChecked = true;
+                dlgWin.TabButtonToggled(dlgWin.Tab2Toggle, new());
+            }
+            var result = await dlgWin.ShowDialog<UserSettings?>(MainWindow);
             if (result != null)
             {
                 await Dispatcher.UIThread.InvokeAsync(() =>
@@ -362,7 +379,7 @@ public partial class MainViewModel : ViewModelBase
                     AppData.UserSettings = result;
                     AppData.Save();
                 });
-            }    
+            }
         }
     }
 
@@ -520,7 +537,8 @@ public partial class MainViewModel : ViewModelBase
                     await book.LoadingTask;
                     //Console.WriteLine($"loading task status : {book.LoadingTask.Status}");
                 }
-                
+
+                if (book.PageCount == 0) return;
 
                 //select next page
                 more = !book.NextPage();
@@ -556,7 +574,7 @@ public partial class MainViewModel : ViewModelBase
                 if (book.LoadingTask != null)
                     //wait for the pages list loading task to complete.
                     await book.LoadingTask;
-
+                if(book.PageCount == 0) return;
                 //select previous page
                 more = !book.PreviousPage();
                 

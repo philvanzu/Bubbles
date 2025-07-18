@@ -15,18 +15,18 @@ public class AppStorage
     private static readonly Lazy<AppStorage> _instance = new(() => Load());
     public static AppStorage Instance => _instance.Value;
     
-    const string _preferencesKey = "__Preferences__";
+    const string _userSettingsKey = "__UserSettings__";
     const string _appStateKey = "__AppState__";
     private Dictionary<string, string> _data;
     
     
-
+    
     public UserSettings UserSettings
     {
         get
         {
             string? json;
-            _data.TryGetValue(_preferencesKey, out json);
+            _data.TryGetValue(_userSettingsKey, out json);
             UserSettings? pref = (!string.IsNullOrEmpty(json)) ? UserSettings.Deserialize(json) : null;
             
             return pref != null? pref : new UserSettings();
@@ -34,7 +34,7 @@ public class AppStorage
         set
         {
             string json = value.Serialize();    
-            _data[_preferencesKey] = json;
+            _data[_userSettingsKey] = json;
         }
     }
     
@@ -71,7 +71,7 @@ public class AppStorage
         get
         {
             var list = new ObservableCollection<string>(_data.Keys);
-            list.Remove(_preferencesKey);
+            list.Remove(_userSettingsKey);
             list.Remove(_appStateKey);
             return list;
         }
@@ -163,6 +163,7 @@ public class UserSettings
     public int ShowAlbumPath { get; set; } = 5;
     public int ShowPageName { get; set; } = -1;
     public int ShowImageSize { get; set; } = -1;
+    public string InputBindings { get; set; } = "";
     public string Serialize()
     {
         return JsonSerializer.Serialize(this);

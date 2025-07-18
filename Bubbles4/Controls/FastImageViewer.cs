@@ -13,7 +13,7 @@ using Bubbles4.Views;
 namespace Bubbles4.Controls {
     public class FastImageViewer : Control
     {
-        public enum Edge { Top, Bottom, Left, Right }
+        private enum Edge { Top, Bottom, Left, Right }
         
         private Point _panOffset = new(0, 0);
         private double _zoom = 1.0;
@@ -21,7 +21,7 @@ namespace Bubbles4.Controls {
         private double _fitZoom = 1.0;
         private double _fitWZoom = 1.0;
         private double _fitHZoom = 1.0;
-        private readonly double _maxZoom = 10.0;
+        private const double _maxZoom = 10.0;
         private Bitmap? _image;
         private Point _lastPointerPosition;
         private Size _lastViewportSize = new Size(0, 0);
@@ -63,7 +63,6 @@ namespace Bubbles4.Controls {
         bool InScrollMode => _isFullscreen && Config?.ScrollAction == LibraryConfig.ScrollActions.Scroll;
         bool BookChanged => _page?.Book != _previousBook;
         private bool KeepZoom => _isFullscreen && Config?.LookAndFeel == LibraryConfig.LookAndFeels.Reader && !BookChanged; 
-        private bool _enterFullscreenAfterNextLayoutUpdate;
         public FastImageViewer()
         {
             Focusable = true;
@@ -122,7 +121,7 @@ namespace Bubbles4.Controls {
             if(change.Property.Name ==  nameof(Data)){
 
                     var data = change.NewValue as ViewerData;
-                    var oldData = change.OldValue as ViewerData;
+                    //var oldData = change.OldValue as ViewerData;
                     
                     if (data?.Image == _image && data?.Page == _page)
                     {
@@ -212,11 +211,22 @@ namespace Bubbles4.Controls {
             if (_page != null && UseIvp)
             {
                 //Console.WriteLine($"fstoggled: {_fullscreenToggled}, fs:{_isFullscreen}, bounds:{Bounds.Size}");
-                _page.Ivp = _ivpAnim?.IsRunning == true ? _ivpAnim.EndIvp : GetIVP();
+                var ivp = _ivpAnim?.IsRunning == true ? _ivpAnim.EndIvp : GetIVP();
+                double defaultzoom = Config?.Fit switch
+                {
+                    LibraryConfig.FitTypes.Best => _fitZoom,
+                    LibraryConfig.FitTypes.Height => _fitHZoom,
+                    LibraryConfig.FitTypes.Width => _fitWZoom,
+                    LibraryConfig.FitTypes.Stock => 1.0,
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+
+                if (ivp!= null && Math.Abs(ivp.zoom - defaultzoom) < 0.0001) ivp = null;
+                _page.Ivp = ivp;
             }
                 
         }
-        public void OnEnteringFullscreen()
+        private void OnEnteringFullscreen()
         {
             //Console.WriteLine("setting fstoggled on");
             _fullscreenToggled = true;
@@ -461,7 +471,7 @@ namespace Bubbles4.Controls {
             }
         }
         //Pan & Zoom
-        public void PanTo(Point newPanOffset)
+        private void PanTo(Point newPanOffset)
         {
             _panOffset = newPanOffset;
             AdjustPanOffset();
@@ -471,7 +481,7 @@ namespace Bubbles4.Controls {
         //to try sometimes : set anchor to the mouse pos in client coordinates to see how it feels
         //Default anchor : center of the viewport
         //Default panOffset : _panOffset
-        public void ZoomTo(double zoomfactor, Point? panOffset = null, Point? anchor = null)
+        private void ZoomTo(double zoomfactor, Point? panOffset = null, Point? anchor = null)
         {
             var oldZoom = _zoom;
             
@@ -487,7 +497,7 @@ namespace Bubbles4.Controls {
             InvalidateVisual();
         }
 
-        public void Scroll(double deltaX, double deltaY)
+        private void Scroll(double deltaX, double deltaY)
         {
             if (_image == null) return;
             if ((_turnPageOnScrollDown || _noScrolling) && deltaY < 0)
@@ -548,7 +558,7 @@ namespace Bubbles4.Controls {
         }
         
         // Restore from IVP parameters
-        public void RestoreFromIVP(ImageViewingParams ivp)
+        private void RestoreFromIVP(ImageViewingParams ivp)
         {
 
             if (_image == null || Bounds.Width == 0 || Bounds.Height == 0)
@@ -570,7 +580,7 @@ namespace Bubbles4.Controls {
         }
 
         
-        public void AnimateIVP(ImageViewingParams end, LibraryConfig.FitTypes? startFit = null)
+        private void AnimateIVP(ImageViewingParams end, LibraryConfig.FitTypes? startFit = null)
         {
             if(_ivpAnim?.IsRunning == true)_ivpAnim.Stop();
             
@@ -606,7 +616,7 @@ namespace Bubbles4.Controls {
                 AppStorage.Instance.UserSettings.IvpAnimSpeed);
         }
 
-        public ImageViewingParams? GetIVP()
+        private ImageViewingParams? GetIVP()
         {
             if (_image == null || Bounds.Width == 0 || Bounds.Height == 0)
                 return null;
@@ -654,59 +664,91 @@ namespace Bubbles4.Controls {
             ZoomTo(_zoom + zoomAdjustment);
         }
 
-        private double _lastPinchScale=0;
+        private double _lastPinchScale=1;
         public void OnPinched(object? sender, PinchEventArgs e)
         {
-            double delta = e.Scale / _lastPinchScale;
+            //Do not fix floating point comparison here
+            //e.Scale is reset to precisely 1 at Pinch Start
+            // ReSharper disable once CompareOfFloatsByEqualityOperator
+            if (e.Scale == 1.0) _lastPinchScale = 1.0; 
+            
+            double multiplier = 1.0 + (e.Scale - _lastPinchScale);
             _lastPinchScale = e.Scale;
-
-            ZoomTo(_zoom * delta);
+            
+            ZoomTo(_zoom * multiplier);
+            e.Handled = true;
         }
         public void OnPointerMoved(object? sender, PointerEventArgs e)
         {
             if (_image == null) return;
-
+            
             var pointerProperties = e.GetCurrentPoint(this).Properties;
             var current = e.GetPosition(this);
             var delta = current - _lastPointerPosition;
             _lastPointerPosition = current;
-
+            
+            InputManager.MouseButton? button = null;
+            
             if (pointerProperties.IsLeftButtonPressed)
+                button = InputManager.MouseButton.LeftMouseButton;
+            else if (pointerProperties.IsMiddleButtonPressed)
+                button = InputManager.MouseButton.MiddleMouseButton;
+            else if (pointerProperties.IsRightButtonPressed)
+                button = InputManager.MouseButton.RightMouseButton;
+
+            if (button == InputManager.Instance.DragPanButton)
             {
                 PanTo(_panOffset + delta);
             }
-            else if (pointerProperties.IsMiddleButtonPressed)
+            else if (button == InputManager.Instance.DragZoomButton)
             {
                 var sensitivity = MapSensitivity(AppStorage.Instance.UserSettings.MouseSensitivity);
                 ZoomTo(_zoom * Math.Pow(1.01, sensitivity * -delta.Y));
             }
-            else if (pointerProperties.IsRightButtonPressed)
+            else if (button == InputManager.Instance.DrawZoomRectButton && UseIvp)
             {
-                if (UseIvp)
+                if (_ivpRect == null)
                 {
-                    if (_ivpRect == null)
-                    {
-                        _ivpRect = new IvpRect() { Start = current, End = current };
-                    }
-                    else
-                    {
-                        _ivpRect.End = current;
-                        InvalidateVisual();
-                    }    
+                    _ivpRect = new IvpRect() { Start = current, End = current };
                 }
+                else
+                {
+                    _ivpRect.End = current;
+                    InvalidateVisual();
+                }    
             }
         }
         public void OnPointerPressed(object? sender, PointerPressedEventArgs e)
         {
             _lastPointerPosition = e.GetPosition(this);
         }
-
+        
+        DateTime _lastTap = DateTime.MinValue;
+        private const int DoubleTapThresholdMs = 300;
         public void OnPointerReleased(object? sender, PointerEventArgs e)
         {
-            if (_page != null &&  UseIvp && _ivpRect != null)
+            var kind = e.GetCurrentPoint(this).Properties.PointerUpdateKind;
+            InputManager.MouseButton? button = kind switch
             {
-                if ( e.GetCurrentPoint(this).Properties.PointerUpdateKind == PointerUpdateKind.RightButtonReleased)
-                    _ivpRect.End = e.GetPosition(this);
+                PointerUpdateKind.LeftButtonReleased => InputManager.MouseButton.LeftMouseButton,
+                PointerUpdateKind.RightButtonReleased => InputManager.MouseButton.RightMouseButton,
+                PointerUpdateKind.MiddleButtonReleased =>InputManager.MouseButton.MiddleMouseButton,
+                _ => null
+            };
+            if(button == null )return;
+            
+            var now = DateTime.Now;
+            if ( _page != null &&  UseIvp && _ivpRect != null && button == InputManager.Instance.DrawZoomRectButton)
+            {
+                if (DateTime.Now - _ivpRect.StartTime < TimeSpan.FromMilliseconds(500))
+                {
+                    _ivpRect = null;
+                    InvalidateVisual();
+                    return;
+                }
+                
+                _ivpRect.End = e.GetPosition(this);
+                    
                 var ivp = _ivpRect?.ToIvp(_page.Name, _panOffset, _zoom, Bounds.Size);
                 //var ivp = _ivpRect?.ToIvpFit(_page.Name, Bounds.Size, _panOffset);
                 if (ivp != null)
@@ -716,7 +758,23 @@ namespace Bubbles4.Controls {
                     else RestoreFromIVP(ivp);
                 }
                 _ivpRect = null;
-            }    
+            } 
+            else if(kind == PointerUpdateKind.LeftButtonReleased || e.Pointer.Type == PointerType.Touch)
+            {
+                //Double tap detection that can handle touch
+                var elapsed = now - _lastTap;
+
+                if (elapsed.TotalMilliseconds <= DoubleTapThresholdMs)
+                {
+                    _lastTap = DateTime.MinValue; // Reset after double-tap
+                    MainViewModel?.ToggleFullscreenCommand.Execute(null);
+                }
+                else
+                {
+                    _lastTap = now;
+                }
+            }
+            
         }
         public void OnMouseWheel(object? sender, PointerWheelEventArgs e)
         {
@@ -802,7 +860,17 @@ namespace Bubbles4.Controls {
 
         public void OnUpArrowPressed()
         {
-            Scroll(0.0, 1.0);
+            Scroll(0, 1.0);
+        }
+
+        public void OnLeftArrowPressed()
+        {
+            Scroll(-1.0, 0);
+        }
+
+        public void OnRightArrowPressed()
+        {
+            Scroll(1.0, 0);
         }
 
         public void Zoom(int delta)
@@ -842,6 +910,9 @@ namespace Bubbles4.Controls {
 
             public bool IsValid => Math.Abs(Start.Y - End.Y) > 2.0 
                                    && Math.Abs(Start.X - End.X) > 2.0;
+
+            public DateTime StartTime = DateTime.Now;
+
             public Rect ToRect()
             {
                 return new Rect(left, top, width, height);
@@ -864,14 +935,13 @@ namespace Bubbles4.Controls {
 
         private class IvpAnimation
         {
-            private ImageViewingParams _startIvp;
-            public ImageViewingParams StartIvp => _startIvp;
-            private ImageViewingParams _endIvp;
+            private readonly ImageViewingParams _startIvp;
+            private readonly ImageViewingParams _endIvp;
             public ImageViewingParams EndIvp => _endIvp;
-            private double _duration;
+            private readonly double _duration;
             private DispatcherTimer? _timer;
-            private Action<ImageViewingParams> _onTick;
-            private DateTime _startTime;
+            private readonly Action<ImageViewingParams> _onTick;
+            private readonly DateTime _startTime;
             private bool _running = true;
             public bool IsRunning => _running;
             

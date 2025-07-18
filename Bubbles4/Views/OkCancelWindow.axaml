@@ -15,8 +15,14 @@
         <StackPanel Margin="16" Spacing="12">
             <TextBlock Text="{Binding Content}" TextWrapping="Wrap" FontSize="14"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                <Button Content="{Binding CancelText}" Command="{Binding OnCancelPressed}" Width="80"/>
-                <Button Content="{Binding OkText}" Command="{Binding OnOkPressed}" Width="80"/>
+                <Button Content="{Binding CancelText}" 
+                        Command="{Binding OnCancelPressed}" 
+                        IsVisible="{Binding ShowCancelButton}" 
+                        Width="80"/>
+                <Button Content="{Binding OkText}" 
+                        Command="{Binding OnOkPressed}" 
+                        IsVisible="{Binding ShowOkButton}"
+                        Width="80"/>
             </StackPanel>
         </StackPanel>
 </Window>
