@@ -67,6 +67,10 @@ public class BookMetadata
             }
             catch (Exception ex){Console.Error.WriteLine(ex);}
         }
+        else if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
     }
     public static BookMetadata Load(string? path)
     {

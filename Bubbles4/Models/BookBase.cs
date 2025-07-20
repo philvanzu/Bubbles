@@ -4,8 +4,10 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media.Imaging;
+using Bubbles4.ViewModels;
 
 namespace Bubbles4.Models;
 
@@ -32,7 +34,7 @@ public abstract class BookBase
     public ConcurrentDictionary<string, CancellationTokenSource?> PagesCts = new();
     
     public abstract Task<Bitmap?> LoadThumbnailAsync();
-    public abstract Task<Bitmap?> LoadThumbnailAsync(string key);
+    public abstract Task<(Bitmap?, PixelSize?)?> LoadThumbnailAsync(string key);
     public abstract Task<Bitmap?> LoadFullImageAsync(Page page, CancellationToken token);
 
     public void CancelThumbnailLoad()
@@ -91,7 +93,8 @@ public abstract class BookBase
         }
         return null;
     }
-    
+
+    public abstract Task SaveCroppedIvpToSizeAsync(PageViewModel page, string path, Rect? cropRect, int maxSize);
 }
 
 public class BookInfo

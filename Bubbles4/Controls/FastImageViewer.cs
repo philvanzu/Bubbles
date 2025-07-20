@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using System;
+using System.ComponentModel;
 using Avalonia.Threading;
 using Bubbles4.Models;
 using Bubbles4.Services;
@@ -70,7 +71,6 @@ namespace Bubbles4.Controls {
             
             this.LayoutUpdated += OnLayoutUpdated;
             
-            
             turnPageTimer = new DispatcherTimer();
             turnPageTimer.Tick += OnTurnPageTick;
             turnPageTimer.Interval = TimeSpan.FromMilliseconds(AppStorage.Instance.UserSettings.TurnPageBouncingTime);
@@ -112,12 +112,13 @@ namespace Bubbles4.Controls {
             
         }
 
-        
-        
-
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
         {
             base.OnPropertyChanged(change);
+            if (change.Property.Name == nameof(MainViewModel))
+            {
+                if (MainViewModel != null) MainViewModel.ViewerControl = this;
+            }
             if(change.Property.Name ==  nameof(Data)){
 
                     var data = change.NewValue as ViewerData;
@@ -154,6 +155,7 @@ namespace Bubbles4.Controls {
                     
                     _image = data.Image;
                     _page = data.Page;
+                    _page.ImageSize = data.Image.PixelSize;
                     
                     if (_image != null)
                     {
@@ -205,7 +207,11 @@ namespace Bubbles4.Controls {
             }
 
         }
-
+        public void OnBookClosing()
+        {
+            SaveIvp();
+            _page = null;
+        }
         void SaveIvp()
         {
             if (_page != null && UseIvp)
@@ -996,6 +1002,7 @@ namespace Bubbles4.Controls {
                 return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
             }
         }
+
 
 
     }

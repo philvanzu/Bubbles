@@ -1,0 +1,70 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:converters="clr-namespace:Bubbles4.Converters"
+             xmlns:viewModels="clr-namespace:Bubbles4.ViewModels"
+             xmlns:i="using:Avalonia.Xaml.Interactivity"
+             xmlns:bhv="clr-namespace:Bubbles4.Behaviors"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Bubbles4.Views.PageView"
+             x:DataType="viewModels:PageViewModel">
+    <UserControl.Resources>
+        <converters:BoolToBrushConverter x:Key="BoolToBrushConverter"
+                                         TrueBrush="White"
+                                         FalseBrush="Gray"/>
+        <converters:BoolToBrushConverter x:Key="BoolToBrushConverter2"
+                                         TrueBrush="LightBlue"
+                                         FalseBrush="Transparent"/>    
+    </UserControl.Resources>
+    <Grid Width="132" Height="152">
+        <Border Background="Transparent"
+                ToolTip.Tip="{Binding Name}"
+                Tag="{Binding IsSelected}">
+            <i:Interaction.Behaviors>
+                <bhv:PointerPressedCommandBehavior 
+                    Command="{Binding ListItemPointerPressedCommand}" />
+            </i:Interaction.Behaviors>
+            <StackPanel >
+                <StackPanel.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}" />
+                        <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+                    </ContextMenu>
+                </StackPanel.ContextMenu>
+
+                <Border BorderThickness="1" CornerRadius="5" Width="128" Height="128"
+                        BorderBrush="{Binding IsSelected, Converter={StaticResource BoolToBrushConverter}}"
+                        Background="Transparent">
+                    <Grid>
+                        <Image x:Name="ThumbnailImage" 
+                               Source="{Binding Thumbnail}" 
+                               Stretch="Uniform"/>
+                        <Canvas x:Name="IvpCanvas"
+                                IsVisible="{Binding IvpRectVisible}" 
+                                ClipToBounds="True">
+                            <Border 
+                                Background="Transparent"
+                                Canvas.Top="{Binding IvpRectTop}"
+                                Canvas.Left="{Binding IvpRectLeft}"
+                                Width="{Binding IvpRectWidth}"
+                                Height = "{Binding IvpRectHeight}"
+                                BorderBrush="Red" BorderThickness="2"/>
+                        </Canvas>
+                    </Grid>
+                </Border>
+                <TextBlock Name="FileNameTextBlock" HorizontalAlignment="Left" Margin="3" Text="{Binding Name}" />
+            </StackPanel>                    
+        </Border>
+        <Border Background="LightBlue" 
+                IsVisible="{Binding IsSelected}"
+                IsHitTestVisible="False"
+                BorderBrush="transparent" BorderThickness="1" CornerRadius="5" >
+            <Border.OpacityMask>
+                <SolidColorBrush Color="#22222222"/> 
+                <!-- #AARRGGBB: here AA=11 (17/255), very transparent -->
+            </Border.OpacityMask>
+            </Border>
+    </Grid>
+    
+</UserControl>

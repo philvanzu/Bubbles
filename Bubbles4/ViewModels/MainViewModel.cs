@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
+using Bubbles4.Controls;
 using Bubbles4.Services;
 using Bubbles4.Views;
 
@@ -29,6 +30,7 @@ public partial class MainViewModel : ViewModelBase
             LibrarySortHeader.Value = (value.LibrarySortOption, value.LibrarySortAscending);
             BookSortHeader.Value = (value.BookSortOption, value.BookSortAscending);
             NodeSortHeader.Value = (value.NodeSortOption, value.NodeSortAscending);
+            PreviewIVPIsChecked = false;
         }
 
         OnPropertyChanged(nameof(ShowNavPane));
@@ -112,6 +114,14 @@ public partial class MainViewModel : ViewModelBase
     //toolbar
     [ObservableProperty] private string _searchString = string.Empty;
 
+    [ObservableProperty] private bool _previewIVPIsChecked;
+    public bool CanCheckPreviewIvp => Config?.UseIVPs == true;
+    partial void OnPreviewIVPIsCheckedChanged(bool value)
+    {
+        if(SelectedBook != null)
+            SelectedBook.PreviewIvp(value);
+    }
+
     //status bar
     [ObservableProperty] private string? _imageStatus;
     [ObservableProperty] private string? _pageNameStatus;
@@ -126,7 +136,8 @@ public partial class MainViewModel : ViewModelBase
     private readonly IDialogService _dialogService;
     public IDialogService DialogService => _dialogService;
     ProgressDialogViewModel _progressDialog;
-    [ObservableProperty] private ProgressViewModel _statusProgress = new();
+    
+    [ObservableProperty] private ProgressViewModel _statusProgress;
     
     private MainWindow _window;
     public MainWindow? MainWindow { 
@@ -140,7 +151,8 @@ public partial class MainViewModel : ViewModelBase
     }
 
     public ShutdownCoordinator ShutdownCoordinator { get; private set; } = new();
-    
+    public FastImageViewer? ViewerControl { get; set; }
+
 
     public MainViewModel(MainWindow window, IDialogService dialogService)
     {
@@ -154,8 +166,9 @@ public partial class MainViewModel : ViewModelBase
         _nodeSortHeader = new ShortSortHeaderViewModel();
         _nodeSortHeader.StateChanged += OnNodeSortHeaderStateChanged;
         AppData = AppStorage.Instance;
+
         _progressDialog = new ProgressDialogViewModel(_dialogService);
-        
+        _statusProgress = new ProgressViewModel();
     }
 
     public void Initialize(string? libraryPath)
@@ -164,7 +177,10 @@ public partial class MainViewModel : ViewModelBase
             OpenLibrary(libraryPath);
     }
 
-
+    [RelayCommand] private void ShutdownPressed()
+    {
+        MainWindow?.Close();
+    }
     public void OnShutdown()
     {
         if (ShutdownCoordinator.IsShuttingDown == true) return;

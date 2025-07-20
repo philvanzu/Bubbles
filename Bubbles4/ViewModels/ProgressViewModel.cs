@@ -15,21 +15,33 @@ public partial class ProgressViewModel: ViewModelBase
 
     public ProgressViewModel()
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+            throw new InvalidOperationException("Progress constructor not on UI thread");
         _progress = new (OnProgressUpdated);
     }
     public void OnProgressUpdated((string msg, double value, bool completed)progress)
     {
+        
         if (progress.completed)
         {
             Close();
             return;
         }
-        _ = Dispatcher.UIThread.InvokeAsync(() =>
+        
+        if (Dispatcher.UIThread.CheckAccess())
         {
             IsIndeterminate = Math.Abs(progress.value - (-1.0)) < 0.01;
             Message = progress.msg;
             ProgressValue = IsIndeterminate?0:progress.value;
-        });
+        }
+        else {
+            _ = Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                IsIndeterminate = Math.Abs(progress.value - (-1.0)) < 0.01;
+                Message = progress.msg;
+                ProgressValue = IsIndeterminate?0:progress.value;
+            }, DispatcherPriority.Background);
+        }
     }
 
     public virtual void Close()

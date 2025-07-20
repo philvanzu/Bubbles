@@ -141,6 +141,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         
         if (Ivps != null)
         {
+            MainViewModel?.ViewerControl?.OnBookClosing();
             Ivps.Save(_model.IvpPath);
             Ivps = null;
         }
@@ -251,7 +252,11 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
                         if (page.Thumbnail != null)
                             page.Thumbnail.Dispose();
 
-                        page.Thumbnail = bitmap;
+                        page.Thumbnail = bitmap.Value.Item1;
+                        page.ImageSize = bitmap.Value.Item2;
+                        if(MainViewModel.PreviewIVPIsChecked)
+                            page.ShowIvpRect();
+                        else page.IvpRectVisible = false;
                     });
                 }
             }
@@ -385,6 +390,61 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
             Console.Error.WriteLine($"Failed to open path: {ex.Message}");
         }
     }
+
+    
+    [RelayCommand]
+    private void SaveCroppedIvpsToSize()
+    {
+        var progress = MainViewModel.StatusProgress;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                int maxSize = 5000;
+                string prefix = "_";
+                string suffix = "_5000.png";
+                int batchSize = 8;
+
+                var factories = new Queue<Func<Task>>();
+                foreach (var page in _pages.ToList())
+                {
+                    var cropRect = page.GetIvpCropRect();
+                    var directory = Model.MetaDataPath;
+                    string name = $"{prefix}{page.Name}{suffix}";
+                    string path = System.IO.Path.Combine(directory, name);
+
+                    factories.Enqueue(() => Model.SaveCroppedIvpToSizeAsync(page, path, cropRect, maxSize));
+                }
+
+                int count = 0;
+                int total = factories.Count;
+
+                progress.OnProgressUpdated(($"cropping task 0 of {total}", 0.0, false));
+
+                while (factories.Count > 0)
+                {
+                    var batch = new List<Task>();
+                    while (batch.Count < batchSize && factories.Count > 0)
+                    {
+                        var taskFactory = factories.Dequeue();
+                        batch.Add(taskFactory());
+                        count++;
+                    }
+
+                    await Task.WhenAll(batch);
+                    progress.OnProgressUpdated(($"cropping task {count} of {total}", (double)count / total, false));
+                }
+
+                progress.OnProgressUpdated(("", 1.0, true));
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex);
+            }
+        });
+    }
+
+    
     public async Task PromptBookmarkSelectedPage( string pageName)
     {
         var dialog = new OkCancelViewModel
@@ -608,8 +668,25 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         _ignoreWatcherEvents=false;
     }
     public bool CanModifiedOrderToName => Model is BookDirectory;
-    
-    
+
+    [RelayCommand]private void ClearIVPCollection()
+    {
+        foreach (var page in Pages)
+        {
+            page.Ivp = null;
+            page.IvpRectVisible = false;
+        }
+        Ivps?.Save(Model.IvpPath);
+    }
+
+    public void PreviewIvp(bool value)
+    {
+        foreach (var page in _pages)
+        {
+            if (value) page.ShowIvpRect();
+            page.IvpRectVisible = value;
+        }
+    }
     
     #region FileSystemWatcher events
 
@@ -694,6 +771,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
 
     
     #endregion
+
 
 
 }

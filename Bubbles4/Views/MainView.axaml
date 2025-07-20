@@ -40,6 +40,7 @@
                                   Command="{Binding EditPreferencesCommand}"
                                   CommandParameter="true"/>
                         <MenuItem Header="About..." Command="{Binding EditPreferencesCommand}" />
+                        <MenuItem Header="Exit" Command="{Binding ShutdownPressedCommand}" />
                     </MenuItem>
                 </Menu>
                 <Border Width="16"/>
@@ -153,7 +154,10 @@
                             Command="{Binding SearchCommand}"
                             CommandParameter="{Binding SearchString}" />
                 </StackPanel>
-                    
+                
+                <ToggleButton Content="ivp" IsChecked="{Binding PreviewIVPIsChecked, Mode=TwoWay}"
+                              IsEnabled="{Binding CanCheckPreviewIvp}"
+                              Margin="32 0"/>    
             </StackPanel>
             </Border>
             <!-- Main content area -->
@@ -177,9 +181,9 @@
                                   VerticalAlignment="Stretch"
                                   Background="DarkGray"
                                   ShowsPreview="True" />
-                    <Grid Grid.Column="2" RowDefinitions="1.75*, Auto, *">
+                    <Grid Grid.Column="2" RowDefinitions="1.66*, Auto, *">
                         <!--Library View-->
-                        <Grid RowDefinitions=" *, 28" >
+                        <Grid RowDefinitions=" *" >
                             <Grid>
                                 <Border  Background="#303030"
                                          BorderBrush="White" BorderThickness="1"
@@ -195,9 +199,7 @@
                                     <views:SortHeaderView DataContext="{Binding LibrarySortHeader}"/>    
                                 </Border>
                             </Grid>
-                            <Border Grid.Row="1" Background="#505050" BorderThickness="1" BorderBrush="White">
-                            <TextBlock Text="{Binding BookStatus}" Margin="8" VerticalAlignment="Center" />
-                            </Border>
+
                         </Grid>
                         
                         <GridSplitter Grid.Row="1"
@@ -206,13 +208,16 @@
                                       Background="DarkGray"
                                       ShowsPreview="True" />
                         <!-- Book View -->
-                        <Grid Grid.Row="2">
-                            <Border  Background="#303030"
+                        <Grid Grid.Row="2" Grid.RowDefinitions="28,*">
+                            <Border Grid.Row="0" Background="#505050" BorderThickness="1" BorderBrush="White">
+                                <TextBlock Text="{Binding BookStatus}" Margin="4" VerticalAlignment="Center" />
+                            </Border>
+                            <Border Grid.Row="1" Background="#303030"
                                      BorderBrush="White" BorderThickness="1"
                                      MinWidth="374">
                                 <views:BookView DataContext="{Binding SelectedBook}"/>
                             </Border>
-                            <Border BorderBrush="White" BorderThickness="1"
+                            <Border Grid.Row="1" BorderBrush="White" BorderThickness="1"
                                     VerticalAlignment="Top"
                                     HorizontalAlignment="Left"
                                     Background="Black" 

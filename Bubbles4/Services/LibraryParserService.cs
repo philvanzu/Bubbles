@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -26,6 +27,16 @@ public static class LibraryParserService
         progress?.Report(("Starting Library Parsing", -1.0, false));
         List<DirectoryInfo> allDirs = new();
         Console.WriteLine("Collecting Directories");
+        Stopwatch reportTimer = Stopwatch.StartNew();
+        TimeSpan reportInterval = TimeSpan.FromMilliseconds(200);
+        void MaybeReportProgress(string message, double count, bool completed)
+        {
+            if (reportTimer.Elapsed >= reportInterval)
+            {
+                progress?.Report(($"{message} : {count}", -1.0, false));
+                reportTimer.Restart();
+            }
+        }
         void CollectDirectories(DirectoryInfo dir)
         {
             allDirs.Add(dir);
@@ -36,7 +47,9 @@ public static class LibraryParserService
             }
             catch (UnauthorizedAccessException) { }
             catch (IOException) { }
-            progress?.Report(($"Counting directories : {allDirs.Count}", -1.0, false));
+
+            var count = allDirs.Count;
+            MaybeReportProgress($"Counting directories : {count}", -1.0, false);
         }
         
         CollectDirectories(new DirectoryInfo(rootPath));
@@ -106,7 +119,7 @@ public static class LibraryParserService
                     if (progress != null)
                     {
                         int current = Interlocked.Increment(ref dirsProcessed);
-                        progress.Report(($"Building Library : {current} / {totalDirs}", (double)current / totalDirs, false));
+                        MaybeReportProgress($"Building Library : {current} / {totalDirs}", (double)current / totalDirs, false);
                     }
                 }
                 catch (UnauthorizedAccessException x) { Console.WriteLine(x.Message); }

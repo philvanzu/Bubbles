@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Media.Imaging;
 using Bubbles4.Services;
+using Bubbles4.ViewModels;
 using PDFiumSharp;
 
 namespace Bubbles4.Models;
@@ -17,6 +19,8 @@ public class BookPdf : BookBase
     public override string MetaDataPath => 
         System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Path)!, 
             System.IO.Path.GetFileNameWithoutExtension(Path));
+
+
 
     public override async Task<List<Page>?> LoadPagesList()
     {
@@ -57,7 +61,7 @@ public class BookPdf : BookBase
     }
 
 
-    private async Task<Bitmap?> DispatchThumbnailAsync(int index, CancellationToken token)
+    private async Task<(Bitmap?, PixelSize?)?> DispatchThumbnailAsync(int index, CancellationToken token)
     {
         await FileIOThrottler.WaitAsync(token);
         try
@@ -74,7 +78,7 @@ public class BookPdf : BookBase
             using var ms = bitmap.AsBmpStream();
             var avaloniaBitmap = new Bitmap(ms);
 
-            return avaloniaBitmap;
+            return (avaloniaBitmap, new PixelSize(targetDimensions.width, targetDimensions.height));
         }
         catch (Exception ex)
         {
@@ -97,7 +101,8 @@ public class BookPdf : BookBase
 
         try
         {
-            return await DispatchThumbnailAsync(0, token);
+            var tuple = await DispatchThumbnailAsync(0, token);
+            return tuple?.Item1;
         }
         catch (TaskCanceledException) { }
         catch (Exception ex) { Console.WriteLine(ex); }
@@ -109,7 +114,7 @@ public class BookPdf : BookBase
         return null;
     }
 
-    public override async Task<Bitmap?> LoadThumbnailAsync(string key)
+    public override async Task<(Bitmap?, PixelSize?)?> LoadThumbnailAsync(string key)
     {
         if (!PagesCts.ContainsKey(key))
             throw new ArgumentException("Invalid page path in BookPdf.LoadThumbnailAsync");
@@ -173,5 +178,10 @@ public class BookPdf : BookBase
         }
 
         return null;
+    }
+    
+    public override async Task SaveCroppedIvpToSizeAsync(PageViewModel page, string path, Rect? cropRect, int maxSize)
+    {
+        Console.WriteLine($"Saving cropped image from PDF is not implemented : {path}");
     }
 }

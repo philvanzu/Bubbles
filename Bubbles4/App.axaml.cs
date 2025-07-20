@@ -71,7 +71,7 @@ public partial class App : Application
                         e.Cancel = true;
                         return;
                     }
-                    
+                    if(mvm.IsFullscreen)mvm.ExitFullScreenCommand?.Execute(null);
                     AppStorage.Instance.Save();
                 };
                 mainWindow.Closed += (sender, e) =>

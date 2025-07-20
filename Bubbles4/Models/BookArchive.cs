@@ -5,8 +5,10 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Media.Imaging;
 using Bubbles4.Services;
+using Bubbles4.ViewModels;
 using SharpCompress.Archives;
 
 namespace Bubbles4.Models;
@@ -143,7 +145,7 @@ public class BookArchive : BookBase
         //Console.WriteLine($"[{_book.Path}] Completed extraction of {page.Path}");
     }
     
-    private async Task<Bitmap?> LoadPageThumbnail(CancellationToken ct, string key)
+    private async Task<(Bitmap?, PixelSize?)?> LoadPageThumbnail(CancellationToken ct, string key)
     {
         Stream? stream = null;
         try
@@ -170,7 +172,7 @@ public class BookArchive : BookBase
             if (stream == null) Console.WriteLine($"null archived file stream - aborting : {Path + key}");
             else
             {
-                var bitmap = await Task.Run<Bitmap?>(()=>ImageLoader.DecodeImage(stream, ImageLoader.ThumbMaxSize, ct), ct);
+                var bitmap = await Task.Run<(Bitmap?, PixelSize?)?>(()=>ImageLoader.DecodeImage(stream, ImageLoader.ThumbMaxSize, ct), ct);
                 //if (bitmap == null) Console.WriteLine($"null bitmap from non null stream - aborting : {Path + key}");
                 return bitmap;
             } 
@@ -245,8 +247,13 @@ public class BookArchive : BookBase
         try
         {
             await EnsureCoverKeyInitialized(token);
-            if(!string.IsNullOrEmpty(_coverKey))
-                return await LoadPageThumbnail(token, _coverKey);
+            if (!string.IsNullOrEmpty(_coverKey))
+            {
+                var tuple =  await LoadPageThumbnail(token, _coverKey);
+                return tuple?.Item1;
+            }
+                
+            
         }
         catch (TaskCanceledException){}
         finally
@@ -258,7 +265,7 @@ public class BookArchive : BookBase
         return null;
     }
 
-    public override async Task<Bitmap?> LoadThumbnailAsync(string key)
+    public override async Task<(Bitmap?, PixelSize?)?> LoadThumbnailAsync(string key)
     {
         //can't provide key argument without having a list of pages
         //no need to ensure _pagesListTask has completed, it's a given.
@@ -343,10 +350,77 @@ public class BookArchive : BookBase
 
         return null;
     }
+    public override async Task SaveCroppedIvpToSizeAsync(PageViewModel page, string path, Rect? cropRect, int maxSize)
+    {
+        var key = page.Path;
+        
+        MemoryStream? stream = null;
+        try
+        {
+            
+            IArchive? archive = null;
+            FileStream? fstream = null;
+            await FileIOThrottler.WaitAsync();
+            try
+            {
+                var pair = TryOpenArchive();
+                if (pair == null) throw (new FileLoadException($"Could not open archive file : {Path}"));
+                (archive, fstream) = pair.Value;
+
+                stream = ExtractPage(archive, key);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+            finally
+            {
+                CloseArchive(archive, fstream);
+                FileIOThrottler.Release();
+            }
+
+            try
+            {
+                if (stream == null) return;
+                using var resizedStream = ImageLoader.DecodeCropImage(stream, maxSize, cropRect);
+                if (resizedStream != null)
+                {
+                    await FileIOThrottler.WaitAsync();
+                    try
+                    {
+                        using var fileStream = File.Create(path);
+
+                        if (resizedStream.CanSeek)
+                            resizedStream.Seek(0, SeekOrigin.Begin);
+
+                        await resizedStream.CopyToAsync(fileStream);
+                        await fileStream.FlushAsync();
+                    }
+                    finally
+                    {
+                        FileIOThrottler.Release();
+                    }
+                }
+            }
+            finally
+            {
+                stream?.Dispose();
+            }
+            
+            
+        }
+        catch (Exception ex)
+        {
+            if (!(ex is OperationCanceledException))
+                Console.WriteLine($"Save cropped image to size failed: {ex}");
+        }
+    }
 
     public override string MetaDataPath =>
         System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Path)!, 
             System.IO.Path.GetFileNameWithoutExtension(Path));
+
+
 
     #endregion
 }

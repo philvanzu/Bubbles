@@ -12,7 +12,14 @@
              xmlns:ctrl="clr-namespace:Bubbles4.Controls"
              x:Class="Bubbles4.Views.LibraryView"
              x:DataType="vm:LibraryViewModel">
-    
+        <UserControl.Resources>
+            <converters:BoolToBrushConverter x:Key="BoolToBrushConverter"
+                                             TrueBrush="DeepPink"
+                                             FalseBrush="White"/>
+            <converters:BoolToThicknessConverter x:Key="BoolToThickness"
+                                                 TrueThickness="2"
+                                                 FalseThickness="1"/>
+        </UserControl.Resources>
    
         <ScrollViewer x:Name="ScrollViewer" IsDeferredScrollingEnabled="True">
         <ctrl:VirtualizedItemsRepeater ItemsSource="{Binding Books}" 
@@ -30,6 +37,7 @@
                         <Border Background="Transparent" 
                             ToolTip.Tip="{Binding Path}"
                                 Tag="{Binding IsSelected}">
+                            
                             <i:Interaction.Behaviors>
                                 <bhv:PointerPressedCommandBehavior 
                                     Command="{Binding OnSelection}" />
@@ -50,10 +58,18 @@
                                                   avaloniaControls:ToolTip.Tip="Files names will be reassigned so that sorting them alphabetically will reflect the last modified order. 
                                                   DON'T DO IT IF YOU'RE NOT CERTAIN. THIS COULD FUBAR YOUR PAGE ORDER"
                                                   IsVisible="{Binding CanModifiedOrderToName}"/>
+                                        <MenuItem Header="Clear Image Viewing Params"
+                                                  Command="{Binding ClearIVPCollectionCommand}"/>
+                                        <MenuItem Header="Crop To Ivp and Resize to MaxResize (in user settings)" 
+                                                  Command ="{Binding SaveCroppedIvpsToSizeCommand}"/>
+                                                  
                                     </ContextMenu>
                                 </StackPanel.ContextMenu>
 
-                                <Border BorderBrush="White" BorderThickness="1" CornerRadius="5" Width="172" Height="150">
+                                <Border  CornerRadius="5" Width="172" Height="150"
+                                         BorderThickness="{Binding IsSelected, Converter={StaticResource BoolToThickness}}"
+                                        BorderBrush="{Binding IsSelected, Converter={StaticResource BoolToBrushConverter}}"
+                                        Background="Transparent">
                                     <Grid>
                                         <Image Source="{Binding Thumbnail}" Stretch="Uniform"/>
                                     </Grid>
@@ -65,10 +81,18 @@
                                 </Border>
                             </StackPanel>
                         </Border>
-                        <Border Background="#55ffffff" 
+                        
+                        <Border Background="LightBlue" 
                                 IsVisible="{Binding IsSelected}"
                                 IsHitTestVisible="False"
-                                BorderBrush="transparent" BorderThickness="1" CornerRadius="5"/>
+                                BorderBrush="transparent" BorderThickness="1" CornerRadius="5"
+                                >
+                            <Border.OpacityMask>
+                                <SolidColorBrush Color="#22222222"/> 
+                                <!-- #AARRGGBB: here AA=11 (17/255), very transparent -->
+                            </Border.OpacityMask>
+                        </Border>
+                        
                     </Grid>
                 </DataTemplate>
             </ctrl:VirtualizedItemsRepeater.ItemTemplate>

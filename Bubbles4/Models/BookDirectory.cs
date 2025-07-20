@@ -4,8 +4,10 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Media.Imaging;
 using Bubbles4.Services;
+using Bubbles4.ViewModels;
 
 namespace Bubbles4.Models;
 
@@ -54,7 +56,7 @@ public class BookDirectory:BookBase
                 token.ThrowIfCancellationRequested();
                 return ImageLoader.LoadImage(_thumbnailPath, ImageLoader.ThumbMaxSize, token);
             }, token);
-            return thmb;
+            return thmb?.Item1;
         }
         catch (OperationCanceledException) { }
         catch (Exception ex) { Console.WriteLine(ex.ToString()); }
@@ -66,7 +68,7 @@ public class BookDirectory:BookBase
         }
         return null;
     }
-    public override async Task<Bitmap?> LoadThumbnailAsync(string key)
+    public override async Task<(Bitmap?, PixelSize?)?> LoadThumbnailAsync(string key)
     {
         if (!PagesCts.ContainsKey(key))
         {
@@ -175,10 +177,42 @@ public class BookDirectory:BookBase
 
         return null;
     }
+    public override async Task SaveCroppedIvpToSizeAsync(PageViewModel page, string path, Rect? cropRect, int maxSize)
+    {
+        if (!File.Exists(page.Path)) return;
+        DateTime created = File.GetCreationTime(page.Path);
+        DateTime lastModified = File.GetLastWriteTime(page.Path);
+        try
+        {
+            using var inputStream = File.OpenRead(page.Path);
+            using var resizedStream = await Task.Run(() => ImageLoader.DecodeCropImage(inputStream, maxSize, cropRect));
 
+            if (resizedStream != null)
+            {
+                await FileIOThrottler.WaitAsync();
+                try
+                {
+                    using var fileStream = File.Create(path);
+
+                    if (resizedStream.CanSeek)
+                        resizedStream.Seek(0, SeekOrigin.Begin);
+
+                    await resizedStream.CopyToAsync(fileStream);
+                    await fileStream.FlushAsync();
+                    File.SetCreationTime(path, created);
+                    File.SetLastWriteTime(path, lastModified);
+                }
+                finally
+                {
+                    FileIOThrottler.Release();
+                }
+            }
+        }
+        catch (Exception e){ Console.WriteLine($"Could not decode image file : {e}"); }
+    }
+    
     public override string MetaDataPath =>
         Path + (Path.EndsWith(System.IO.Path.DirectorySeparatorChar) ? "" : System.IO.Path.DirectorySeparatorChar);
-
 
 
 }
