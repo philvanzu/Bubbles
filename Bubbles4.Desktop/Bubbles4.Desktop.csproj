@@ -7,11 +7,20 @@
         <Nullable>enable</Nullable>
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     </PropertyGroup>
-
     <PropertyGroup>
         <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
-    
+    <PropertyGroup>
+        <MajorVersion>0</MajorVersion>
+        <MinorVersion>1</MinorVersion>
+        <BuildVersion>$([System.DateTime]::UtcNow.ToString("yyyyMMdd"))</BuildVersion>
+
+        <Version>$(MajorVersion).$(MinorVersion).$(BuildVersion)</Version>
+        <AssemblyVersion>$(MajorVersion).$(MinorVersion).0.0</AssemblyVersion>
+        <FileVersion>$(MajorVersion).$(MinorVersion).$(BuildVersion).0</FileVersion>
+        <InformationalVersion>$(Version)</InformationalVersion>
+    </PropertyGroup>
+
     <!-- Enable debug symbols in Release 
     <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
         <DebugType>portable</DebugType>
