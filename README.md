@@ -8,4 +8,7 @@ Bubbles is a comics reader and image albums viewer (cbr, cbz, image directories,
 
 Binaries:
 
-Win64 : [Bubbles_Win64_0.1.20250721 alpha](https://github.com/philvanzu/Bubbles/releases/download/Win64/Bubbles_Win64_0.1.20250721.alpha.zip)
+Win64 : [Bubbles_Win64_0.1.20250721 alpha](https://github.com/philvanzu/Bubbles/releases/download/Win64/Bubbles_Win64_0.1.20250721.zip)
+
+Linux : [Bubbles-x86_64_0.1.20250721.AppImage](https://github.com/philvanzu/Bubbles/releases/download/Win64/Bubbles-x86_64_0.1.20250721.AppImage)
+
