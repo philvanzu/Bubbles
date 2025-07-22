@@ -34,6 +34,9 @@ namespace Bubbles4.Controls {
         private readonly DispatcherTimer turnPageTimer;
         private bool _topHit, _bottomHit, _turnPageOnScrollUp, _turnPageOnScrollDown, _noScrolling;
 
+        private double _rotation = 0;
+        private Point? _rotationCenter;
+        
         public static readonly StyledProperty<MainViewModel?> MainViewModelProperty =
             AvaloniaProperty.Register<FastImageViewer, MainViewModel?>(nameof(MainViewModel));
         public MainViewModel? MainViewModel
@@ -343,7 +346,25 @@ namespace Bubbles4.Controls {
             var destRect = new Rect(_panOffset, destSize);
             var sourceRect = new Rect(imageSize);
 
-            context.DrawImage(_image, sourceRect, destRect);
+            if (_rotationCenter.HasValue)
+            {
+                var matrix =
+                    Matrix.CreateTranslation(-_rotationCenter.Value.X, -_rotationCenter.Value.Y) *
+                    Matrix.CreateRotation(_rotation) *
+                    Matrix.CreateTranslation(_rotationCenter.Value.X, _rotationCenter.Value.Y) *
+                    Matrix.CreateScale(new Vector(_zoom, _zoom)) *
+                    Matrix.CreateTranslation(_panOffset.X, _panOffset.Y);
+
+                using (context.PushTransform(matrix))
+                {
+                    context.DrawImage(_image, new Rect(imageSize), new Rect(new Point(0, 0), imageSize));    
+                }
+
+                _rotationCenter = null;
+                _rotation = 0;
+            }
+            else  context.DrawImage(_image, sourceRect, destRect);
+            
             if (InScrollMode)
                 DrawVerticalScrollIndicator(context);
 
@@ -476,7 +497,23 @@ namespace Bubbles4.Controls {
                 }    
             }
         }
-        //Pan & Zoom
+        //Rotation, Pan & Zoom
+        public void Rotate(BblRotation rotation)
+        {
+            if (_image == null) return;
+            
+            var viewportCenter = new Point(Bounds.Width / 2, Bounds.Height / 2);
+            _rotationCenter = (viewportCenter - _panOffset) / _zoom;
+            _rotation = rotation switch
+            {
+                BblRotation.right => 1.57079632679, // Math.PI / 2.0
+                BblRotation.down => 3.14159265359,  // Math.PI
+                BblRotation.left => 4.71238898038, // 3 * Math.PI / 2
+                _ => 0,
+            };
+            InvalidateVisual();
+        }
+        
         private void PanTo(Point newPanOffset)
         {
             _panOffset = newPanOffset;
@@ -519,7 +556,7 @@ namespace Bubbles4.Controls {
                 return;
             }
             // Sensitivity factor — tune this
-            const double scrollSpeed = 40.0;
+            double scrollSpeed = AppStorage.Instance.UserSettings.ScrollSpeed;
 
             // Adjust pan offset
             var newPan = _panOffset + new Point(deltaX * scrollSpeed, deltaY * scrollSpeed);
@@ -828,6 +865,8 @@ namespace Bubbles4.Controls {
             turnPageTimer.Stop();
         }
 
+
+
         public void FitHeight()
         {
             if (_image == null) return;
@@ -861,22 +900,54 @@ namespace Bubbles4.Controls {
 
         public void OnDownArrowPressed()
         {
-            Scroll(0, -1.0);
+            if (Config?.ScrollAction == LibraryConfig.ScrollActions.Scroll)
+            {
+                Scroll(0, -1.0);
+            }
+            else
+            {
+                var scrollSpeed = AppStorage.Instance.UserSettings.ScrollSpeed;
+                PanTo(_panOffset + new Point(0 * scrollSpeed, -1 * scrollSpeed));
+            }
         }
 
         public void OnUpArrowPressed()
         {
-            Scroll(0, 1.0);
-        }
-
-        public void OnLeftArrowPressed()
-        {
-            Scroll(-1.0, 0);
+            if (Config?.ScrollAction == LibraryConfig.ScrollActions.Scroll)
+            {
+                Scroll(0, 1.0);
+            }
+            else
+            {
+                var scrollSpeed = AppStorage.Instance.UserSettings.ScrollSpeed;
+                PanTo(_panOffset + new Point(0 * scrollSpeed, 1 * scrollSpeed));
+            }
         }
 
         public void OnRightArrowPressed()
         {
-            Scroll(1.0, 0);
+            if (Config?.ScrollAction == LibraryConfig.ScrollActions.Scroll)
+            {
+                Scroll(-1.0, 0);
+            }
+            else
+            {
+                var scrollSpeed = AppStorage.Instance.UserSettings.ScrollSpeed;
+                PanTo(_panOffset + new Point(-1 * scrollSpeed, 0 * scrollSpeed));
+            }
+        }
+
+        public void OnLeftArrowPressed()
+        {
+            if (Config?.ScrollAction == LibraryConfig.ScrollActions.Scroll)
+            {
+                Scroll(1.0, 0);
+            }
+            else
+            {
+                var scrollSpeed = AppStorage.Instance.UserSettings.ScrollSpeed;
+                PanTo(_panOffset + new Point(1 * scrollSpeed, 0 * scrollSpeed));
+            }
         }
 
         public void Zoom(int delta)
@@ -1006,4 +1077,6 @@ namespace Bubbles4.Controls {
 
 
     }
+    
+    public enum BblRotation{up, down, left, right}
 }

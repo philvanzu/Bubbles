@@ -3,7 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Bubbles4.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
         x:Class="Bubbles4.Views.UserSettingsEditorView"
         x:DataType="vm:UserSettingsEditorViewModel"
         Title="Edit Preferences"
@@ -26,7 +26,7 @@
         
         
         <Border Grid.Row="1" BorderBrush="White" BorderThickness="1"  Background="#303030">
-            <Grid Grid.RowDefinitions="*, 48">
+            <Grid Grid.RowDefinitions="*, 48" x:Name="TabParent">
             <!--User Settings Tab-->
                 <ContentControl  x:Name="TabPage1">
             
@@ -38,6 +38,10 @@
                         <Border Height="16"/>
                         <TextBlock> Controller Sticks Sensitivity : </TextBlock>
                         <Slider Minimum="0" Maximum="1" Value="{Binding ControllerStickSensitivity, Mode=TwoWay}"/>
+                        <Border Height="16"/>
+                        <TextBlock> Scroll Speed : </TextBlock>
+                        <Slider Minimum="10" Maximum="200" Value="{Binding ScrollSpeed, Mode=TwoWay}" 
+                                IsSnapToTickEnabled="True" Ticks="10,20,30,40,50,60,70,80,90,100,120,140,160,180,200"/>
                         <Border Height="16"/>
                         <Grid ColumnDefinitions="Auto, 16, Auto" RowDefinitions="Auto, Auto, Auto, Auto">
                             <TextBlock Grid.Column="0" Grid.Row="0"  Text="Image Viewing Params Animation takes (ms)"/>

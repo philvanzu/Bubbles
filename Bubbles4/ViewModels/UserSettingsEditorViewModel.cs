@@ -15,6 +15,7 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
     
     [ObservableProperty]private double _mouseSensitivity;
     [ObservableProperty]private double _controllerStickSensitivity;
+    [ObservableProperty] private double _scrollSpeed;
     [ObservableProperty]private bool _cacheLibraryData;
     [ObservableProperty]int _showPagingInfo;
     [ObservableProperty]int _showAlbumPath;
@@ -85,6 +86,7 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
         var pref = AppStorage.Instance.UserSettings;
         MouseSensitivity = pref.MouseSensitivity;
         ControllerStickSensitivity = pref.ControllerStickSensitivity;
+        ScrollSpeed = pref.ScrollSpeed;
         HideCursorTime = pref.HideCursorTime;
         IvpAnimSpeed = pref.IvpAnimSpeed;
         TurnpageBouncingTime = pref.TurnPageBouncingTime;
@@ -130,7 +132,8 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
         {
             MouseSensitivity = MouseSensitivity,
             ControllerStickSensitivity = ControllerStickSensitivity,
-            
+            ScrollSpeed = ScrollSpeed,
+            CropResizeToMax = CropResizeToMax,
             HideCursorTime = HideCursorTime,
             IvpAnimSpeed = IvpAnimSpeed,
             TurnPageBouncingTime = TurnpageBouncingTime,
@@ -138,6 +141,7 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
             ShowAlbumPath = ShowAlbumPath,
             ShowPageName = ShowPageName,
             ShowImageSize = ShowImageSize,
+            
         };  
         
         InputManager.Instance.DragPanButton = DragPanBtn;
@@ -145,6 +149,7 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
         InputManager.Instance.DrawZoomRectButton = DrawZoomRectBtn;
         InputManager.Instance.PanStick = StickPan;
         InputManager.Instance.ZoomStick = StickZoom;
+        
 
         _window?.Close(prefs); // Return the result from ShowDialog
     }

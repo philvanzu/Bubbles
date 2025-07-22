@@ -82,7 +82,15 @@ public partial class InputManager: IDisposable
         ["Fit Height"] = new ActionBindings("Fit Height", FitH),
         ["Fit Width"] = new ActionBindings("Fit Width", FitW),
         ["Fit Stock"] = new ActionBindings("Fit Stock", FitStock),
+        ["Rotate Up"] = new ActionBindings("Rotate Up", RotateUp),
+        ["Rotate Right"] = new ActionBindings("Rotate Right", RotateRight),
+        ["Rotate Down"] = new ActionBindings("Rotate Down", RotateDown),
+        ["Rotate Left"] = new ActionBindings("Rotate Left", RotateLeft),
     };
+
+    
+
+
 
     public ObservableCollection<ActionBindings> Bindings => new ObservableCollection<ActionBindings>(_bindings.Values);
 
@@ -148,6 +156,7 @@ public partial class InputManager: IDisposable
         {
             InitializeDefaults();
             SaveBindings();
+            AppStorage.Instance.Save();
         }
     }
     public void SaveBindings()
@@ -169,6 +178,7 @@ public partial class InputManager: IDisposable
         var userSettings = AppStorage.Instance.UserSettings;
         userSettings.InputBindings = JsonSerializer.Serialize(savedInputBindings);
         AppStorage.Instance.UserSettings = userSettings;
+        
     }
 
     private void LoadBindings(string json)
@@ -248,6 +258,10 @@ public partial class InputManager: IDisposable
         _bindings["Pan Down"].Add(new KeyCombo(Key.Down, KeyModifiers.None));
         _bindings["Pan Left"].Add(new KeyCombo(Key.Left, KeyModifiers.None));
         _bindings["Pan Right"].Add(new KeyCombo(Key.Right, KeyModifiers.None));
+        _bindings["Rotate Up"].Add(new KeyCombo(Key.Up, KeyModifiers.Alt));
+        _bindings["Rotate Left"].Add(new KeyCombo(Key.Left, KeyModifiers.Alt));
+        _bindings["Rotate Down"].Add(new KeyCombo(Key.Down, KeyModifiers.Alt));
+        _bindings["Rotate Right"].Add(new KeyCombo(Key.Right, KeyModifiers.Alt));
         _bindings["Enter Fullscreen"].Add(ButtonName.A);
         _bindings["Exit Fullscreen"].Add(ButtonName.B);
         _bindings["Next Page"].Add(ButtonName.LTrigger);
@@ -338,6 +352,10 @@ public partial class InputManager: IDisposable
     private static void FitStock() => ImageViewer?.FitStock();
     private static void ZoomIn() => ImageViewer?.Zoom(1);
     private static void ZoomOut() => ImageViewer?.Zoom(-1);
+    private static void RotateUp() => ImageViewer?.Rotate(BblRotation.up);
+    private static void RotateLeft() => ImageViewer?.Rotate(BblRotation.left);
+    private static void RotateDown()=> ImageViewer?.Rotate(BblRotation.down);
+    private static void RotateRight()=> ImageViewer?.Rotate(BblRotation.right);
     private static void DoNothing(){}
     #endregion
     

@@ -463,15 +463,14 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
                 try
                 {
                     File.WriteAllText(Model.BookmarkPath, pageName);
-                    if (_bookmarkBlocker != null)
-                    {
-                        MainViewModel.ShutdownCoordinator.UnregisterBlocker(_bookmarkBlocker);
-                        _bookmarkBlocker = null;
-                    }
-                        
                 }
                 catch (Exception ex) { Console.Error.WriteLine($"bookmark file creation failed: {ex.Message}"); }
-            }    
+            } 
+            if (_bookmarkBlocker != null)
+            {
+                MainViewModel.ShutdownCoordinator.UnregisterBlocker(_bookmarkBlocker);
+                _bookmarkBlocker = null;
+            }
         }
     }
 

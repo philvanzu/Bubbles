@@ -1,3 +1,4 @@
+using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -21,10 +22,29 @@ public partial class UserSettingsEditorView : Window
         Tab1Toggle.IsCheckedChanged += TabButtonToggled;
         Tab2Toggle.IsCheckedChanged += TabButtonToggled;
 
+        
+
         InputManager.Instance.FocusDump = FocusDump;
         KeyUp += InputManager.Instance.OnUserSettingsEditorKeyUp;
+
+        
     }
-    
+
+    protected override void OnOpened(EventArgs e)
+    {
+        base.OnOpened(e);
+        SetTabVisible(TabPage1, TabPage2);
+    }
+
+    void SetTabVisible(Control show, Control hide)
+    {
+        TabParent.Children.Remove(show);
+        TabParent.Children.Remove(hide);
+
+        // Add the one you want on bottom first, then the one you want on top
+        TabParent.Children.Add(hide);
+        TabParent.Children.Add(show);
+    }
     public void TabButtonToggled(object? sender, RoutedEventArgs e)
     {
         if (sender == null) return;
@@ -43,6 +63,7 @@ public partial class UserSettingsEditorView : Window
             Receiver.IsChecked = !check.Value;
             SenderPage.IsVisible = check.Value;
             ReceiverPage.IsVisible = !check.Value;
+            SetTabVisible(check.Value ? SenderPage:ReceiverPage, check.Value?ReceiverPage:SenderPage);
         }
     }
 }

@@ -17,8 +17,6 @@ public partial class MainViewModel : ViewModelBase
 {
     #region AppData
 
-    private AppStorage AppData { get; init; }
-
     [ObservableProperty] private LibraryConfig? _config = new LibraryConfig("");
 
     partial void OnConfigChanged(LibraryConfig? value)
@@ -41,7 +39,7 @@ public partial class MainViewModel : ViewModelBase
     {
         var libraries = new ObservableCollection<LibraryListItem>()
             { new LibraryListItem() { Name = "Add New Library" } };
-        foreach (var s in AppData.LibrariesList)
+        foreach (var s in AppStorage.Instance.LibrariesList)
             libraries.Add(new LibraryListItem() { Name = s });
         return libraries;
     }
@@ -105,6 +103,11 @@ public partial class MainViewModel : ViewModelBase
     #endregion
 
     [ObservableProperty] public BookViewModel? _selectedBook;
+
+    partial void OnSelectedBookChanged(BookViewModel? value)
+    {
+        OnPropertyChanged(nameof(CanCheckPreviewIvp));
+    }
     [ObservableProperty] private ViewerData? _currentViewerData;
     [ObservableProperty] private PageViewModel? _currentPageViewModel;
     [ObservableProperty] private bool _isFullscreen;
@@ -113,7 +116,8 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _searchString = string.Empty;
 
     [ObservableProperty] private bool _previewIVPIsChecked;
-    public bool CanCheckPreviewIvp => Config?.UseIVPs == true;
+    public bool CanCheckPreviewIvp => SelectedBook != null && Config?.UseIVPs == true;
+    
     partial void OnPreviewIVPIsCheckedChanged(bool value)
     {
         if(SelectedBook != null)
@@ -163,7 +167,7 @@ public partial class MainViewModel : ViewModelBase
         _bookSortHeader.StateChanged += OnBookSortHeaderStateChanged;
         _nodeSortHeader = new ShortSortHeaderViewModel();
         _nodeSortHeader.StateChanged += OnNodeSortHeaderStateChanged;
-        AppData = AppStorage.Instance;
+        
 
         _progressDialog = new ProgressDialogViewModel(_dialogService);
         _statusProgress = new ProgressViewModel();
@@ -203,7 +207,7 @@ public partial class MainViewModel : ViewModelBase
             libraryPath += Path.DirectorySeparatorChar;
 
             bool newconfig = false;
-            var config = AppData.GetConfig(libraryPath);
+            var config = AppStorage.Instance.GetConfig(libraryPath);
             if (config == null)
             {
                 config = new LibraryConfig(libraryPath);
@@ -218,8 +222,8 @@ public partial class MainViewModel : ViewModelBase
             Config = config;
             if (newconfig)
             {
-                AppData.AddOrUpdate(libraryPath, config.Serialize());
-                AppData.Save();
+                AppStorage.Instance.AddOrUpdate(libraryPath, config.Serialize());
+                AppStorage.Instance.Save();
             }
             OnPropertyChanged(nameof(Libraries));
             OnPropertyChanged(nameof(LibraryName));
@@ -300,8 +304,8 @@ public partial class MainViewModel : ViewModelBase
             {
                 var save = Library;
                 if (Library is LibraryNodeViewModel library) save = library.Root;
-                AppData.AddOrUpdate(save.Path, Config.Serialize());
-                AppData.Save();
+                AppStorage.Instance.AddOrUpdate(save.Path, Config.Serialize());
+                AppStorage.Instance.Save();
                 Config = null;
             }
             */
@@ -342,7 +346,7 @@ public partial class MainViewModel : ViewModelBase
     {
         if (Library == null) return;
         var config = Config;
-        if (config == null) config = AppData.GetConfig(Library.Path);
+        if (config == null) config = AppStorage.Instance.GetConfig(Library.Path);
         if (config == null) config = new LibraryConfig(Library.Path);
         
         var dlgVm = new LibraryConfigViewModel(config);
@@ -363,8 +367,8 @@ public partial class MainViewModel : ViewModelBase
                     {
                         if (result != null)
                         {
-                            AppData.AddOrUpdate(result.Path, result.Serialize());
-                            AppData.Save();
+                            AppStorage.Instance.AddOrUpdate(result.Path, result.Serialize());
+                            AppStorage.Instance.Save();
                             Config = result;
                             
                             if (dialogVm.IsCreatingLibrary)
@@ -401,8 +405,9 @@ public partial class MainViewModel : ViewModelBase
             {
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    AppData.UserSettings = result;
-                    AppData.Save();
+                    AppStorage.Instance.UserSettings = result;
+                    InputManager.Instance.SaveBindings();
+                    AppStorage.Instance.Save();
                 });
             }
         }
@@ -432,8 +437,8 @@ public partial class MainViewModel : ViewModelBase
             var result = await _dialogService.ShowDialogAsync<bool>(MainWindow, dialog);
             if (result)
             {
-                AppData.Remove(path);
-                AppData.Save();
+                AppStorage.Instance.Remove(path);
+                AppStorage.Instance.Save();
                 OnPropertyChanged(nameof(Libraries));
             }    
         }

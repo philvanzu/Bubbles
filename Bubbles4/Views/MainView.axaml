@@ -23,8 +23,8 @@
         <Grid RowDefinitions="36,*,36">
             <!-- Top toolbar/menu -->
             <Border BorderThickness="1" BorderBrush="White" Background="#505050">
-            <StackPanel Orientation="Horizontal" >
-                <Menu>
+            <Grid ColumnDefinitions="Auto, Auto, *, Auto" >
+                <Menu Grid.Column="0">
                     <MenuItem Header="☰">
                         <MenuItem Header="New Library" Command="{Binding CreateLibraryCommand}"/>
                         <MenuItem Header="Close Library" Command="{Binding CloseLibraryCommand}"
@@ -37,9 +37,9 @@
                         <MenuItem Header="Exit" Command="{Binding ShutdownPressedCommand}" />
                     </MenuItem>
                 </Menu>
-                <Border Width="16"/>
+                
                 <!--Library Selector-->
-                <Grid ColumnDefinitions="Auto 8 32 32">
+                <Grid Grid.Column="1" ColumnDefinitions="Auto 8 32 32">
                     
                     <ComboBox Grid.Column="0" x:Name="LibraryComboBox"
                               Width="250"
@@ -108,12 +108,13 @@
                               Data="M6,7 L6,19 C6,20.1046 6.89543,21 8,21 L16,21 C17.1046,21 18,20.1046 18,19 L18,7 M9,7 L9,4 C9,3.44772 9.44772,3 10,3 L14,3 C14.5523,3 15,3.44772 15,4 L15,7 M10,10 L10,17 M14,10 L14,17"/>
                     </Button>
                 </Grid>
-                <Border Width="16"/>
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Canvas Width="200" Height="30">
+                
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="🔍" VerticalAlignment="Center" FontSize="18" />
+                    <Canvas Width="400" Height="30">
                         <!-- Search TextBox -->
                         <TextBox x:Name="SearchBox"
-                                 Width="200"
+                                 Width="400"
                                  Height="30"
                                  Text="{Binding SearchString, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                  Watermark="Search books..." 
@@ -126,7 +127,7 @@
                                 BorderBrush="Transparent"
                                 Foreground="White"
                                 Command="{Binding ClearSearchCommand}"
-                                Canvas.Left="180"
+                                Canvas.Left="380"
                                 Canvas.Top="2"
                                 ToolTip.Tip="Clear"
                                 IsVisible="{Binding SearchString, Converter={StaticResource StringNotEmptyToBoolConverter}}" 
@@ -149,10 +150,8 @@
                             CommandParameter="{Binding SearchString}" />
                 </StackPanel>
                 
-                <ToggleButton Content="ivp" IsChecked="{Binding PreviewIVPIsChecked, Mode=TwoWay}"
-                              IsEnabled="{Binding CanCheckPreviewIvp}"
-                              Margin="32 0"/>    
-            </StackPanel>
+ 
+            </Grid>
             </Border>
             <!-- Main content area -->
             <Border Grid.Row="1">
@@ -204,7 +203,16 @@
                         <!-- Book View -->
                         <Grid Grid.Row="2" Grid.RowDefinitions="28,*">
                             <Border Grid.Row="0" Background="#505050" BorderThickness="1" BorderBrush="White">
+                                <Grid ColumnDefinitions="*, Auto">
                                 <TextBlock Text="{Binding BookStatus}" Margin="4" VerticalAlignment="Center" />
+                                <ToggleButton Grid.Column="1" Content="👁️ ivp" IsChecked="{Binding PreviewIVPIsChecked, Mode=TwoWay}"
+                                              ToolTip.Tip="Visualize Current Image Viewing Parameters(IVP)"
+                                              IsEnabled="{Binding CanCheckPreviewIvp}"
+                                              IsVisible="{Binding CanCheckPreviewIvp}"
+                                              Margin="0 "
+                                              Padding="4 0"
+                                              HorizontalAlignment="Right"/>   
+                                </Grid>
                             </Border>
                             <Border Grid.Row="1" Background="#303030"
                                      BorderBrush="White" BorderThickness="1"
@@ -260,7 +268,6 @@
             <Border Grid.Row="2" BorderThickness="1" BorderBrush="White">
             <Grid  ColumnDefinitions="*, 250, 460" Background="#505050">
                 <StackPanel Orientation="Horizontal">
-                    <Separator Width="16"/>
                     <TextBlock Text="{Binding LibraryStatus}" Margin="8" VerticalAlignment="Center"/>
                     <Separator Width="8"/>
                     <TextBlock Text="{Binding PageNameStatus}" Margin="8" VerticalAlignment="Center"/>
