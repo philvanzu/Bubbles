@@ -183,5 +183,6 @@ public class BookPdf : BookBase
     public override async Task SaveCroppedIvpToSizeAsync(PageViewModel page, string path, Rect? cropRect, int maxSize)
     {
         Console.WriteLine($"Saving cropped image from PDF is not implemented : {path}");
+        await Task.CompletedTask;
     }
 }

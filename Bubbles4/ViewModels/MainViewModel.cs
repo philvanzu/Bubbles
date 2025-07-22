@@ -6,8 +6,6 @@ using System.IO;
 using System.Linq;
 using Bubbles4.Models;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using Bubbles4.Controls;
 using Bubbles4.Services;
@@ -183,7 +181,7 @@ public partial class MainViewModel : ViewModelBase
     }
     public void OnShutdown()
     {
-        if (ShutdownCoordinator.IsShuttingDown == true) return;
+        if (ShutdownCoordinator.IsShuttingDown) return;
         ShutdownCoordinator.IsShuttingDown = true;
 
         if (Library != null) 
@@ -203,17 +201,26 @@ public partial class MainViewModel : ViewModelBase
         {
             libraryPath = libraryPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             libraryPath += Path.DirectorySeparatorChar;
-            
-            var config = AppData.GetConfig(libraryPath) ?? new LibraryConfig(libraryPath);
+
+            bool newconfig = false;
+            var config = AppData.GetConfig(libraryPath);
+            if (config == null)
+            {
+                config = new LibraryConfig(libraryPath);
+                newconfig = true;
+            }
 
             var info = new DirectoryInfo(libraryPath);
             Library = config.Recursive ? 
                 new LibraryViewModel(this, libraryPath) : 
                 new LibraryNodeViewModel(this, libraryPath, info.Name, info.CreationTime, info.LastWriteTime);
 
-            Config = config;            
-            AppData.AddOrUpdate(libraryPath, config.Serialize());
-            AppData.Save();
+            Config = config;
+            if (newconfig)
+            {
+                AppData.AddOrUpdate(libraryPath, config.Serialize());
+                AppData.Save();
+            }
             OnPropertyChanged(nameof(Libraries));
             OnPropertyChanged(nameof(LibraryName));
             OnPropertyChanged(nameof(Config));
@@ -288,6 +295,7 @@ public partial class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(CurrentViewerData));
 
             Library.Close();
+            /*
             if (Config != null)
             {
                 var save = Library;
@@ -296,6 +304,7 @@ public partial class MainViewModel : ViewModelBase
                 AppData.Save();
                 Config = null;
             }
+            */
             _cache.ClearCache();
             Library = null;
             if(LibraryRoot!=null) LibraryRoot = null;

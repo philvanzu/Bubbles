@@ -87,13 +87,15 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
             {
                 _pages.Clear();
 
-                if (pgs.Count > 0)
+                if (pgs.Count == 0)
                 {
-                    foreach (var page in pgs)
-                    {
-                        _pages.Add(new PageViewModel(this, page));
-                        _model.PagesCts.TryAdd(page.Path, null);
-                    }
+                    _library.RemoveEmptyBook(this);
+                    return;
+                }
+                foreach (var page in pgs)
+                {
+                    _pages.Add(new PageViewModel(this, page));
+                    _model.PagesCts.TryAdd(page.Path, null);
                 }
                 Sort();                
                 Model.PageCount = _pages.Count;
@@ -109,7 +111,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
                 }
                 
                 //bookmark loading
-                if (MainViewModel?.Config?.LookAndFeel == LibraryConfig.LookAndFeels.Reader)
+                if (MainViewModel.Config?.LookAndFeel == LibraryConfig.LookAndFeels.Reader)
                 {
                     if (File.Exists(Model.BookmarkPath))
                     {
@@ -126,11 +128,11 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         var selectedIdx = GetPageIndex(SelectedPage);
         bool bookmark = selectedIdx > 0 
                         && selectedIdx < PageCount - 1 
-                        && MainViewModel?.Config?.LookAndFeel == LibraryConfig.LookAndFeels.Reader;
+                        && MainViewModel.Config?.LookAndFeel == LibraryConfig.LookAndFeels.Reader;
         if (bookmark)
         {
             var name = SelectedPage!.Name;
-            if (MainViewModel?.ShutdownCoordinator.IsShuttingDown == true)
+            if (MainViewModel.ShutdownCoordinator.IsShuttingDown)
             {
                 _bookmarkBlocker = new Object();
                 MainViewModel.ShutdownCoordinator.RegisterBlocker(_bookmarkBlocker);
@@ -141,7 +143,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         
         if (Ivps != null)
         {
-            MainViewModel?.ViewerControl?.OnBookClosing();
+            MainViewModel.ViewerControl?.OnBookClosing();
             Ivps.Save(_model.IvpPath);
             Ivps = null;
         }
@@ -400,9 +402,9 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         {
             try
             {
-                int maxSize = 5000;
+                int maxSize = AppStorage.Instance.UserSettings.CropResizeToMax;
                 string prefix = "_";
-                string suffix = "_5000.png";
+                string suffix = $"_{maxSize}.png";
                 int batchSize = 8;
 
                 var factories = new Queue<Func<Task>>();

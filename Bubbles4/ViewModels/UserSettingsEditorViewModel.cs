@@ -23,6 +23,7 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
     [ObservableProperty] private float _hideCursorTime;
     [ObservableProperty] private double _ivpAnimSpeed;
     [ObservableProperty] private double _turnpageBouncingTime;
+    [ObservableProperty] private int _cropResizeToMax;
     
     [ObservableProperty]ReadOnlyObservableCollection<InputManager.ActionBindings> _actionBindings;
     
@@ -64,6 +65,7 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
     [ObservableProperty] private StickName _stickPan = InputManager.Instance.PanStick;
     partial void OnStickPanChanged(StickName oldValue, StickName newValue)
     {
+        _ = newValue;
         _stickZoom = oldValue;
         OnPropertyChanged(nameof(StickZoom));
     }
@@ -71,11 +73,12 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
     [ObservableProperty] private StickName _stickZoom = InputManager.Instance.ZoomStick;
     partial void OnStickZoomChanged(StickName oldValue, StickName newValue)
     {
+        _ = newValue;
         _stickPan = oldValue;
         OnPropertyChanged(nameof(StickPan));
     }
     IDialogService _dialogService;
-    Window _window;
+    Window? _window;
     public UserSettingsEditorViewModel(IDialogService dlg)
     {
         _dialogService = dlg;
@@ -89,7 +92,7 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
         ShowAlbumPath = pref.ShowAlbumPath;
         ShowImageSize = pref.ShowImageSize;
         ShowPageName = pref.ShowPageName;
-
+        CropResizeToMax = pref.CropResizeToMax;
         _actionBindings = new ReadOnlyObservableCollection<InputManager.ActionBindings>(InputManager.Instance.Bindings);
     }
 
@@ -103,11 +106,11 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
     [RelayCommand]
     private void ResetControls()
     {
-        _dragPanBtn = InputManager.MouseButton.LeftMouseButton;
-        _dragZoomBtn = InputManager.MouseButton.MiddleMouseButton;
-        _drawZoomRectBtn = InputManager.MouseButton.RightMouseButton;
-        _stickPan = StickName.LStick;
-        _stickZoom = StickName.RStick;
+        DragPanBtn = InputManager.MouseButton.LeftMouseButton;
+        DragZoomBtn = InputManager.MouseButton.MiddleMouseButton;
+        DrawZoomRectBtn = InputManager.MouseButton.RightMouseButton;
+        StickPan = StickName.LStick;
+        StickZoom = StickName.RStick;
         OnPropertyChanged(nameof(DragPanBtn));
         OnPropertyChanged(nameof(DragZoomBtn));
         OnPropertyChanged(nameof(DrawZoomRectBtn));

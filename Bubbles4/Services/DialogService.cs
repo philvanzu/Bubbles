@@ -46,16 +46,5 @@ public class DialogService : IDialogService
             _ => throw new NotImplementedException($"No view mapped for view model: {viewModel.GetType().Name}")
         };
     }
-    /*
-    private Window CreateWindowForViewModel(object viewModel)
-    {
-        var vm = viewModel as LibraryConfigViewModel;
-        return viewModel switch
-        {
-            LibraryConfigViewModel => new LibraryConfigWindow(vm),
-            // Add additional view model mappings here
-            _ => throw new NotImplementedException($"No view mapped for view model: {viewModel.GetType().Name}")
-        };
-    }
-    */
+
 }

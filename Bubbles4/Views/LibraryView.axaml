@@ -5,7 +5,6 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              xmlns:vm="clr-namespace:Bubbles4.ViewModels"
              xmlns:avaloniaControls="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls"
-             xmlns:ir="clr-namespace:Avalonia.Controls;assembly=Avalonia.Controls.ItemsRepeater"
              xmlns:i="using:Avalonia.Xaml.Interactivity"
              xmlns:converters="clr-namespace:Bubbles4.Converters"
              xmlns:bhv="clr-namespace:Bubbles4.Behaviors"
@@ -25,6 +24,7 @@
         <ctrl:VirtualizedItemsRepeater ItemsSource="{Binding Books}" 
                                        ItemPreparedCommand="{Binding BookPreparedCommand}"
                                        ItemClearingCommand="{Binding BookClearingCommand}"
+                                       ElementWidth="180" ElementHeight="185"
                                        x:Name="BooksRepeater">
 
             <ctrl:VirtualizedItemsRepeater.Layout>
@@ -60,7 +60,7 @@
                                                   IsVisible="{Binding CanModifiedOrderToName}"/>
                                         <MenuItem Header="Clear Image Viewing Params"
                                                   Command="{Binding ClearIVPCollectionCommand}"/>
-                                        <MenuItem Header="Crop To Ivp and Resize to MaxResize (in user settings)" 
+                                        <MenuItem Header="IVP Crop and Resize down to MaxResize (in user settings)" 
                                                   Command ="{Binding SaveCroppedIvpsToSizeCommand}"/>
                                                   
                                     </ContextMenu>

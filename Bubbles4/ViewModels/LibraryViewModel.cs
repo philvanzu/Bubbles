@@ -421,12 +421,19 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
 
         else
         {
+            existing = _books.FirstOrDefault(x => string.Equals(x.Path, e.FullPath, StringComparison.OrdinalIgnoreCase));
             bool isArchive = FileTypes.IsArchive(e.FullPath);
             bool isPdf = FileTypes.IsPdf(e.FullPath);
             bool isDirbook = FileTypes.IsImageDirectory(e.FullPath);
    
             bool isBook = isDirbook || isPdf || isArchive;
-            if (isBook) existing = _books.FirstOrDefault(x => string.Equals(x.Path, e.FullPath, StringComparison.OrdinalIgnoreCase));
+            if (!isBook && existing is not null)
+            {
+                isBook = true;
+                if(existing.Model is BookDirectory) isDirbook = true;
+                else if(existing.Model is BookArchive) isArchive = true;
+                else if(existing.Model is BookPdf) isPdf = true;
+            }
 
             if (e.ChangeType == WatcherChangeTypes.Changed && existing != null)
             {
@@ -508,8 +515,8 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
             {
                 if (remove != null)
                 {
-                    _books.Remove(remove);
-                    dosort = true;
+                    if(_books.Remove(remove))
+                        dosort = true;
                 }
 
                 if (add != null && addedPaths.Add(add.Path)) //idempotent enough?
@@ -527,6 +534,13 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
             await Dispatcher.UIThread.InvokeAsync(() => Sort(CurrentSortOption, CurrentSortAscending));
         }
     }
+    public void RemoveEmptyBook(BookViewModel bookViewModel)
+    {
+        var idx = GetBookIndex(bookViewModel);
+        if (idx == -1) return;
+        _books.Remove(bookViewModel);
+        Sort(CurrentSortOption, CurrentSortAscending);
+    }
     #endregion
 
     public string SerializeCollection()
@@ -536,6 +550,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
             list.Add(item.Model.Serialize());
         return JsonSerializer.Serialize(list);
     }
+
 
 
 }

@@ -113,7 +113,7 @@ public static class ImageLoader
 
             if (scale < 1f)
             {
-                var resized = sourceBitmap.Resize(new SKImageInfo(targetWidth, targetHeight), SKFilterQuality.High);
+                var resized = sourceBitmap.Resize(new SKImageInfo(targetWidth, targetHeight), SKSamplingOptions.Default);
                 if (resized == null)
                     return null;
 

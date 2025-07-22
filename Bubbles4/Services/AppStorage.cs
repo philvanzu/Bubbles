@@ -81,7 +81,11 @@ public class AppStorage
     {
         if (_data.TryGetValue(libraryPath, out var json))
         {
-            return LibraryConfig.Deserialize(json);
+            var config =LibraryConfig.Deserialize(json);
+            if (config != null && config.Path != libraryPath)
+                config.Path = libraryPath;
+            
+            return config;
         }    
         return null;
     }
@@ -164,6 +168,7 @@ public class UserSettings
     public int ShowPageName { get; set; } = -1;
     public int ShowImageSize { get; set; } = -1;
     public string InputBindings { get; set; } = "";
+    public int CropResizeToMax { get; set; } = 5000;
     public string Serialize()
     {
         return JsonSerializer.Serialize(this);

@@ -39,7 +39,7 @@
                         <TextBlock> Controller Sticks Sensitivity : </TextBlock>
                         <Slider Minimum="0" Maximum="1" Value="{Binding ControllerStickSensitivity, Mode=TwoWay}"/>
                         <Border Height="16"/>
-                        <Grid ColumnDefinitions="Auto, 16, Auto" RowDefinitions="Auto, Auto, Auto">
+                        <Grid ColumnDefinitions="Auto, 16, Auto" RowDefinitions="Auto, Auto, Auto, Auto">
                             <TextBlock Grid.Column="0" Grid.Row="0"  Text="Image Viewing Params Animation takes (ms)"/>
                             <TextBox Grid.Column="2" Grid.Row="0" Text="{Binding IvpAnimSpeed}"/>
                         
@@ -48,6 +48,9 @@
                         
                             <TextBlock Grid.Column="0" Grid.Row="2" Text="Fullscreen Scrolling Turn Page Bouncer lasts (ms)"/>
                             <TextBox Grid.Column="2" Grid.Row="2" Text="{Binding TurnpageBouncingTime}"/>
+                            
+                            <TextBlock Grid.Column="0" Grid.Row="3" Text="Crop Resize down to Max Pixel Size"/>
+                            <TextBox Grid.Column="2" Grid.Row="3" Text="{Binding CropResizeToMax}"/>
                         </Grid>
                         <Border Height="8"/>
                         <Separator Width="400" />

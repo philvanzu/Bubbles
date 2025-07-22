@@ -17,7 +17,7 @@ public partial class InputManager
     private static Action<ButtonName>? GamepadButtonListener;
     public Window? UserSettingsWindow { get; set; }
     public IDialogService? DialogService { get; set; }
-    public Border? FocusDump { get; set; } = null;
+    public Border? FocusDump { get; set; }
     
     public partial class ActionBindings:ViewModelBase
     {
@@ -110,62 +110,71 @@ public partial class InputManager
             // Setup listener callbacks
             KeyComboListener = (combo) =>
             {
-                Dispatcher.UIThread.Post(async () =>
+                Dispatcher.UIThread.Post(async void () =>
                 {
-                    if (UsedKeyCombos.Contains(combo))
+                    try
                     {
-                        if (listeningDlgTask == null || listeningDlgTask.IsCompleted) return;
-
-                        var action = Instance._keyUpMap[combo];
-                        string keystring = new KeyGesture(combo.Key, combo.Modifiers).ToString();
-                        okcDlg.Content = $"[{keystring}] already assigned to Action: {action.ActionName}! Overwrite?";
-                        okcDlg.ShowOkButton = true;
-                        okcDlg.Refresh();
-
-                        var overwrite = await listeningDlgTask;
-                        if (overwrite == true)
+                        if (UsedKeyCombos.Contains(combo))
                         {
-                            action.Remove(combo);
-                            Add(combo);
-                        }
-                    }
-                    else
-                    {
-                        Add(combo);
-                        listeningDialog?.Close();
-                    }
+                            if (listeningDlgTask == null || listeningDlgTask.IsCompleted) return;
 
-                    ClearListeners();
+                            var action = Instance._keyUpMap[combo];
+                            string keystring = new KeyGesture(combo.Key, combo.Modifiers).ToString();
+                            okcDlg.Content = $"[{keystring}] already assigned to Action: {action.ActionName}! Overwrite?";
+                            okcDlg.ShowOkButton = true;
+                            okcDlg.Refresh();
+
+                            var overwrite = await listeningDlgTask;
+                            if (overwrite == true)
+                            {
+                                action.Remove(combo);
+                                Add(combo);
+                            }
+                        }
+                        else
+                        {
+                            Add(combo);
+                            listeningDialog?.Close();
+                        }
+
+                        ClearListeners();
+                        
+                    }
+                    catch (Exception ex){Console.Error.WriteLine(ex);}
                 });
             };
 
             GamepadButtonListener = (button) =>
             {
-                Dispatcher.UIThread.Post(async () =>
+                Dispatcher.UIThread.Post(async void () =>
                 {
-                    if (UsedButtons.Contains(button))
+                    try
                     {
-                        if (listeningDlgTask == null || listeningDlgTask.IsCompleted) return;
-
-                        var action = Instance._buttonUpMap[button];
-                        okcDlg.Content = $"{button} already assigned to Action: {action.ActionName}! Overwrite?";
-                        okcDlg.ShowOkButton = true;
-                        okcDlg.Refresh();
-
-                        var overwrite = await listeningDlgTask;
-                        if (overwrite == true)
+                        if (UsedButtons.Contains(button))
                         {
-                            action.Remove(button);
-                            Add(button);
-                        }
-                    }
-                    else
-                    {
-                        Add(button);
-                        listeningDialog?.Close();
-                    }
+                            if (listeningDlgTask == null || listeningDlgTask.IsCompleted) return;
 
-                    ClearListeners();
+                            var action = Instance._buttonUpMap[button];
+                            okcDlg.Content = $"{button} already assigned to Action: {action.ActionName}! Overwrite?";
+                            okcDlg.ShowOkButton = true;
+                            okcDlg.Refresh();
+
+                            var overwrite = await listeningDlgTask;
+                            if (overwrite == true)
+                            {
+                                action.Remove(button);
+                                Add(button);
+                            }
+                        }
+                        else
+                        {
+                            Add(button);
+                            listeningDialog?.Close();
+                        }
+
+                        ClearListeners();    
+                    }
+                    catch (Exception ex){Console.Error.WriteLine(ex);}
                 });
             };
 
@@ -225,14 +234,14 @@ public partial class InputManager
     }
     public partial class ActionBindingItem : ViewModelBase
     {
-        public string Name { get; init; }
-        public KeyCombo? KeyCombo { get; init; } = null;
-        public ButtonName? GamepadButton { get; init; } = null;
-        public string ActionName { get; init; }
+        public string Name { get; init; } = "";
+        public KeyCombo? KeyCombo { get; init; } 
+        public ButtonName? GamepadButton { get; init; }
+        public string ActionName { get; init; } = "";
         
         [JsonIgnore]public bool IsKeyCombo => KeyCombo != null;
         [JsonIgnore]public bool IsGamepadButton => GamepadButton != null;
-        [JsonIgnore]private ActionBindings Owner { get; init; }
+        [JsonIgnore] private ActionBindings? Owner { get; init; }
 
         public ActionBindingItem() { }
 
@@ -253,6 +262,7 @@ public partial class InputManager
         [RelayCommand]
         private void Remove()
         {
+            if (Owner is null) return;
             if (KeyCombo != null)
                 Owner.Remove(KeyCombo);
             else if (GamepadButton != null)

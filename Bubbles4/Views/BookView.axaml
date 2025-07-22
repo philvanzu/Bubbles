@@ -19,6 +19,7 @@
         <ctrl:VirtualizedItemsRepeater ItemsSource="{Binding Pages}"
                                        ItemPreparedCommand="{Binding PagePreparedCommand}"
                                        ItemClearingCommand="{Binding PageClearingCommand}"
+                                       ElementWidth="132" ElementHeight="152"
                                        x:Name="PagesRepeater">
 
             <ctrl:VirtualizedItemsRepeater.Layout>

@@ -117,21 +117,26 @@ public class BookDirectory:BookBase
         {
             var pages = await Task.Run(() =>
             {
-                DirectoryInfo info = new DirectoryInfo(Path);
                 List<Page> pages = new();
-                int index = 0;
-                foreach (FileInfo file in info.GetFiles())
+                try
                 {
-                    if (FileTypes.IsImage(file.FullName))
+                    if (!Directory.Exists(Path)) return pages; 
+                    
+                    DirectoryInfo info = new DirectoryInfo(Path);
+                    int index = 0;
+                    foreach (FileInfo file in info.GetFiles())
                     {
-                        pages.Add(new Page()
+                        if (FileTypes.IsImage(file.FullName))
                         {
-                            Path = file.FullName, Name = file.Name, Index = index++, Created = file.CreationTime,
-                            LastModified = file.LastWriteTime
-                        });
+                            pages.Add(new Page()
+                            {
+                                Path = file.FullName, Name = file.Name, Index = index++, Created = file.CreationTime,
+                                LastModified = file.LastWriteTime
+                            });
+                        }
                     }
                 }
-
+                catch(Exception ex){Console.Error.WriteLine(ex);}
                 return pages;
             }, PagesListCts.Token);
             return pages;

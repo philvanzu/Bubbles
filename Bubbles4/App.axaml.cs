@@ -1,7 +1,6 @@
 using System;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,7 +12,7 @@ using Bubbles4.Views;
 using Bubbles4.Services;
 namespace Bubbles4;
 
-public partial class App : Application
+public class App : Application
 {
     
     public override void Initialize()
@@ -47,9 +46,9 @@ public partial class App : Application
                 
   
                 mvm.MainWindow = mainWindow;
-                mainWindow.Opened += (sender, e) =>
+                mainWindow.Opened += (_, _) =>
                 {
-                    Dispatcher.UIThread.Post(async () =>
+                    Dispatcher.UIThread.Post(async void() =>
                     {
                         try
                         {
@@ -63,28 +62,28 @@ public partial class App : Application
                         }    
                     });
                 };
-                mainWindow.Closing += (sender, e) =>
+                mainWindow.Closing += (_, e) =>
                 {
                     mvm.OnShutdown();
-                    if (mvm.ShutdownCoordinator?.IsShutdownBlocked == true)
+                    if (mvm.ShutdownCoordinator.IsShutdownBlocked)
                     {
                         e.Cancel = true;
                         return;
                     }
-                    if(mvm.IsFullscreen)mvm.ExitFullScreenCommand?.Execute(null);
+                    if(mvm.IsFullscreen)mvm.ExitFullScreenCommand.Execute(null);
                     AppStorage.Instance.Save();
                 };
-                mainWindow.Closed += (sender, e) =>
+                mainWindow.Closed += (_, _) =>
                 {
                     try
                     {
                         var appData = AppStorage.Instance;
-                        var appState = appData.AppState;
-                        appState.WindowPosition = mainWindow.Position;
-                        appState.WindowWidth = mainWindow.Width;
-                        appState.WindowHeight = mainWindow.Height;
-                        appState.WindowState = mainWindow.WindowState;
-                        appData.AppState = appState;
+                        var state = appData.AppState;
+                        state.WindowPosition = mainWindow.Position;
+                        state.WindowWidth = mainWindow.Width;
+                        state.WindowHeight = mainWindow.Height;
+                        state.WindowState = mainWindow.WindowState;
+                        appData.AppState = state;
                         appData.Save();
                     }
                     catch (Exception ex){Console.WriteLine(ex);}

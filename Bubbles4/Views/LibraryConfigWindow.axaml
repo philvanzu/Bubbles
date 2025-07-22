@@ -33,11 +33,11 @@
         <TextBlock VerticalAlignment="Center" FontSize="16">Library Navigation Type:</TextBlock>
         <Border Height="8"/>
         <StackPanel Orientation="Horizontal">
-            <ToggleButton IsChecked="{Binding Recursive, Mode=TwoWay}" Width="250" Height="75" HorizontalAlignment="Left" > 
+            <ToggleButton IsChecked="{Binding Recursive, Mode=TwoWay}" Width="250" Height="100" HorizontalAlignment="Left" > 
                 <TextBlock TextWrapping="Wrap" Text="Recursive : All albums, including those found in subdirectories are presented in one large view. (Can be slow to load)"/>
             </ToggleButton>
             
-            <ToggleButton IsChecked="{Binding Navtree, Mode=TwoWay}"  Width="250" Height="75" HorizontalAlignment="Left" >
+            <ToggleButton IsChecked="{Binding Navtree, Mode=TwoWay}"  Width="250" Height="100" HorizontalAlignment="Left" >
                 <TextBlock TextWrapping="Wrap" Text="NavTree : Directory structure is preserved and navigable, only albums within the selected directory are shown"/> 
             </ToggleButton>
         </StackPanel>

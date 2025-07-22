@@ -7,9 +7,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using Bubbles4.Models;
-using Bubbles4.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -201,7 +199,6 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
             var v = viewportSize ?? new PixelSize(1920, 1080);
             var iw = ImageSize.Value.Width;
             var ih = ImageSize.Value.Height;
-            const double borderSize = 128;
 
             // Size of the zoom viewport in full image pixels
             var viewportW = v.Width / Ivp.zoom;

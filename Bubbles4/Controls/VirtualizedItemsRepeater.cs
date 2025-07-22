@@ -19,14 +19,30 @@ public class VirtualizedItemsRepeater : ItemsRepeater
     public static readonly StyledProperty<ISelectableItem?> SelectedItemProperty =
         AvaloniaProperty.Register<VirtualizedItemsRepeater, ISelectableItem?>(nameof(SelectedItem));
 
+    public static readonly StyledProperty<int?> ElementWidthProperty =
+        AvaloniaProperty.Register<VirtualizedItemsRepeater, int?>(nameof(ElementWidth));
+    
+    public static readonly StyledProperty<int?> ElementHeightProperty =
+        AvaloniaProperty.Register<VirtualizedItemsRepeater, int?>(nameof(ElementHeight));
+
+    public int? ElementWidth
+    {
+        get => GetValue(ElementWidthProperty);
+        set => SetValue(ElementWidthProperty, value);
+    }
+
+    public int? ElementHeight
+    {
+        get => GetValue(ElementHeightProperty);
+        set => SetValue(ElementHeightProperty, value);
+    }
+
     public ISelectableItem? SelectedItem
     {
         get => GetValue(SelectedItemProperty);
         set => SetValue(SelectedItemProperty, value);
     }
 
-    private Size? _elementSize;
-    
     public ICommand? ItemPreparedCommand
     {
         get => GetValue(ItemPreparedCommandProperty);
@@ -60,29 +76,6 @@ public class VirtualizedItemsRepeater : ItemsRepeater
 
     }
 
-    private void OnPointerWheelChanged(object? _, PointerWheelEventArgs e)
-    {
-        base.OnPointerWheelChanged(e);
-
-        if (_elementSize is null)
-            return;
-
-        var scrollViewer = FindParentScrollViewer(this);
-        if (scrollViewer is null)
-            return;
-
-        double scrollDelta = Math.Sign(e.Delta.Y) * _elementSize.Value.Height;
-
-        var newOffsetY = scrollViewer.Offset.Y - scrollDelta;
-
-        // Clamp to valid range
-        newOffsetY = Math.Max(0, newOffsetY);
-        // Optionally: you could calculate maximum scroll based on estimated total items count and item size
-
-        scrollViewer.Offset = new Vector(scrollViewer.Offset.X, newOffsetY);
-        e.Handled = true;
-    }
-
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
         if (_itemsSelector != null)
@@ -100,7 +93,7 @@ public class VirtualizedItemsRepeater : ItemsRepeater
             _itemsSelector.SelectionChanged += OnDcSelectionChanged;
             _itemsSelector.ScrollToIndexRequested += OnDcScrollToIndexRequested;
         }
-        _elementSize = null;
+        
     }
 
     private void OnDcScrollToIndexRequested(object? sender, int e)
@@ -130,9 +123,6 @@ public class VirtualizedItemsRepeater : ItemsRepeater
     
     private void OnElementPreparedInternal(object? sender, ItemsRepeaterElementPreparedEventArgs e)
     {
-        
-        if (_elementSize == null && e.Element.Width > 0 && e.Element.Height > 0)
-            _elementSize = new Size(e.Element.Width, e.Element.Height);
         
         var context = e.Element.DataContext;
         
@@ -181,20 +171,20 @@ public class VirtualizedItemsRepeater : ItemsRepeater
     private int ViewportRow()
     {
         var scrollViewer = FindParentScrollViewer(this);
-        if (_elementSize == null || scrollViewer == null)
+        if (ElementHeight == null || ElementWidth == null || scrollViewer == null)
             return -1;
         
-        double itemHeight = _elementSize.Value.Height;
+        double itemHeight = (double)ElementHeight;
         return (int)( scrollViewer.Offset.Y / itemHeight);
     }
     private void ScrollIntoView(int index)
     {
         var scrollViewer = FindParentScrollViewer(this);
-        if (_elementSize == null || scrollViewer == null)
+        if (ElementHeight == null || ElementWidth == null || scrollViewer == null)
             return;
         
-        double itemWidth = _elementSize.Value.Width;
-        double itemHeight = _elementSize.Value.Height;
+        double itemWidth = (double)ElementWidth;
+        double itemHeight = (double)ElementHeight;
         
         var viewport = scrollViewer.Viewport;
         int columns = Math.Max(1, (int)(viewport.Width / itemWidth));
