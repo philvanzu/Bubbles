@@ -6,7 +6,7 @@ Bubbles is a comics reader and image albums viewer (cbr, cbz, image directories,
 - Touch support, pinching works, might look at adding swiping to turn pages if people ask for it.
 - Designed for reading comfort, you can rebind most actions input like it's a videogame
 - 
-[view dmeo animation (GIF)](https://github.com/philvanzu/Bubbles/releases/download/Win64/bubbles.gif)
+![demo](https://github.com/philvanzu/Bubbles/releases/download/Win64/bubbles.gif)
 
 Binaries:
 
