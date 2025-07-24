@@ -20,30 +20,58 @@ namespace Bubbles4.ViewModels;
 public partial class LibraryViewModel : ViewModelBase, ISelectItems
 {
     public string Path { get; }
-    protected readonly List<BookViewModel> _books = new();
-    protected ObservableCollection<BookViewModel> _booksMutable = new();
+    
+    private readonly List<BookViewModel> _books = new();
+    private ObservableCollection<BookViewModel> _booksMutable = new();
     public ReadOnlyObservableCollection<BookViewModel> Books { get; }
     [ObservableProperty] BookViewModel? _selectedItem;
     public LibraryConfig.SortOptions CurrentSortOption { get; set; }
     public bool CurrentSortAscending { get; set; }
 
-    protected List<string>? _filters;
+    private List<string>? _filters;
     public int Count => Books.Count;
-    protected MainViewModel _mainViewModel;
+    public MainViewModel MainViewModel { get; set; }
     public event EventHandler<SelectedItemChangedEventArgs>? SelectionChanged;
     public event EventHandler? SortOrderChanged;
     public event EventHandler<int>? ScrollToIndexRequested;
     
     [ObservableProperty] private bool _isLoading;
-    public LibraryViewModel(MainViewModel mainViewModel, string path)
+
+    [ObservableProperty] private LibraryNodeViewModel _rootNode;
+    [ObservableProperty] private LibraryConfig _config;
+    partial void OnConfigChanged(LibraryConfig value)
     {
-        _mainViewModel = mainViewModel;
+        MainViewModel.LibrarySortHeader.Value = (value.LibrarySortOption, value.LibrarySortAscending);
+        MainViewModel.BookSortHeader.Value = (value.BookSortOption, value.BookSortAscending);
+        MainViewModel.NodeSortHeader.Value = (value.NodeSortOption, value.NodeSortAscending);
+        MainViewModel.PreviewIVPIsChecked = false;
+        MainViewModel.ShowNavPane = value.ShowNavPane;
+    }
+
+    [ObservableProperty] private LibraryNodeViewModel? _selectedNode;
+
+    partial void OnSelectedNodeChanged(LibraryNodeViewModel? value)
+    {
+        if (value != null)
+        {
+            Sort();
+        }
+    }
+    
+    public LibraryViewModel(MainViewModel mainViewModel, string path, LibraryConfig config)
+    {
+        _config = config;
+        
+        MainViewModel = mainViewModel;
         this.Path = path;
         Books = new ReadOnlyObservableCollection<BookViewModel>(_booksMutable);
 
-        CurrentSortOption = _mainViewModel.Config?.LibrarySortOption ?? LibraryConfig.SortOptions.Path;
-        var dir = _mainViewModel.Config?.LibrarySortAscending;
-        CurrentSortAscending = dir ?? true;
+        CurrentSortOption = Config.LibrarySortOption;
+        CurrentSortAscending = Config.LibrarySortAscending;
+        
+        var info  = new DirectoryInfo(path);
+        RootNode = new LibraryNodeViewModel(this,info.FullName, info.Name, info.CreationTime, info.LastWriteTime);
+        OnConfigChanged(config);
     }
 
     public virtual void Close()
@@ -57,6 +85,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         SelectedItem = null;
         
         Clear();
+        MainViewModel.ShowNavPane = false;
     }
     public void Clear()
     {
@@ -68,118 +97,10 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     }
 
     
-    protected CancellationTokenSource? _parsingCts;
 
-    public virtual async Task StartParsingLibraryAsync(string path, IProgress<(string, double, bool)> progress)
-    {
-        // Cancel previous parsing run if active
-        _parsingCts?.Cancel();
-        _parsingCts?.Dispose();
-        _parsingCts = new CancellationTokenSource();
-        var token = _parsingCts.Token;
-
-        //Clear();
-
-        try
-        {
-            Dispatcher.UIThread.Post(()=>IsLoading = true);
-            await LibraryParserService.ParseLibraryRecursiveAsync(path, batch =>
-            {
-                // Marshal to UI thread
-                AddBatch(batch);
-            }, cancellationToken: token, progress: progress);
-            Dispatcher.UIThread.Post(()=>IsLoading = false);
-        }
-        catch (OperationCanceledException)
-        {
-            // Optional: handle cancellation gracefully
-        }
-
-    }
-
-    public void CancelParsing()
-    {
-        _parsingCts?.Cancel();
-        _parsingCts?.Dispose();
-        _parsingCts = null;
-    }
-    public async Task LoadSerializedCollection(string json, IProgress<(string, double, bool)> progress)
-    {
-        Dispatcher.UIThread.Post(()=>IsLoading = true);
-        var strings = JsonSerializer.Deserialize<List<string>>(json);
-        List<BookBase> bookbases = new();
-        if (strings is not null)
-        {
-            var total = strings.Count;
-            int i = 0;
-            
-            foreach (var item in strings)
-            {
-                var bookbase = BookBase.Deserialize(item);
-                if(bookbase != null)
-                    bookbases.Add(bookbase);
-                
-                progress.Report(($"Loading Cached Library Data...", (double)++i/total, false));
-            }    
-        }
-        progress.Report(($"Loading Cached Library Data...", -1, false));
-        await Dispatcher.UIThread.InvokeAsync(()=>AddBatch(bookbases, false));        
-        progress.Report(($"Loading Cached Library Data...", 0, true));
-    }
-
-    public virtual void AddBatch(List<BookBase> batch, bool authoritative = true)
-    {
-        if (!Dispatcher.UIThread.CheckAccess())
-            throw new InvalidOperationException("LibraryViewModel.AddBatch must be invoked on the UI thread.");
-
-        if (!authoritative && _books.Count > 0)
-            return;
-
-        if (authoritative && _books.Count > 0)
-        {
-            var vmLookup = _books.ToDictionary(vm => vm.Path);
-            var incomingPaths = new HashSet<string>(batch.Select(b => b.Path));
-            int removed = 0, added = 0;
-            // Remove any existing items not in the incoming batch
-            for (int i = _books.Count - 1; i >= 0; i--)
-            {
-                if (!incomingPaths.Contains(_books[i].Path))
-                {
-                    _books.RemoveAt(i);
-                    removed++;
-                }
-                    
-            }
+    public int NodeBooksCount(string libraryNodeId)=> _books.Count(b => b.LibraryNodeId == libraryNodeId);
     
-            // Add new ones not already in the VM list
-            foreach (var newBook in batch)
-            {
-                if (!vmLookup.ContainsKey(newBook.Path))
-                {
-                    _books.Add(new BookViewModel(newBook, this, _mainViewModel));
-                    added++;
-                }
-            }
-            Console.WriteLine($"Authoritative set included. removes: {removed}, added: {added}");
-            if (added > 0 || removed > 0)
-            {
-                Sort();
-                _mainViewModel.UpdateLibraryStatus();
-                OnPropertyChanged(nameof(Count));        
-            }
-        }
-        else
-        {
-            _books.Clear();
-            _books.AddRange(batch.Select(book => new BookViewModel(book, this, _mainViewModel)));
-            Sort();
-            _mainViewModel.UpdateLibraryStatus();
-            OnPropertyChanged(nameof(Count));
-        }
-
-        
-    }
-
+    
 
 
     [RelayCommand]
@@ -250,8 +171,8 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     }
     public void Sort(LibraryConfig.SortOptions? sort=null, bool? ascending=null)
     {
-        if (sort == null) sort = _mainViewModel.Config?.LibrarySortOption ?? LibraryConfig.SortOptions.Path;
-        if (ascending == null) ascending = _mainViewModel.Config?.LibrarySortAscending ?? true;
+        if (sort == null) sort = Config.LibrarySortOption;
+        if (ascending == null) ascending = Config.LibrarySortAscending;
 
         if (sort == LibraryConfig.SortOptions.Random) ShuffleBooks();
 
@@ -288,6 +209,9 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     }
     private bool MatchesKeywords(BookViewModel bvm, List<string>? keywords)
     {
+        if (Config.Recursive == false)
+            if (SelectedNode == null || SelectedNode.Path != bvm.LibraryNodeId) return false;
+
         if (keywords == null || keywords.Count == 0)
             return true;
         
@@ -311,7 +235,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     partial void OnSelectedItemChanged(BookViewModel? value)
     {
         BookViewModel? oldItem = null;
-        _mainViewModel.SelectedBook = value;
+        MainViewModel.SelectedBook = value;
         foreach (var book in Books)
         {
             if (book != value && book.IsSelected)
@@ -334,7 +258,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
                 });
         }
         InvokeSelectionChanged(SelectedItem, oldItem);
-        _mainViewModel.UpdateBookStatus();
+        MainViewModel.UpdateBookStatus();
         //Console.WriteLine("Selected book :" + value.Name );
     }
     public void InvokeSelectionChanged(ISelectableItem? newItem, ISelectableItem? oldItem)
@@ -395,6 +319,9 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         BookViewModel? existing = null;
         BookViewModel? shouldRemove = null;
         BookViewModel? shouldAdd = null;
+        (LibraryNodeViewModel, string)? shouldAddNode = null;
+        LibraryNodeViewModel? shouldRemoveNode = null;
+        
         bool removeFlag = false;
         
         bool isImage = FileTypes.IsImage(e.FullPath);
@@ -411,10 +338,12 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
                 }
                 else if(e.ChangeType == WatcherChangeTypes.Created && Directory.Exists(imgDir))
                 {
+                    string? nodePath = System.IO.Path.GetDirectoryName(imgDir);
+                    if (nodePath is null) return;
                     FileInfo info = new FileInfo(imgDir);
                     var bd = new BookDirectory(info.FullName, info.Name, -1,info.LastWriteTime, info.CreationTime);
                     //!! potentially creating many versions of the same bookdirectory, but they should be bounced off in the processing thread if it happens
-                    shouldAdd = new BookViewModel(bd, this, _mainViewModel);
+                    shouldAdd = new BookViewModel(bd, this, nodePath);    
                 }
             }
         }
@@ -469,7 +398,12 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
                 }
 
                 if (removeFlag && existing != null) shouldRemove = existing;
-                if (newBook != null) shouldAdd = new BookViewModel(newBook, this, _mainViewModel);
+                if (newBook != null)
+                {
+                    string? nodePath = System.IO.Path.GetDirectoryName(newBook.Path);
+                    if (nodePath is null) return;
+                    shouldAdd = new BookViewModel(newBook, this, nodePath);
+                }
             }
         }
         if (shouldAdd != null || shouldRemove != null || sort)
@@ -515,13 +449,32 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
             {
                 if (remove != null)
                 {
-                    if(_books.Remove(remove))
+                    var node = RootNode.FindNode(remove.LibraryNodeId);
+                    if (_books.Remove(remove))
+                    {
                         dosort = true;
+                        if (node != null)
+                        {
+                            node.BooksCountChanged();
+                            RemoveNodeIfEmpty(node);
+                        }
+                    }
                 }
 
-                if (add != null && addedPaths.Add(add.Path)) //idempotent enough?
+                if (add != null && _books.All(b => b.Path != add.Path))
                 {
+                    
+                    var node = RootNode.FindNode(add.LibraryNodeId);
+                    if (node is null)
+                    {
+                        //Create the node if we need to
+                        node = RootNode.FindClosestNode(add.LibraryNodeId);
+                        if (node is null) return;
+                        node = AddNode (node, add.LibraryNodeId);
+                        if (node is null) return;
+                    }
                     _books.Add(add);
+                    node.BooksCountChanged();
                     dosort = true;
                 }
 
@@ -543,13 +496,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     }
     #endregion
 
-    public string SerializeCollection()
-    {
-        List<string> list = new();
-        foreach (var item in _books)
-            list.Add(item.Model.Serialize());
-        return JsonSerializer.Serialize(list);
-    }
+
 
 
 

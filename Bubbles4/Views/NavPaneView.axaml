@@ -7,7 +7,7 @@
              xmlns:views="clr-namespace:Bubbles4.Views"
              xmlns:controls="clr-namespace:Bubbles4.Controls"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:DataType="vm:MainViewModel"
+             x:DataType="vm:LibraryViewModel"
              x:Class="Bubbles4.Views.NavPaneView"
              x:Name="NavPaneRoot">
 
@@ -20,11 +20,11 @@
         <Grid>
             <Grid RowDefinitions="64 *">
                 <!-- TreeView  -->
-                <TextBlock Grid.Row="0" Text="{Binding Library.Path}" Margin="16 32 16 8" HorizontalAlignment="Left"/>
+                <TextBlock Grid.Row="0" Text="{Binding Path}" Margin="16 32 16 8" HorizontalAlignment="Left"/>
                 <ScrollViewer Grid.Row="1">
                     <TreeView Width="250" 
-                              ItemsSource="{Binding LibraryRoot.Children}" 
-                              SelectedItem="{Binding SelectedLibraryNode, Mode=TwoWay}"
+                              ItemsSource="{Binding RootNode.Children}" 
+                              SelectedItem="{Binding SelectedNode, Mode=TwoWay}"
                                 >
                         <TreeView.DataTemplates>
                             <TreeDataTemplate DataType="{x:Type vm:LibraryNodeViewModel}" 
@@ -47,7 +47,7 @@
                     Height="22" MinHeight="22"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Top">
-                <ItemsControl ItemsSource="{Binding NodeSortHeader.Options}" Background="Black">
+                <ItemsControl ItemsSource="{Binding MainViewModel.NodeSortHeader.Options}" Background="Black">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Orientation="Horizontal" />

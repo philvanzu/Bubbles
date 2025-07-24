@@ -53,6 +53,8 @@ public partial class MainView : UserControl
             ImageViewerContainer.PointerMoved += ImageViewer.OnPointerMoved;
             ImageViewerContainer.Pinched += ImageViewer.OnPinched;
         }
+
+        
     }
 
 
@@ -72,7 +74,9 @@ public partial class MainView : UserControl
     }
     private void OnGlobalKeyUp(object? sender, KeyEventArgs e)
     {
-        if (SearchBox.IsFocused || DataContext is not MainViewModel vm )
+        if (SearchBox.IsFocused 
+            || GotoPageNumericUpDown.IsFocused
+            || DataContext is not MainViewModel vm )
             return;
         InputManager.Instance.GlobalKeyUp(sender, e);
 
@@ -129,11 +133,27 @@ public partial class MainView : UserControl
         if (e.Key == Key.Enter)
         {
             SearchButton.Command?.Execute(SearchButton.CommandParameter);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            ImageViewer.Focus();
+            e.Handled = true;
         }
     }
 
-    
+    private void GotoPage_KeyDown(object? sender, KeyEventArgs e){
+        if (e.Key == Key.Enter && DataContext is MainViewModel vm)
+        {
+            vm.GotoPageCommand.Execute(null);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            ImageViewer.Focus();
+            e.Handled = true;
+        }
 
-
+    }
 
 }

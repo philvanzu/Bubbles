@@ -1,89 +1,129 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Text.Json;
 using Avalonia.Threading;
 using Bubbles4.Models;
-using Bubbles4.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DynamicData;
 using DynamicData.Binding;
 
 namespace Bubbles4.ViewModels;
 
-public partial class LibraryNodeViewModel : LibraryViewModel
+public partial class LibraryNodeViewModel : ViewModelBase
 {
-    private string _name;
     public int progressCounter;
+    public LibraryViewModel Library { get; set; }
+    [ObservableProperty] private string _path;
+    private string _name;
+
     public string Name
     {
         get
         {
-            string s = _name;
-            if (_books.Count > 0)
-            {
-                s += $" ({_books.Count})";
-            }
-            return s;
-        } 
+            var count = Library.NodeBooksCount(Path);
+            if (count > 0) return $"{_name}({count})";
+            return _name;
+        }
+        init => _name = value;
     }
+
     public DateTime Created { get; init; }
     public DateTime Modified { get; init; }
-    public MainViewModel MainVM => _mainViewModel;
-    public LibraryNodeViewModel Root { get; private set; } 
+
+    public LibraryNodeViewModel Root { get; private set; }
     public LibraryNodeViewModel? Parent { get; private set; }
 
-    private List<LibraryNodeViewModel> _children = new ();
+    private List<LibraryNodeViewModel> _children = new();
     private ObservableCollection<LibraryNodeViewModel> _childrenMutable = new();
     public ReadOnlyObservableCollection<LibraryNodeViewModel> Children { get; }
-    public LibraryConfig.NodeSortOptions CurrentChildrenSortOption { get; set; } 
+
+    public LibraryConfig.NodeSortOptions CurrentSort { get; set; }
         = LibraryConfig.NodeSortOptions.Alpha;
 
-    public bool CurrentChildrenSortAscending { get; set; } = true;
+    public bool CurrentAscending { get; set; } = true;
 
     public bool HasChildren => _childrenMutable.Count > 0;
 
     [ObservableProperty] private bool _isExpanded;
     [ObservableProperty] private bool _isLoaded;
-    
-    
+
+
     public LibraryNodeViewModel? SelectedNode { get; set; }
-    
-    public LibraryNodeViewModel(MainViewModel mainViewModel, string path, string name, DateTime created, DateTime modified, LibraryNodeViewModel? parent = null)
-    : base(mainViewModel, path)
+    public LibraryNodeViewModel? FindNode( string directoryPath )
     {
+        if(string.Equals(directoryPath.TrimEnd(System.IO.Path.DirectorySeparatorChar), 
+               Path.TrimEnd(System.IO.Path.DirectorySeparatorChar),
+               StringComparison.OrdinalIgnoreCase))
+            return this;
+        
+        foreach (var child in Children)
+        {
+            var node =  child.FindNode( directoryPath );
+            if (node != null) return node;
+        }
+        return null;
+    }
+
+    public LibraryNodeViewModel? FindClosestNode(string fullPath)
+    {
+        var separator = System.IO.Path.DirectorySeparatorChar;
+
+        if (!fullPath.StartsWith(Root.Path, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(fullPath, Root.Path, StringComparison.OrdinalIgnoreCase))
+        {
+            return null; // Path doesn't even start under root
+        }
+
+        string relativePath = fullPath.Length == Root.Path.Length
+            ? string.Empty
+            : fullPath.Substring(Root.Path.Length).TrimStart(separator);
+
+        if (string.IsNullOrEmpty(relativePath))
+            return Root; // exact match with root
+
+        var segments = relativePath.Split(separator, StringSplitOptions.RemoveEmptyEntries);
+
+        var currentNode = Root;
+        int depth = 0;
+
+        while (depth < segments.Length)
+        {
+            var segment = segments[depth];
+
+            var next = currentNode._children.FirstOrDefault(child =>
+            {
+                var childName = System.IO.Path.GetFileName(child.Path);
+                return string.Equals(childName, segment, StringComparison.OrdinalIgnoreCase);
+            });
+
+            if (next == null)
+                return currentNode; // No further match — return current as closest
+
+            currentNode = next;
+            depth++;
+        }
+
+        return currentNode; // Full path matched
+    }
+
+
+
+    public LibraryNodeViewModel(LibraryViewModel library, string path, string name, DateTime created, DateTime modified,
+        LibraryNodeViewModel? parent = null)
+
+    {
+        Library = library;
         Root = (parent == null) ? this : parent.Root;
         Parent = parent;
+        _path = path;
         _name = name;
         Created = created;
         Modified = modified;
         Children = new ReadOnlyObservableCollection<LibraryNodeViewModel>(_childrenMutable);
     }
 
-    
-    public override async Task StartParsingLibraryAsync(string path, IProgress<(string, double, bool)> progress)
-    {
-        // Cancel previous parsing run if active
-        _parsingCts?.Cancel();
-        _parsingCts?.Dispose();
-        _parsingCts = new CancellationTokenSource();
-        var token = _parsingCts.Token;
-        Clear();
-
-        try
-        {
-            await LibraryParserService.ParseLibraryNodeAsync(this, token, progress: progress);
-        }
-        catch (OperationCanceledException)
-        {
-            // Optional: handle cancellation gracefully
-        }
-    }
-
-    // Simulate loading children from disk or another source
     public void AddChild(LibraryNodeViewModel child)
     {
         if (Dispatcher.UIThread.CheckAccess())
@@ -91,7 +131,6 @@ public partial class LibraryNodeViewModel : LibraryViewModel
             _children.Add(child);
             _childrenMutable.Add(child);
             OnPropertyChanged(nameof(Children));
-            MainVM.UpdateTreeView();
         }
         else
         {
@@ -99,54 +138,45 @@ public partial class LibraryNodeViewModel : LibraryViewModel
         }
     }
 
-    public override void Close()
+    public void RemoveChild(LibraryNodeViewModel child)
     {
-        if (this==Root) CloseRecursive();
-        else Root.Close();
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            _children.Remove(child);
+            _childrenMutable.Remove(child);
+            OnPropertyChanged(nameof(Children));
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(() => RemoveChild(child));
+        }
+        
     }
 
-    protected void CloseRecursive()
+    public void BooksCountChanged()
     {
-        foreach (var child in Children)child.CloseRecursive();
-        base.Close();
-    }
-
-    private int CountBooks()
-    {
-        int count = 0;
-        foreach (var child in _children)
-            count += child.CountBooks();
-        return count + _books.Count;
-    }
-    public int BookCount => Root.CountBooks();
-
-    public override void AddBatch(List<BookBase> batch, bool authoritative=true)
-    {
-        base.AddBatch(batch, authoritative);
-        OnPropertyChanged(nameof(BookCount));
         OnPropertyChanged(nameof(Name));
     }
-
-    /// <summary>
-    /// Happens when this library node gets selected in the TreeView
-    /// maintains books list accurate
-    /// Bypasses the need to get too sophisticated with the FileSystem watch system
-    /// </summary>
-    public void Load()
+    public void SetChildren(List<LibraryNodeViewModel> children)
     {
-        Clear();
+        _children = children;
     }
-    public void SortChildren(LibraryConfig.NodeSortOptions sortOption, bool ascending)
+
+    public void SortChildren(LibraryConfig.NodeSortOptions? sortOption=null, bool? ascending=null)
     {
+        if (sortOption == null) sortOption = CurrentSort;
+        if (ascending == null) ascending = CurrentAscending;
+        
         _childrenMutable.Clear();
-        var sorted = _children.OrderBy(x => x, GetComparer(sortOption, ascending));
+        var sorted = _children.OrderBy(x => x, GetComparer(sortOption.Value, ascending.Value));
         _childrenMutable.AddRange(sorted);
         OnPropertyChanged(nameof(Children));
-        CurrentChildrenSortOption = sortOption;
-        CurrentChildrenSortAscending = ascending;
-        
-        foreach (var child in _children)child.SortChildren(sortOption, ascending);
+        CurrentSort = sortOption.Value;
+        CurrentAscending = ascending.Value;
+
+        foreach (var child in _children) child.SortChildren(sortOption, ascending);
     }
+
     private IComparer<LibraryNodeViewModel> GetComparer(LibraryConfig.NodeSortOptions sort, bool ascending)
     {
         return sort switch
@@ -166,88 +196,55 @@ public partial class LibraryNodeViewModel : LibraryViewModel
             _ => SortExpressionComparer<LibraryNodeViewModel>.Ascending(x => x.Name)
         };
     }
+
     public void ReverseChildrenSortOrder()
     {
-        SortChildren(CurrentChildrenSortOption, !CurrentChildrenSortAscending);
+        SortChildren(CurrentSort, !CurrentAscending);
     }
 
-    public bool HasBooks
+    private NodeData Data => new(Path, _name, Created, Modified, _children.Select(x => x.Data).ToList());
+
+    public string Serialize()
     {
-        get
-        {
-            bool hasBooks = false;
-            foreach (var child in _children)
-                if(child.HasBooks ) hasBooks = true;
-            
-            if (_books.Count > 0) hasBooks = true;
-            
-            return hasBooks;
-            
-        }
+        return JsonSerializer.Serialize(Data);
     }
 
-
-
-    #region FileSystemWatcherEvents
-
-    //delegate to selected node and just do a botched job of it
-    //too much complexity to care
-    public override void FileSystemChanged(FileSystemEventArgs e)
+    public static LibraryNodeViewModel? Load(string json, LibraryViewModel library)
     {
-        if (SelectedNode is LibraryViewModel lvm)
-            lvm.FileSystemChanged(e);
-    }
-    public LibraryNodeViewModel? FindOwnerNode(string path)
-    {
-        if (!path.StartsWith(Path, StringComparison.OrdinalIgnoreCase))
-            return null;
-
-        foreach (var child in _children)
-        {
-            if (path.StartsWith(child.Path, StringComparison.OrdinalIgnoreCase))
-            {
-                var match = child.FindOwnerNode(path);
-                if (match != null)
-                    return match;
-            }
-        }
-
-        return this;
+        var data =  JsonSerializer.Deserialize<NodeData>(json);
+        if(data != null) return NodeData.Unpack(data, null, library);
+        return null;
     }
     
-
-    
-    private int _childrenSortRunning;
-    private int _childrenSortPending;
-
-    public void EnqueueSortChildrenJob()
+    class NodeData
     {
-        if (Interlocked.CompareExchange(ref _childrenSortRunning, 1, 0) == 0)
+        public string Path { get; init; }
+        public string Name { get; init; }
+        public DateTime Created { get; init; }
+        public DateTime Modified { get; init; }
+        public List<NodeData> Children { get; init; }
+
+        public NodeData(string path, string name, DateTime created, DateTime modified, List<NodeData> children)
         {
-            _ = Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                try
-                {
-                    do
-                    {
-                        Interlocked.Exchange(ref _childrenSortPending, 0);
-                        SortChildren(CurrentChildrenSortOption, CurrentChildrenSortAscending);
-                        // Optionally await a small delay or yield to UI thread if sorting is expensive
-                    }
-                    while (Interlocked.CompareExchange(ref _childrenSortPending, 0, 0) != 0);
-                }
-                finally
-                {
-                    Interlocked.Exchange(ref _childrenSortRunning, 0);
-                }
-            });
+            Path = path;
+            Name = name;
+            Created = created;
+            Modified = modified;
+            Children = children;
         }
-        else
+
+        public static LibraryNodeViewModel Unpack(NodeData data, LibraryNodeViewModel? parent, LibraryViewModel library)
         {
-            // Mark that a sort is pending while one is running
-            Interlocked.Exchange(ref _childrenSortPending, 1);
+            LibraryNodeViewModel result = new(library, data.Path, data.Name, data.Created, data.Modified, parent);
+            List<LibraryNodeViewModel> children = new();
+            foreach (var child in data.Children)
+                children.Add( NodeData.Unpack(child, result, library));
+        
+            result._children  = children;
+            
+            return result;
         }
     }
-    
-    #endregion
 }
+
+

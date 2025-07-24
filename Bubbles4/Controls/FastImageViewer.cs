@@ -4,7 +4,6 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using System;
-using System.ComponentModel;
 using Avalonia.Threading;
 using Bubbles4.Models;
 using Bubbles4.Services;

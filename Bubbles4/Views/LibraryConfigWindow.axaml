@@ -63,8 +63,8 @@
         </CheckBox>
         <Border Height="8"/>
         
-        <CheckBox Content="Cache Recursive Libraries Data for faster loads (Will write a .bbl_lib file in your library root directory)" 
-                  IsChecked="{Binding CacheLibraryData}" IsEnabled="{Binding Recursive}"></CheckBox>
+        <CheckBox Content="Cache Libraries Data for faster loads (Will write a .bbl_lib file in your library root directory)" 
+                  IsChecked="{Binding CacheLibraryData}" ></CheckBox>
         <Border Height="8"/>
         <Separator Width="400" />
         <Border Height="8"/>

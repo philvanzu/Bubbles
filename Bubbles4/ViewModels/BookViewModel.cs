@@ -28,10 +28,11 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     
     public string Path => _model.Path;
     public string Name => _model.Name;
-    public int PageCount => _pages.Count;
+    [ObservableProperty] private int _pageCount;
     public DateTime LastModified => _model.LastModified;
     public DateTime Created => _model.Created;
     public int RandomIndex;
+    public string LibraryNodeId;
     public LibraryConfig.SortOptions CurrentSortOption { get; set; }
     public bool CurrentSortAscending { get; set; } 
     public Task? LoadingTask { get; set; }
@@ -51,15 +52,16 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     public event EventHandler? SortOrderChanged;
     public event EventHandler<int>? ScrollToIndexRequested;
     Object? _bookmarkBlocker;
-    public BookViewModel(BookBase book, LibraryViewModel library, MainViewModel mainViewModel)
+    public BookViewModel(BookBase book, LibraryViewModel library, string libraryNodeId)
     {
-        this._mainViewModel = mainViewModel;
-        this._model = book;
-        this._library = library;
+        _mainViewModel = library.MainViewModel;
+        _model = book;
+        _library = library;
+        LibraryNodeId = libraryNodeId;
         
         Pages = new ReadOnlyObservableCollection<PageViewModel>(_pagesMutable);
-        CurrentSortOption = _mainViewModel.Config?.BookSortOption ?? LibraryConfig.SortOptions.Path;
-        CurrentSortAscending = _mainViewModel.Config?.BookSortAscending ?? true;
+        CurrentSortOption = _library.Config.BookSortOption;
+        CurrentSortAscending = _library.Config.BookSortAscending;
     }
 
     ~BookViewModel()
@@ -98,7 +100,8 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
                     _model.PagesCts.TryAdd(page.Path, null);
                 }
                 Sort();                
-                Model.PageCount = _pages.Count;
+                PageCount = Model.PageCount = _pages.Count;
+                
 
                 Ivps = BookMetadata.Load(_model.IvpPath);
                 if (Ivps.Collection.Count > 0)
@@ -111,7 +114,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
                 }
                 
                 //bookmark loading
-                if (MainViewModel.Config?.LookAndFeel == LibraryConfig.LookAndFeels.Reader)
+                if (_library.Config?.LookAndFeel == LibraryConfig.LookAndFeels.Reader)
                 {
                     if (File.Exists(Model.BookmarkPath))
                     {
@@ -128,7 +131,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         var selectedIdx = GetPageIndex(SelectedPage);
         bool bookmark = selectedIdx > 0 
                         && selectedIdx < PageCount - 1 
-                        && MainViewModel.Config?.LookAndFeel == LibraryConfig.LookAndFeels.Reader;
+                        && _library.Config?.LookAndFeel == LibraryConfig.LookAndFeels.Reader;
         if (bookmark)
         {
             var name = SelectedPage!.Name;
@@ -315,8 +318,8 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     }
     public void Sort(LibraryConfig.SortOptions? sort=null, bool? ascending=null)
     {
-        if(sort == null) sort  = MainViewModel.Config?.BookSortOption ?? LibraryConfig.SortOptions.Path;
-        if(ascending == null) ascending = MainViewModel.Config?.BookSortAscending ?? true;
+        if(sort == null) sort  = _library.Config.BookSortOption;
+        if(ascending == null) ascending = _library.Config.BookSortAscending;
         CurrentSortOption = sort.Value;
         CurrentSortAscending = ascending.Value;
         if(sort == LibraryConfig.SortOptions.Random)ShufflePages();
@@ -545,6 +548,11 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         _mainViewModel.CurrentPageViewModel = value;
         InvokeSelectionChanged(value, oldSelected);
         _mainViewModel.UpdatePageNameStatus();
+        if (_selectedPage != null)
+        {
+            var idx =  Pages.IndexOf(_selectedPage);
+            MainViewModel.GotoPageNumber = idx + 1;
+        }
     }
 
     public void InvokeSelectionChanged(ISelectableItem? newItem, ISelectableItem? oldItem)

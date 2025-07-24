@@ -18,6 +18,7 @@
     
     <Application.Styles>
         <FluentTheme   />
+        
         <Style Selector="Border.selected">
             <Setter Property="Background" Value="#4480c0ff"/>
             <Setter Property="BorderBrush" Value="#ff3399ff"/>

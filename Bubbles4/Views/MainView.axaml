@@ -39,7 +39,7 @@
                 </Menu>
                 
                 <!--Library Selector-->
-                <Grid Grid.Column="1" ColumnDefinitions="Auto 8 32 32">
+                <Grid Grid.Column="1" ColumnDefinitions="Auto 8 32 32 32 32">
                     
                     <ComboBox Grid.Column="0" x:Name="LibraryComboBox"
                               Width="250"
@@ -66,47 +66,100 @@
                                    Foreground="{Binding Library, Converter={StaticResource NullToColor}}"/>
                     </Canvas>
                     <!--Close Library button-->
-                    <Canvas Grid.Column="0" 
-                        Width="215"
-                        Height="28"
-                        HorizontalAlignment="Left" Margin="2">
-
-                        <Button Canvas.Top="6" Canvas.Left="203" Margin="0" Padding="0"
-                                Width="10" Height="10" Background="Transparent" BorderBrush="White" BorderThickness="0"
-                                ToolTip.Tip="Close Library" IsHitTestVisible="True"
-                                IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}"
-                                Command ="{Binding CloseLibraryCommand}">
-                            <Button.Styles>
-                                <Style Selector="Path#IconPath">
-                                    <Setter Property="Fill" Value="Gray"/>
-                                </Style>
-                                <Style Selector="Button:pointerover Path#IconPath">
-                                    <Setter Property="Fill" Value="White"/>
-                                </Style>
-                            </Button.Styles>
-                            <Path Stretch='UniformToFill' x:Name="IconPath"
-                                  Data="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12Z"/>
-           
-                        </Button> 
-                    </Canvas>
-  
-  
+                    <Button Grid.Column="2"   Width="24" Height="24" Padding="4" Background="Transparent"  
+                            ToolTip.Tip="Close Current Library"
+                            IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}"
+                            Command ="{Binding CloseLibraryCommand}">
+                        <Button.Styles>
+                            <Style Selector="Path#IconPath">
+                                <Setter Property="Stroke" Value="LightGray"/>
+                            </Style>
+                            <Style Selector="Button:pointerover Path#IconPath">
+                                <Setter Property="Stroke" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                        <Path Stretch='Uniform' x:Name="IconPath" StrokeThickness="3" Fill="Transparent"
+                              Data="M6 18L18 6M6 6l12 12"/>
+                    </Button>
+                    <!--Library Refresh Button-->
+                    <Button Grid.Column="3" Width="24" Height="24" Padding="2" Background="Transparent" BorderBrush="Transparent"
+                            ToolTip.Tip="Refresh Current Library"
+                            Command="{Binding RefreshLibraryCommand}"
+                            IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}">
+                        <Button.Styles>
+                            <Style Selector="Path#RefreshIconPath">
+                                <Setter Property="Stroke" Value="LightGray"/>
+                            </Style>
+                            <Style Selector="Button:pointerover Path#RefreshIconPath">
+                                <Setter Property="Stroke" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                        <Path x:Name="RefreshIconPath" StrokeThickness="1.5" Fill="LightGray" Stretch="Uniform" 
+                              Data="M12 4V1L8 5l4 4V6a6 6 0 11-6 6H4a8 8 0 108-8z"/>
+                    </Button>
                     <!--Library Options Button-->
-                    <Button Grid.Column="2"  Width="24" Height="24" Padding="2" Background="Transparent" BorderBrush="Transparent"
-                            ToolTip.Tip="Configure Current Library"
+                    <Button Grid.Column="4"  Width="24" Height="24" Padding="2" Background="Transparent" BorderBrush="Transparent"
+                            ToolTip.Tip="Change Library Settings"
                             IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}"                            
                             Command="{Binding ConfigureLibraryCommand}">
-                        <Path Stroke="White" StrokeThickness="1.5" Fill="Transparent" Stretch="Uniform" 
+                        <Button.Styles>
+                            <Style Selector="Path#GearIconPath">
+                                <Setter Property="Stroke" Value="LightGray"/>
+                            </Style>
+                            <Style Selector="Button:pointerover Path#GearIconPath">
+                                <Setter Property="Stroke" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                        <Path x:Name="GearIconPath" StrokeThickness="1.5" Fill="Transparent" Stretch="Uniform" 
                               Data="M19.43 12.98c.04-.32.07-.65.07-.98s-.03-.66-.07-.98l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.6-.22l-2.49 1a7.03 7.03 0 0 0-1.69-.98L14.5 2.5a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0-.5.5l-.38 2.55a7.03 7.03 0 0 0-1.69.98l-2.49-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98L2.43 14.63a.5.5 0 0 0-.12.64l2 3.46a.5.5 0 0 0 .6.22l2.49-1c.52.39 1.09.72 1.69.98l.38 2.55a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5l.38-2.55c.6-.26 1.17-.59 1.69-.98l2.49 1a.5.5 0 0 0 .6-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.11-1.65zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/>
                     </Button>
                     <!--Library Delete Button-->
-                    <Button Grid.Column="3" Width="24" Height="24" Padding="2" Background="Transparent" BorderBrush="Transparent"
+                    <Button Grid.Column="5" Width="24" Height="24" Padding="2" Background="Transparent" BorderBrush="Transparent"
                             ToolTip.Tip="Remove Current Library"
                             Command="{Binding DeleteLibraryCommand}"
                             IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}">
-                        <Path Stroke="White" StrokeThickness="1.5" Fill="Transparent" Stretch="Uniform" 
+                        <Button.Styles>
+                            <Style Selector="Path#ThrashIconPath">
+                                <Setter Property="Stroke" Value="LightGray"/>
+                            </Style>
+                            <Style Selector="Button:pointerover Path#ThrashIconPath">
+                                <Setter Property="Stroke" Value="White"/>
+                            </Style>
+                        </Button.Styles>
+                        <Path x:Name="ThrashIconPath" StrokeThickness="1.5" Fill="Transparent" Stretch="Uniform" 
                               Data="M6,7 L6,19 C6,20.1046 6.89543,21 8,21 L16,21 C17.1046,21 18,20.1046 18,19 L18,7 M9,7 L9,4 C9,3.44772 9.44772,3 10,3 L14,3 C14.5523,3 15,3.44772 15,4 L15,7 M10,10 L10,17 M14,10 L14,17"/>
                     </Button>
+
+                </Grid>
+                <Grid Grid.Column="2">
+                    <StackPanel Orientation="Horizontal" IsVisible="{Binding SelectedBook, Converter={StaticResource NullToBoolean}}">
+                        <Border Width="16"/>
+                        <Separator Width="1"
+                                   Height="24"
+                                   Margin="0,0">
+                        </Separator>
+                        <Border Width="120">
+                        <TextBlock Text="Go to Page" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        </Border >
+                        <NumericUpDown x:Name="GotoPageNumericUpDown" FormatString="F0" Width="64"
+                                       ShowButtonSpinner="False"
+                                       Minimum="1" Maximum="{Binding SelectedBook.PageCount}" 
+                                       Value="{Binding GotoPageNumber, Mode=TwoWay}" 
+                                       KeyDown="GotoPage_KeyDown"/>
+                        <Border Margin="8 0  32  0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="/ " VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding SelectedBook.PageCount}"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border >
+                        <Button x:Name="GotoPageButton" Content="Go"  Command="{Binding GotoPageCommand}"/>
+                        <Border Width="16"/>
+                        <Separator Width="1"
+                                   Height="24"
+                                   Margin="0,0">
+                        </Separator>
+                    </StackPanel>
                 </Grid>
                 
                 <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
@@ -167,7 +220,7 @@
                     </Grid.ColumnDefinitions>
                     <!--NavPane-->
                     <Border Background="#303030">
-                        <views:NavPaneView />
+                        <views:NavPaneView DataContext="{Binding Library}" />
                     </Border>
                     <GridSplitter Grid.Column="1"
                                   Width="5"
@@ -245,7 +298,7 @@
                                                           HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                                                           MainViewModel="{Binding}"
                                                           Data="{Binding CurrentViewerData}"
-                                                          Config="{Binding Config}"/>
+                                                          Config="{Binding Library.Config}"/>
                                 
                                 <controls:StatusOverlay x:Name="StatusOverlay"
                                                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"

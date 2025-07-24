@@ -17,22 +17,7 @@ public partial class MainViewModel : ViewModelBase
 {
     #region AppData
 
-    [ObservableProperty] private LibraryConfig? _config = new LibraryConfig("");
 
-    partial void OnConfigChanged(LibraryConfig? value)
-    {
-        if (value != null)
-        {
-            LibrarySortHeader.Value = (value.LibrarySortOption, value.LibrarySortAscending);
-            BookSortHeader.Value = (value.BookSortOption, value.BookSortAscending);
-            NodeSortHeader.Value = (value.NodeSortOption, value.NodeSortAscending);
-            PreviewIVPIsChecked = false;
-        }
-
-        OnPropertyChanged(nameof(ShowNavPane));
-    }
-
-    public bool ShowNavPane => Config?.ShowNavPane ?? false;
     public ObservableCollection<LibraryListItem> Libraries => MakeLibraries();
 
     ObservableCollection<LibraryListItem> MakeLibraries()
@@ -59,45 +44,12 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private FullSortHeaderViewModel _bookSortHeader;
     [ObservableProperty] private ShortSortHeaderViewModel _nodeSortHeader;
 
+    [ObservableProperty] private bool _showNavPane = false;
     #endregion
 
     #region Library exposure
 
     [ObservableProperty] private LibraryViewModel? _library;
-
-    partial void OnLibraryChanged(LibraryViewModel? value)
-    {
-        if (value is LibraryNodeViewModel node)
-        {
-            if (node.Parent == null && LibraryRoot != node) LibraryRoot = node;
-            if (node.Parent != null && SelectedLibraryNode != node) SelectedLibraryNode = node;
-        }
-        else LibraryRoot = null;
-    }
-
-    [ObservableProperty] private LibraryNodeViewModel? _libraryRoot;
-
-    [ObservableProperty] private LibraryNodeViewModel? _selectedLibraryNode;
-
-    partial void OnSelectedLibraryNodeChanged(LibraryNodeViewModel? value)
-    {
-        if (value != null && value != Library)
-        {
-            Library = value;
-            Library.Sort();
-        }
-
-        if (LibraryRoot != null)
-        {
-            if (LibraryRoot.SelectedNode != null)
-            {
-                if (LibraryRoot.SelectedNode.SelectedItem != null)
-                    LibraryRoot.SelectedNode.SelectedItem.IsSelected = false;
-            }
-            LibraryRoot.SelectedNode = value;
-        }
-            
-    }
     
 
     #endregion
@@ -107,7 +59,10 @@ public partial class MainViewModel : ViewModelBase
     partial void OnSelectedBookChanged(BookViewModel? value)
     {
         OnPropertyChanged(nameof(CanCheckPreviewIvp));
+      //  PageCount = value?.PageCount ?? 1;
+        GotoPageNumber = 1;
     }
+    //[ObservableProperty] private int _pageCount;
     [ObservableProperty] private ViewerData? _currentViewerData;
     [ObservableProperty] private PageViewModel? _currentPageViewModel;
     [ObservableProperty] private bool _isFullscreen;
@@ -116,7 +71,7 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _searchString = string.Empty;
 
     [ObservableProperty] private bool _previewIVPIsChecked;
-    public bool CanCheckPreviewIvp => SelectedBook != null && Config?.UseIVPs == true;
+    public bool CanCheckPreviewIvp => SelectedBook != null && Library?.Config.UseIVPs == true;
     
     partial void OnPreviewIVPIsCheckedChanged(bool value)
     {
@@ -215,11 +170,8 @@ public partial class MainViewModel : ViewModelBase
             }
 
             var info = new DirectoryInfo(libraryPath);
-            Library = config.Recursive ? 
-                new LibraryViewModel(this, libraryPath) : 
-                new LibraryNodeViewModel(this, libraryPath, info.Name, info.CreationTime, info.LastWriteTime);
+            Library = new LibraryViewModel(this, libraryPath, config); 
 
-            Config = config;
             if (newconfig)
             {
                 AppStorage.Instance.AddOrUpdate(libraryPath, config.Serialize());
@@ -227,14 +179,14 @@ public partial class MainViewModel : ViewModelBase
             }
             OnPropertyChanged(nameof(Libraries));
             OnPropertyChanged(nameof(LibraryName));
-            OnPropertyChanged(nameof(Config));
+            
             
             IProgress<(string, double, bool)> progress = _progressDialog.Progress;
             Dispatcher.UIThread.Post(()=> _ = _progressDialog.Show(), DispatcherPriority.Render);
 
             _ = Task.Run(async () =>
             {
-                if (Config.CacheLibraryData && Config.Recursive && Directory.Exists(libraryPath))
+                if (Library.Config.CacheLibraryData  && Directory.Exists(libraryPath))
                 {
                     try
                     {
@@ -243,12 +195,12 @@ public partial class MainViewModel : ViewModelBase
 
                         await _progressDialog.DialogShown;
                         // fast cache load will report progress to the progress dialog
-                        await Library.LoadSerializedCollection(json, progress);
+                        var success = await Library.LoadSerializedCollection(json, progress);
                         await Task.Delay(1);
                         await Dispatcher.UIThread.InvokeAsync(() => {}, DispatcherPriority.Background);
                         // slow parsing will report progress to the status bar
-                        progress = StatusProgress.Progress;
-
+                        if(success) progress = StatusProgress.Progress;
+                        else throw new Exception("Failed to load library data");
                     }
                     catch
                     {
@@ -274,6 +226,7 @@ public partial class MainViewModel : ViewModelBase
                     //_watcher.BeginBuffering();
                     _watcher.StartWatching(libraryPath, true, Library.FileSystemChanged);
                     //_watcher.FlushBufferedEvents();
+                    
                 }
 
             });
@@ -286,9 +239,10 @@ public partial class MainViewModel : ViewModelBase
         _watcher.StopWatching();
         if (Library != null)
         {
-            if ( Library is LibraryNodeViewModel == false && Config?.CacheLibraryData==true)
+            
+            if ( Library.Config.CacheLibraryData==true)
             {
-                string json = Library.SerializeCollection();
+                string json = Library.Serialize();
                 string path =  Path.Combine(Library.Path, ".bblLibraryData");
                 if (Directory.Exists(Library.Path))
                 {
@@ -299,6 +253,7 @@ public partial class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(CurrentViewerData));
 
             Library.Close();
+            
             /*
             if (Config != null)
             {
@@ -311,12 +266,10 @@ public partial class MainViewModel : ViewModelBase
             */
             _cache.ClearCache();
             Library = null;
-            if(LibraryRoot!=null) LibraryRoot = null;
+            
             if(SelectedBook!= null) SelectedBook = null;
-            if(SelectedLibraryNode != null) SelectedLibraryNode = null;
             if(CurrentPageViewModel != null) CurrentPageViewModel = null;
             OnPropertyChanged(nameof(LibraryName));
-            OnPropertyChanged(nameof(Config));
             
         }  
     }
@@ -329,12 +282,6 @@ public partial class MainViewModel : ViewModelBase
         UpdateImageStatus();
     }
 
-    public void UpdateTreeView()
-    {
-        OnPropertyChanged(nameof(LibraryRoot));
-        OnPropertyChanged(nameof(SelectedLibraryNode));
-    }
-
     [RelayCommand]
     private void CreateLibrary()
     {
@@ -345,11 +292,8 @@ public partial class MainViewModel : ViewModelBase
     private void ConfigureLibrary()
     {
         if (Library == null) return;
-        var config = Config;
-        if (config == null) config = AppStorage.Instance.GetConfig(Library.Path);
-        if (config == null) config = new LibraryConfig(Library.Path);
         
-        var dlgVm = new LibraryConfigViewModel(config);
+        var dlgVm = new LibraryConfigViewModel(Library.Config);
         CreateOrUpdateLibrary(dlgVm);
     }
     
@@ -369,14 +313,19 @@ public partial class MainViewModel : ViewModelBase
                         {
                             AppStorage.Instance.AddOrUpdate(result.Path, result.Serialize());
                             AppStorage.Instance.Save();
-                            Config = result;
                             
                             if (dialogVm.IsCreatingLibrary)
                             {
                                 OnPropertyChanged(nameof(Libraries));
-                                OpenLibrary(result.Path);    
+                                OpenLibrary(result.Path);
                             }
-                            
+
+                            if (Library != null)
+                            {
+                                Library.Config = new("dummy");
+                                Library.Config = result;
+                            }
+
                         }
 
                     });
@@ -413,6 +362,14 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+
+
+
+    [RelayCommand]
+    private void RefreshLibrary()
+    {
+        OpenLibrary(Library!.Path);
+    }
     [RelayCommand]
     private void DeleteLibrary()
     {
@@ -450,22 +407,20 @@ public partial class MainViewModel : ViewModelBase
         IsFullscreen = !IsFullscreen;
 
         MainWindow?.ToggleFullscreen();
-        OnPropertyChanged(nameof(Config));
     }
     [RelayCommand] private void ExitFullScreen()
     {
+        if (!IsFullscreen) return;
         IsFullscreen = false;
-        
         MainWindow?.ExitFullscreen();
-        OnPropertyChanged(nameof(Config));
     }
 
     [RelayCommand]
     private void EnterFullScreen()
     {
+        if (IsFullscreen) return;
         IsFullscreen = true;
         MainWindow?.EnterFullscreen();
-        OnPropertyChanged(nameof(Config));
     }
 
     [RelayCommand]
@@ -525,22 +480,27 @@ public partial class MainViewModel : ViewModelBase
     {
         var option = NodeSortHeader.Value.sortOption;
         var asc = NodeSortHeader.Value.ascending;
-        /*
-        if (Config != null)
+        
+        if (Library != null)
         {
-            Config.NodeSortOption = option;
-            Config.NodeSortAscending = asc;    
-        }
-        */
-        if (Library is LibraryNodeViewModel node)
-        {
-            if(option != node.Root.CurrentChildrenSortOption)
-                node.Root.SortChildren(option, asc);
-            else if (asc != node.Root.CurrentChildrenSortAscending)
-                node.Root.ReverseChildrenSortOrder();
+            if(option != Library.RootNode.CurrentSort)
+                Library.RootNode.SortChildren(option, asc);
+            else if (asc != Library.RootNode.CurrentAscending)
+                Library.RootNode.ReverseChildrenSortOrder();
         }
     }
-    
+    [ObservableProperty] private int _gotoPageNumber=1;
+    [RelayCommand]
+    private void GotoPage()
+    {
+        if(SelectedBook == null) return;
+        
+        int idx = GotoPageNumber - 1;
+        if(idx < 0 ) idx = 0;
+        else if (idx >= SelectedBook.PageCount) idx = SelectedBook.PageCount - 1;
+        SelectedBook.Pages[idx].IsSelected = true;
+    }
+
     [RelayCommand]
     public async Task Next()
     {
@@ -580,6 +540,7 @@ public partial class MainViewModel : ViewModelBase
                 }
             } while (more);
         }
+
     }
     [RelayCommand]
     public async Task Previous()
@@ -617,6 +578,7 @@ public partial class MainViewModel : ViewModelBase
                 }
             } while (more);
         }
+
     }
 
     [RelayCommand]
