@@ -150,7 +150,7 @@ public partial class LibraryViewModel
 
             BookBase? book = null;
 
-            if (FileTypes.IsImage(file.Extension))
+            if (FileAssessor.IsImage(file.Extension))
             {
                 if(file.CreationTime < firstImageCreated) 
                     firstImageCreated = file.CreationTime;
@@ -159,12 +159,12 @@ public partial class LibraryViewModel
                 imageCount++;
                 continue;
             }
-            else if (FileTypes.IsArchive(file.Extension))
+            else if (FileAssessor.IsArchive(file.Extension))
             {
                 if (file.DirectoryName != null)
                     book = new BookArchive(file.FullName, file.Name, -1, file.CreationTime, file.LastWriteTime);
             }
-            else if (FileTypes.IsPdf(file.Extension))
+            else if (FileAssessor.IsPdf(file.Extension))
             {
                 if (file.DirectoryName != null)
                     book = new BookPdf(file.FullName, file.Name, -1, file.CreationTime, file.LastWriteTime);

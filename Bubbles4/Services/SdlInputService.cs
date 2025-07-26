@@ -137,7 +137,13 @@ public class SdlInputService
             (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_BACK, ButtonName.Select),
             (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_RIGHTSTICK, ButtonName.RThumb),
             (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_LEFTSTICK, ButtonName.LThumb),
-            
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_PADDLE1, ButtonName.Paddle1),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_PADDLE2, ButtonName.Paddle2),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_PADDLE3, ButtonName.Paddle3),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_PADDLE4, ButtonName.Paddle4),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_GUIDE, ButtonName.Guide),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_MISC1, ButtonName.Misc1),
+            (SDL.SDL_GameControllerButton.SDL_CONTROLLER_BUTTON_TOUCHPAD, ButtonName.TouchPad),
         };
         bool pressed;
         foreach (var button in buttonsToTrack)
@@ -146,9 +152,9 @@ public class SdlInputService
             if (!_buttonStates.TryGetValue(button.Item1, out var prev)) prev = false;
             _buttonStates[button.Item1] = pressed;
             if(prev && !pressed)
-                ButtonUp?.Invoke(this, new ButtonEventArgs(button.Item2, pressed));
+                ButtonUp?.Invoke(this, new ButtonEventArgs(button.Item2));
             else if (pressed && !prev)
-                ButtonDown?.Invoke(this, new ButtonEventArgs(button.Item2, pressed));
+                ButtonDown?.Invoke(this, new ButtonEventArgs(button.Item2));
         }
 
         var (x, deltax) = PollAxisGetValueAndDelta(SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_LEFTX);
@@ -165,17 +171,17 @@ public class SdlInputService
         x = SDL.SDL_GameControllerGetAxis(Controller, SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_TRIGGERLEFT);
         pressed = (Math.Abs(x) > 0.15);
         if(pressed && !_ltrig)
-            ButtonDown?.Invoke(this, new ButtonEventArgs(ButtonName.LTrigger, pressed));
+            ButtonDown?.Invoke(this, new ButtonEventArgs(ButtonName.LTrigger));
         else if (!pressed && _ltrig)
-            ButtonUp?.Invoke(this, new ButtonEventArgs(ButtonName.LTrigger, pressed));
+            ButtonUp?.Invoke(this, new ButtonEventArgs(ButtonName.LTrigger));
         _ltrig = pressed;
         
         y = SDL.SDL_GameControllerGetAxis(Controller, SDL.SDL_GameControllerAxis.SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
         pressed = (Math.Abs(y) > 0.15);
         if(pressed && !_rtrig)
-            ButtonDown?.Invoke(this, new ButtonEventArgs(ButtonName.RTrigger, pressed));
+            ButtonDown?.Invoke(this, new ButtonEventArgs(ButtonName.RTrigger));
         else if (!pressed && _rtrig)
-            ButtonUp?.Invoke(this, new ButtonEventArgs(ButtonName.RTrigger, pressed));
+            ButtonUp?.Invoke(this, new ButtonEventArgs(ButtonName.RTrigger));
         _rtrig = pressed;
     
     return true;
@@ -201,7 +207,8 @@ public class SdlInputService
 
 public enum StickName{LStick, RStick}
 public enum AxisName {LTrigger, RTrigger}
-public enum ButtonName{LB, RB, LTrigger, RTrigger, A, B, X, Y, DpadLeft, DpadRight, DpadUp, DpadDown, LThumb, RThumb, Start, Select}
+public enum ButtonName{LB, RB, LTrigger, RTrigger, A, B, X, Y, DpadLeft, DpadRight, DpadUp, DpadDown, LThumb, RThumb, 
+    Start, Select, Paddle1, Paddle2, Paddle3, Paddle4, Guide, Misc1, TouchPad}
 public class StickEventArgs : EventArgs
 {
     public StickName Stick { get; }
@@ -223,12 +230,11 @@ public class StickEventArgs : EventArgs
 public class ButtonEventArgs : EventArgs
 {
     public ButtonName Button { get; }
-    public bool Pressed { get; }
+    
     public bool Handled { get; set; }
 
-    public ButtonEventArgs(ButtonName button, bool pressed)
+    public ButtonEventArgs(ButtonName button)
     {
         Button = button;
-        Pressed = pressed;
     }
 }

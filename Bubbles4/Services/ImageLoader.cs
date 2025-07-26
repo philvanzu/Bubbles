@@ -3,7 +3,12 @@ using System.IO;
 using System.Threading;
 using Avalonia;
 using Avalonia.Media.Imaging;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Metadata;
 using SkiaSharp;
+using Size = SixLabors.ImageSharp.Size;
 
 namespace Bubbles4.Services;
 
@@ -56,6 +61,34 @@ public static class ImageLoader
 
         return null;
     }
+/*
+    static Bitmap? DecodeImageFallback(Stream stream, int maxSize, CancellationToken token)
+    {
+        try
+        {
+            
+            using var image = SixLabors.ImageSharp.Image.Load(
+                DecoderOptions.Default,
+                stream,
+                out IImageFormat format);
+            image.Mutate(x => 
+                x.Resize(new ResizeOptions {
+                Mode = ResizeMode.Max,
+                Size = new Size(maxSize, maxSize)
+            }));
+
+            using var ms = new MemoryStream();
+            image.SaveAsPng(ms); // or SaveAsJpeg
+            ms.Position = 0;
+
+            return new Bitmap(ms);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+  */  
     public static (int width, int height) GetTargetDimensions(int imageWidth, int imageHeight, int maxSize)
     {
         float scale =  Math.Min(1f, maxSize / (float)Math.Max(imageWidth, imageHeight));

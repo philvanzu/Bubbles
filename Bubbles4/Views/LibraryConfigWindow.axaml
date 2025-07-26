@@ -46,20 +46,23 @@
         <Border Height="8"/>
         <StackPanel Orientation="Horizontal">
             <ToggleButton IsChecked="{Binding Viewer, Mode=TwoWay}" Width="250" Height="75" HorizontalAlignment="Left" > 
-                <TextBlock TextWrapping="Wrap" Text="Image Viewer : Best fit / Mouse wheel turns pages"/>
+                <TextBlock TextWrapping="Wrap" Text="Image Albums Viewer : Best fit / Mouse wheel turns pages"/>
             </ToggleButton>
             
             <ToggleButton IsChecked="{Binding Reader, Mode=TwoWay}"  Width="250" Height="75" HorizontalAlignment="Left" >
-                <TextBlock TextWrapping="Wrap" Text="Comics Reader : Wide fit / Mouse wheel scrolls "/> 
+                <TextBlock TextWrapping="Wrap" Text="Comic Books Reader : Wide fit / Mouse wheel scrolls / Bookmarks "/> 
             </ToggleButton>
         </StackPanel>
         <Border Height="16"/>
         
-        <CheckBox IsChecked="{Binding UseIVPs}" IsEnabled="{Binding Viewer}">
+        <CheckBox IsChecked="{Binding UseIVPs}" IsVisible="{Binding Viewer}">
             Save Image Viewing Parameters : Remember last Pan and Zoom when revisiting an image
         </CheckBox>
-        <CheckBox IsChecked="{Binding AnimateIVPs}" IsEnabled="{Binding Viewer}">
+        <CheckBox IsChecked="{Binding AnimateIVPs}" IsVisible="{Binding Viewer}">
             Animate Image Viewing Parameters restoration.
+        </CheckBox>
+        <CheckBox IsChecked="{Binding AutoBookmarks}" IsVisible="{Binding Reader}">
+            Auto Bookmarks : Automatically save a bookmark when closing a book.
         </CheckBox>
         <Border Height="8"/>
         

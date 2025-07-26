@@ -170,6 +170,7 @@ public class UserSettings
     public int ShowImageSize { get; set; } = -1;
     public string InputBindings { get; set; } = "";
     public int CropResizeToMax { get; set; } = 5000;
+    public int BookmarkValidity { get; set; } = 8; // in weeks
     public string Serialize()
     {
         return JsonSerializer.Serialize(this);

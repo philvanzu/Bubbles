@@ -24,7 +24,7 @@ public class BookDirectory:BookBase
     {
         foreach (var filePath in Directory.EnumerateFileSystemEntries(Path))
         {
-            if (FileTypes.IsImage(filePath))
+            if (FileAssessor.IsImage(filePath))
             {
                 _thumbnailPath = filePath;
                 break;
@@ -126,7 +126,7 @@ public class BookDirectory:BookBase
                     int index = 0;
                     foreach (FileInfo file in info.GetFiles())
                     {
-                        if (FileTypes.IsImage(file.FullName))
+                        if (FileAssessor.IsImage(file.FullName))
                         {
                             pages.Add(new Page()
                             {

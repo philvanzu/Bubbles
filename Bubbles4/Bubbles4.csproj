@@ -42,6 +42,7 @@
         <PackageReference Include="PDFiumSharp.NativeBinaries" />
         <PackageReference Include="SharpCompress" />
         <PackageReference Include="PDFiumSharp" />
+        <PackageReference Include="SixLabors.ImageSharp" />
         <PackageReference Include="SkiaSharp" />
         <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
         

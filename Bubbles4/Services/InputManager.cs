@@ -26,6 +26,7 @@ public partial class InputManager: IDisposable
         public int? DrawZoomRectButton { get; set; }
         public int? ZoomStick { get; set; }
         public int? PanStick { get; set; }
+        public ButtonName? StickInverter { get; set; }
         public string? Bindings { get; set; }
     }
     public record KeyCombo(Key Key, KeyModifiers Modifiers);
@@ -59,8 +60,10 @@ public partial class InputManager: IDisposable
 
     public StickName ZoomStick { get; set; } = StickName.RStick;
     public StickName PanStick { get; set; } = StickName.LStick;
-
-
+    public ButtonName? StickInverter { get; set; } = ButtonName.Paddle1;
+    
+    private bool _inverted;
+    
     private Dictionary<string, ActionBindings> _bindings = new()
     {
         ["Next Page"] = new ActionBindings("Next Page", Next),
@@ -174,6 +177,7 @@ public partial class InputManager: IDisposable
             DrawZoomRectButton = (int)DrawZoomRectButton,
             ZoomStick = (int)ZoomStick,
             PanStick = (int)PanStick,
+            StickInverter = StickInverter,
         };
         var userSettings = AppStorage.Instance.UserSettings;
         userSettings.InputBindings = JsonSerializer.Serialize(savedInputBindings);
@@ -204,6 +208,7 @@ public partial class InputManager: IDisposable
                 DrawZoomRectButton = (MouseButton) data.DrawZoomRectButton.Value;
                 ZoomStick = (StickName) data.ZoomStick.Value;
                 PanStick = (StickName) data.PanStick.Value;
+                StickInverter = (ButtonName?) data.StickInverter;
                 var bindings = JsonSerializer.Deserialize<List<ActionBindingItem>>(data.Bindings);
                 if (bindings != null)
                 {
@@ -235,6 +240,23 @@ public partial class InputManager: IDisposable
     }
     public void InitializeDefaults()
     {
+        ResetActionBindingsToDefault();
+        ResetAxesToDefault();
+        IsInitialized = true;
+    }
+
+    public void ResetAxesToDefault()
+    {
+        PanStick = StickName.LStick;
+        ZoomStick = StickName.RStick;
+        StickInverter = ButtonName.Paddle1;
+        DragPanButton = MouseButton.LeftMouseButton;
+        DragZoomButton = MouseButton.MiddleMouseButton;
+        DrawZoomRectButton = MouseButton.RightMouseButton;
+    }
+
+    public void ResetActionBindingsToDefault()
+    { 
         Reset();
         _bindings["Next Page"].Add(new KeyCombo(Key.Space, KeyModifiers.None));
         _bindings["Previous Page"].Add(new KeyCombo(Key.Back, KeyModifiers.None));
@@ -274,7 +296,6 @@ public partial class InputManager: IDisposable
         _bindings["Fit"].Add(ButtonName.DpadRight);
         _bindings["First Page"].Add(ButtonName.Select);
         _bindings["Last Page"].Add(ButtonName.Start);
-        IsInitialized = true;
     }
 #endregion
 
@@ -290,11 +311,6 @@ public partial class InputManager: IDisposable
         }
     }
 
-    public void ButtonUp(object? sender, ButtonEventArgs e)
-    {
-        if (_buttonUpMap.TryGetValue(e.Button, out var binding))
-            binding.Action.Invoke();
-    }
     private void ControllerStickUpdated(object? __, StickEventArgs e)
     {
         _ = Dispatcher.UIThread.InvokeAsync(() =>
@@ -304,11 +320,13 @@ public partial class InputManager: IDisposable
             {
                 if (e.Stick == Instance.PanStick)
                 {
-                    ImageViewer.OnStickPan(e);
+                    if(!_inverted) ImageViewer.OnStickPan(e);
+                    else ImageViewer.OnStickZoom(e);
                 }
                 else if (e.Stick == Instance.ZoomStick)
                 {
-                    ImageViewer.OnStickZoom(e);
+                    if(!_inverted) ImageViewer.OnStickZoom(e);
+                    else ImageViewer.OnStickPan(e);
                 }
 
             }
@@ -320,14 +338,28 @@ public partial class InputManager: IDisposable
         _ = Dispatcher.UIThread.InvokeAsync(() =>
         {
             OnUserSettingsEditorButtonUp(sender, e);
+            if (e.Button == StickInverter)
+            {
+                _inverted = false;
+                e.Handled = true;;
+            }
             if(!e.Handled)
-                ButtonUp(sender, e);
+            {
+                if (_buttonUpMap.TryGetValue(e.Button, out var binding))
+                    binding.Action.Invoke();
+            }
         });
     }
     
     private void ControllerButtonDown(object? sender, ButtonEventArgs e)
     {
-
+        _ = Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            if (e.Button == StickInverter)
+            {
+                _inverted = true;
+            }
+        });
     }
     #endregion
     

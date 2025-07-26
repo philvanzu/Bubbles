@@ -52,6 +52,7 @@ public partial class MainView : UserControl
             ImageViewerContainer.PointerReleased += ImageViewer.OnPointerReleased;
             ImageViewerContainer.PointerMoved += ImageViewer.OnPointerMoved;
             ImageViewerContainer.Pinched += ImageViewer.OnPinched;
+            BookmarkPopup.Closed += OnBookmarkPopupClosed;
         }
 
         
@@ -59,8 +60,6 @@ public partial class MainView : UserControl
 
 
 
-
-    
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
@@ -156,4 +155,33 @@ public partial class MainView : UserControl
 
     }
 
+    private void OnBookmarkSelected(object? sender, SelectionChangedEventArgs e)
+    {
+        if (sender is ListBox lb)
+        {
+            if (lb.SelectedItem != null)
+            {
+                if (DataContext is MainViewModel vm && vm.Library != null)
+                    vm.Library.LoadBookmarkCommand.Execute(lb.SelectedItem);
+                
+                lb.SelectedItem = null;    
+            }
+            else
+            {
+                return;
+            }
+        }
+        BookmarkPopup.IsOpen = false;
+        BookmarkToggle.IsChecked = false;
+        e.Handled = true;
+    }
+
+    private void OnBookmarkPopupToggled(object? sender, RoutedEventArgs e)
+    {
+        BookmarkPopup.IsOpen = BookmarkToggle.IsChecked == true;
+    }
+    private void OnBookmarkPopupClosed(object? sender, EventArgs e)
+    {
+        BookmarkToggle.IsChecked = false;;
+    }
 }

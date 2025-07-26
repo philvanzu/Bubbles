@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Avalonia.Dialogs.Internal;
 using Bubbles4.Models;
 
 namespace Bubbles4.Services;
@@ -15,6 +18,9 @@ public class BackgroundFileWatcher
     private Task? _processingTask;
 
     private Action<FileSystemEventArgs>? _onFileChanged;
+
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _debounceTokens = new();
+    private readonly TimeSpan _debounceDelay = TimeSpan.FromSeconds(2);
 
     private volatile bool _buffering = false;
 
@@ -59,19 +65,17 @@ public class BackgroundFileWatcher
     }
     private void HandleChange(FileSystemEventArgs e, bool skipWatchableCheck)
     {
-        if (skipWatchableCheck || FileTypes.IsWatchable(e.FullPath))
+        if (skipWatchableCheck || FileAssessor.IsWatchable(e.FullPath))
         {
-            if (!_eventChannel.Writer.TryWrite(e))
-            {
-                // Optionally log or handle overflow
-            }    
+             
+            _eventChannel.Writer.TryWrite(e);
         }
     }
 
     private void HandleRename(object sender, RenamedEventArgs e)
     {
-        bool new_ = FileTypes.IsWatchable(e.FullPath);
-        bool old_ = FileTypes.IsWatchable(e.OldFullPath);
+        bool new_ = FileAssessor.IsWatchable(e.FullPath);
+        bool old_ = FileAssessor.IsWatchable(e.OldFullPath);
         if (! new_ && !old_) return;
 
         if (!old_ && new_)
@@ -111,7 +115,36 @@ public class BackgroundFileWatcher
                     while (_eventChannel.Reader.TryRead(out var e))
                     {
                         if (!_buffering)
-                            _onFileChanged?.Invoke(e);
+                        {
+                            if (e.ChangeType == WatcherChangeTypes.Changed)
+                            {
+                                return;
+                                var path = e.FullPath;
+                                if (_debounceTokens.TryGetValue(path, out var existingCts))
+                                    existingCts.Cancel();
+
+                                var cts = new CancellationTokenSource();
+                                _debounceTokens[path] = cts;
+
+                                var item = e;
+                                _ = Task.Run(async () =>
+                                {
+                                    try
+                                    {
+                                        await Task.Delay(_debounceDelay, cts.Token);
+                                        if (FileAssessor.IsFileReady(path))
+                                            _onFileChanged?.Invoke(item);
+                                    }
+                                    catch (OperationCanceledException) { /* ignored */ }
+                                    finally
+                                    {
+                                        _debounceTokens.TryRemove(path, out _);
+                                    }
+                                });
+                            }
+                            else _onFileChanged?.Invoke(e);
+                        }
+                            
                     }
                 }
                 // If buffering, just hold the data in the channels
@@ -122,6 +155,8 @@ public class BackgroundFileWatcher
             }
         }
     }
+
+
 
     public void BeginBuffering() => _buffering = true;
 

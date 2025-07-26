@@ -41,6 +41,7 @@ public partial class LibraryConfigViewModel : ObservableObject
         if (value)
         {
             Reader = !value;
+            AutoBookmarks = !value;
             UseIVPs = value;
             AnimateIVPs = value;    
         }
@@ -52,14 +53,14 @@ public partial class LibraryConfigViewModel : ObservableObject
         Viewer = !value;
         UseIVPs = !value;
         AnimateIVPs = !value;    
-
+        AutoBookmarks = value;
     }
 
 
     [ObservableProperty] private bool _useIVPs;
     [ObservableProperty] private bool _animateIVPs;
     [ObservableProperty] private bool _cacheLibraryData;
-    
+    [ObservableProperty] private bool _autoBookmarks;
     
     [ObservableProperty] private bool _pickDirectory;
     
@@ -113,7 +114,7 @@ public partial class LibraryConfigViewModel : ObservableObject
         UseIVPs = config.UseIVPs;
         AnimateIVPs = config.AnimateIVPs;
         CacheLibraryData = config.CacheLibraryData;
-        
+        AutoBookmarks = config.AutoBookmarks;
         BooksSortOption = config.LibrarySortOption;
         BooksAscending = config.LibrarySortAscending; 
         PagesSortOption = config.BookSortOption;
@@ -176,7 +177,7 @@ public partial class LibraryConfigViewModel : ObservableObject
         _libraryConfig.UseIVPs = UseIVPs;
         _libraryConfig.AnimateIVPs = AnimateIVPs;
         _libraryConfig.CacheLibraryData = CacheLibraryData;
-        
+        _libraryConfig.AutoBookmarks = AutoBookmarks;
         _libraryConfig.LibrarySortOption = BooksSortOption;
         _libraryConfig.LibrarySortAscending = BooksAscending;
         _libraryConfig.BookSortOption = PagesSortOption;

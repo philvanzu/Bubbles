@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
@@ -17,6 +18,10 @@ public class App : Application
     
     public override void Initialize()
     {
+        Console.WriteLine(typeof(SixLabors.ImageSharp.Formats.DecoderOptions).Assembly.FullName);
+        var asm = Assembly.LoadFile("/home/phil/RiderProjects/Bubbles4/Bubbles4.Desktop/bin/Release/net9.0/SixLabors.ImageSharp.dll");
+        Console.WriteLine($"FullName: {asm.FullName}");
+        Console.WriteLine($"Version: {asm.GetName().Version}");
         AvaloniaXamlLoader.Load(this);
     }
 

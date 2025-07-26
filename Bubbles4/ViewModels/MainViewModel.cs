@@ -109,6 +109,7 @@ public partial class MainViewModel : ViewModelBase
 
     public ShutdownCoordinator ShutdownCoordinator { get; private set; } = new();
     public FastImageViewer? ViewerControl { get; set; }
+    
 
 
     public MainViewModel(MainWindow window, IDialogService dialogService)
@@ -424,10 +425,10 @@ public partial class MainViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void Search(string keywords)
+    private void Search(string? keywords)
     {
         // You can parse keywords here or pass them directly to your filtering method
-        var keywordList = keywords
+        var keywordList = keywords?
             .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .ToList();
 
@@ -437,7 +438,7 @@ public partial class MainViewModel : ViewModelBase
     private void ClearSearch()
     {
         SearchString = string.Empty;
-        Search("");
+        Search(null);
     }
     
 

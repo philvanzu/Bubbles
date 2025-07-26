@@ -23,7 +23,7 @@
         <Grid RowDefinitions="36,*,36">
             <!-- Top toolbar/menu -->
             <Border BorderThickness="1" BorderBrush="White" Background="#505050">
-            <Grid ColumnDefinitions="Auto, Auto, *, Auto" >
+            <Grid ColumnDefinitions="Auto, Auto, *, Auto" ><!--menu, library, page, search -->
                 <Menu Grid.Column="0">
                     <MenuItem Header="☰">
                         <MenuItem Header="New Library" Command="{Binding CreateLibraryCommand}"/>
@@ -39,32 +39,33 @@
                 </Menu>
                 
                 <!--Library Selector-->
-                <Grid Grid.Column="1" ColumnDefinitions="Auto 8 32 32 32 32">
-                    
-                    <ComboBox Grid.Column="0" x:Name="LibraryComboBox"
-                              Width="250"
-                              ItemsSource="{Binding Libraries}"
-                              SelectedItem="{Binding SelectedLibraryItem, Mode=TwoWay}">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Name}"/>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    <!--Selected item-->
-                    <Canvas Grid.Column="0" 
-                            Background="#303030" 
-                             Width="215"
-                            Height="28"
-                            IsHitTestVisible="False" 
-                            HorizontalAlignment="Left" Margin="2">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
+                    <Grid>
+                        <ComboBox Grid.Column="0" x:Name="LibraryComboBox"
+                                  Width="250"
+                                  ItemsSource="{Binding Libraries}"
+                                  SelectedItem="{Binding SelectedLibraryItem, Mode=TwoWay}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <!--Selected item-->
+                        <Canvas Grid.Column="0" 
+                                Background="#303030" 
+                                 Width="215"
+                                Height="28"
+                                IsHitTestVisible="False" 
+                                HorizontalAlignment="Left" Margin="2">
 
-                        <TextBlock Text="{Binding LibraryName}"
-                                   IsHitTestVisible="False"
-                                   VerticalAlignment="Center"
-                                   Margin="8 4 0 0"
-                                   Foreground="{Binding Library, Converter={StaticResource NullToColor}}"/>
-                    </Canvas>
+                            <TextBlock Text="{Binding LibraryName}"
+                                       IsHitTestVisible="False"
+                                       VerticalAlignment="Center"
+                                       Margin="8 4 0 0"
+                                       Foreground="{Binding Library, Converter={StaticResource NullToColor}}"/>
+                        </Canvas>
+                    </Grid>
                     <!--Close Library button-->
                     <Button Grid.Column="2"   Width="24" Height="24" Padding="4" Background="Transparent"  
                             ToolTip.Tip="Close Current Library"
@@ -129,8 +130,44 @@
                         <Path x:Name="ThrashIconPath" StrokeThickness="1.5" Fill="Transparent" Stretch="Uniform" 
                               Data="M6,7 L6,19 C6,20.1046 6.89543,21 8,21 L16,21 C17.1046,21 18,20.1046 18,19 L18,7 M9,7 L9,4 C9,3.44772 9.44772,3 10,3 L14,3 C14.5523,3 15,3.44772 15,4 L15,7 M10,10 L10,17 M14,10 L14,17"/>
                     </Button>
+                    <!--Bookmarks Popup-->
+                    <Grid IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}">
+                        <!-- The ToggleButton to open the dropdown -->
+                        <ToggleButton x:Name="BookmarkToggle" 
+                                      ToolTip.Tip="Library Bookmarks"
+                                      Width="24" Height="24" Padding="2" 
+                                      IsCheckedChanged="OnBookmarkPopupToggled">
+                            <Path Stretch="Uniform"
+                                  Fill="Transparent"
+                                  Stroke="White"
+                                  StrokeThickness="2"
+                                  Data="M19,21 L12,17 L5,21 V5 A2,2 0 0 1 7,3 H17 A2,2 0 0 1 19,5 V21 Z" />
+                        </ToggleButton>
 
-                </Grid>
+                        <!-- Floating Popup for dropdown content -->
+                        <Popup x:Name="BookmarkPopup"
+                               IsOpen="False"
+                               PlacementTarget="{Binding #BookmarkToggle}"
+                               Placement='BottomEdgeAlignedLeft'
+                               IsLightDismissEnabled="True">
+                            <Border Background="Black"
+                                    BorderBrush="White"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="4">
+                                <ListBox ItemsSource="{Binding Library.Bookmarks}"
+                                         MaxHeight="300"
+                                         SelectionChanged="OnBookmarkSelected"/>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                    <Border Width="16"/>
+                    <Separator Width="1"
+                               Height="24"
+                               Margin="0,0">
+                    </Separator>
+
+                </StackPanel>
                 <Grid Grid.Column="2">
                     <StackPanel Orientation="Horizontal" IsVisible="{Binding SelectedBook, Converter={StaticResource NullToBoolean}}">
                         <Border Width="16"/>
@@ -154,11 +191,25 @@
                             </StackPanel>
                         </Border >
                         <Button x:Name="GotoPageButton" Content="Go"  Command="{Binding GotoPageCommand}"/>
+                        <Button x:Name="GotoBookmarkButton" 
+                                ToolTip.Tip="Load Bookmarked Page"
+                                IsVisible="{Binding SelectedBook.Bookmark, 
+                                                Converter={StaticResource NullToBoolean}}"
+                                Command="{Binding SelectedBook.LoadBookmarkCommand }"
+                                Margin="4">
+                            <Path Stretch="Uniform"
+                                  Fill="Transparent"
+                                  Stroke = "White"
+                                  StrokeThickness="2"
+                                  Data="M19,21 L12,17 L5,21 V5 A2,2 0 0 1 7,3 H17 A2,2 0 0 1 19,5 V21 Z" />
+                        </Button>
                         <Border Width="16"/>
                         <Separator Width="1"
                                    Height="24"
                                    Margin="0,0">
                         </Separator>
+                        
+
                     </StackPanel>
                 </Grid>
                 

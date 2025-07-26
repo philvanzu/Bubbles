@@ -48,6 +48,7 @@
         </PackageReference>
         <PackageReference Include="PDFiumSharp" />
         <PackageReference Include="SDL2-CS" />
+        <PackageReference Include="SixLabors.ImageSharp" />
     </ItemGroup>
 
     <ItemGroup>

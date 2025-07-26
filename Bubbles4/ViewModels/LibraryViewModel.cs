@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -38,15 +39,27 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     [ObservableProperty] private bool _isLoading;
 
     [ObservableProperty] private LibraryNodeViewModel _rootNode;
-    [ObservableProperty] private LibraryConfig _config;
-    partial void OnConfigChanged(LibraryConfig value)
+    private LibraryConfig _config;
+    public LibraryConfig Config
     {
-        MainViewModel.LibrarySortHeader.Value = (value.LibrarySortOption, value.LibrarySortAscending);
-        MainViewModel.BookSortHeader.Value = (value.BookSortOption, value.BookSortAscending);
-        MainViewModel.NodeSortHeader.Value = (value.NodeSortOption, value.NodeSortAscending);
-        MainViewModel.PreviewIVPIsChecked = false;
-        MainViewModel.ShowNavPane = value.ShowNavPane;
+        get => _config;
+        set
+        {
+            bool changed = _config != value;
+            if (changed)
+            {
+                _config.Bookmarks.CollectionChanged -= OnBookmarksCollectionChanged;
+                value.Bookmarks.CollectionChanged += OnBookmarksCollectionChanged;
+            }
+            SetProperty(ref _config, value);
+            MainViewModel.LibrarySortHeader.Value = (value.LibrarySortOption, value.LibrarySortAscending);
+            MainViewModel.BookSortHeader.Value = (value.BookSortOption, value.BookSortAscending);
+            MainViewModel.NodeSortHeader.Value = (value.NodeSortOption, value.NodeSortAscending);
+            MainViewModel.PreviewIVPIsChecked = false;
+            MainViewModel.ShowNavPane = value.ShowNavPane;
+        }
     }
+    [ObservableProperty] private ReadOnlyObservableCollection<string> _bookmarks;
 
     [ObservableProperty] private LibraryNodeViewModel? _selectedNode;
 
@@ -60,10 +73,13 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     
     public LibraryViewModel(MainViewModel mainViewModel, string path, LibraryConfig config)
     {
-        _config = config;
-        
         MainViewModel = mainViewModel;
-        this.Path = path;
+        Path = path;
+        _config = config;
+        _config.Bookmarks.CollectionChanged += OnBookmarksCollectionChanged;
+        var inner = new ObservableCollection<string>(_config.Bookmarks.Select(x => x.BookPath).ToList());
+        Bookmarks = new(inner);
+
         Books = new ReadOnlyObservableCollection<BookViewModel>(_booksMutable);
 
         CurrentSortOption = Config.LibrarySortOption;
@@ -71,8 +87,10 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         
         var info  = new DirectoryInfo(path);
         RootNode = new LibraryNodeViewModel(this,info.FullName, info.Name, info.CreationTime, info.LastWriteTime);
-        OnConfigChanged(config);
+        Config = _config;
     }
+
+
 
     public virtual void Close()
     {
@@ -209,7 +227,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     }
     private bool MatchesKeywords(BookViewModel bvm, List<string>? keywords)
     {
-        if (Config.Recursive == false)
+        if (keywords == null && Config.Recursive == false)
             if (SelectedNode == null || SelectedNode.Path != bvm.LibraryNodeId) return false;
 
         if (keywords == null || keywords.Count == 0)
@@ -249,6 +267,9 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         if (value != null)
         {
             value.LoadingTask = value.LoadPagesListAsync();
+            var node = RootNode.FindNode(value.LibraryNodeId);
+            if (node != null && SelectedNode != node) 
+                SelectedNode = node;
             //load book in bookview
             _ = Task.Run(async () =>
                 {
@@ -278,6 +299,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     {
         return (book != null)? Books.IndexOf(book) : -1;
     }
+    
     public void NextBook()
     {
         var index = GetBookIndex(SelectedItem);
@@ -309,6 +331,34 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         if (Books[index].IsSelected) Books[index].SelectedPage = null;
         else Books[index].IsSelected = true;
     }
+    private void OnBookmarksCollectionChanged(object? _, NotifyCollectionChangedEventArgs __)
+    {
+        var inner = new ObservableCollection<string>(_config.Bookmarks.Select(x => x.BookPath).ToList());
+        Bookmarks = new(inner);
+    }
+
+    [RelayCommand]
+    private async Task LoadBookmark(string bookPath)
+    {
+        var bm = Config.GetBookmark(bookPath);
+        if(bm != null)
+        {
+            var book = _books.FirstOrDefault(b => b.Path == bookPath);
+            if (book != null)
+            {
+                book.IsSelected = true;
+
+                
+                if (book.LoadingTask != null)
+                {
+                    await book.LoadingTask;
+                    if(book.Pages.Count > bm.pageIndex)
+                        book.Pages[bm.pageIndex].IsSelected = true;
+                }
+            }    
+        }
+        
+    }
 
     #region FileSystem Watcher Events
 
@@ -324,7 +374,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         
         bool removeFlag = false;
         
-        bool isImage = FileTypes.IsImage(e.FullPath);
+        bool isImage = FileAssessor.IsImage(e.FullPath);
         if (isImage)
         {
             string? imgDir = System.IO.Path.GetDirectoryName(e.FullPath);
@@ -351,9 +401,9 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         else
         {
             existing = _books.FirstOrDefault(x => string.Equals(x.Path, e.FullPath, StringComparison.OrdinalIgnoreCase));
-            bool isArchive = FileTypes.IsArchive(e.FullPath);
-            bool isPdf = FileTypes.IsPdf(e.FullPath);
-            bool isDirbook = FileTypes.IsImageDirectory(e.FullPath);
+            bool isArchive = FileAssessor.IsArchive(e.FullPath);
+            bool isPdf = FileAssessor.IsPdf(e.FullPath);
+            bool isDirbook = FileAssessor.IsImageDirectory(e.FullPath);
    
             bool isBook = isDirbook || isPdf || isArchive;
             if (!isBook && existing is not null)

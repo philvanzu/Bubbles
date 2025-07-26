@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Bubbles4.Models;
 
-public static class FileTypes
+public static class FileAssessor
 {
     static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -79,5 +79,17 @@ public static class FileTypes
             return true;
         
         return false;
+    }
+    public static bool IsFileReady(string path)
+    {
+        try
+        {
+            using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

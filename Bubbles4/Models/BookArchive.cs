@@ -73,7 +73,7 @@ public class BookArchive : BookBase
             (archive, stream) = pair.Value;
 
             pages = archive.Entries
-                .Where(e => !e.IsDirectory && FileTypes.IsImage(System.IO.Path.GetExtension(e.Key)??""))
+                .Where(e => !e.IsDirectory && FileAssessor.IsImage(System.IO.Path.GetExtension(e.Key)??""))
                 .Select(entry => new Page()
                 {
                     Name = System.IO.Path.GetFileName(entry.Key)!,
