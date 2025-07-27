@@ -20,31 +20,24 @@ public class StatusOverlay : Control
         set => SetValue(PagingStatusProperty, value);
     }
 
-    public static readonly StyledProperty<string?> BookNameProperty =
-        AvaloniaProperty.Register<StatusOverlay, string?>(nameof(BookName));
+    public static readonly StyledProperty<string?> BookStatusProperty =
+        AvaloniaProperty.Register<StatusOverlay, string?>(nameof(BookStatus));
 
-    public string? BookName
+    public string? BookStatus
     {
-        get => GetValue(BookNameProperty);
-        set => SetValue(BookNameProperty, value);
+        get => GetValue(BookStatusProperty);
+        set => SetValue(BookStatusProperty, value);
     }
 
-    public static readonly StyledProperty<string?> PageNameProperty =
-        AvaloniaProperty.Register<StatusOverlay, string?>(nameof(PageName));
+    public static readonly StyledProperty<string?> PageStatusProperty =
+        AvaloniaProperty.Register<StatusOverlay, string?>(nameof(PageStatus));
 
-    public string? PageName
+    public string? PageStatus
     {
-        get => GetValue(PageNameProperty);
-        set => SetValue(PageNameProperty, value);
+        get => GetValue(PageStatusProperty);
+        set => SetValue(PageStatusProperty, value);
     }
-    public static readonly StyledProperty<string?> ImageSizeProperty =
-        AvaloniaProperty.Register<StatusOverlay, string?>(nameof(ImageSize));
 
-    public string? ImageSize
-    {
-        get => GetValue(ImageSizeProperty);
-        set => SetValue(ImageSizeProperty, value);
-    }
     
     
     public static readonly StyledProperty<bool> IsFullscreenProperty =
@@ -60,7 +53,6 @@ public class StatusOverlay : Control
     private double _pagingOpacity; // 0 = invisible, 1 = fully visible
     private double _bookOpacity;
     private double _pageOpacity;
-    private double _imageSizeOpacity;
     private UserSettings _prefs;
     Point[] _offsets = new[]
     {
@@ -76,7 +68,6 @@ public class StatusOverlay : Control
     private DateTime? _pagingTime;
     private DateTime? _pageTime;
     private DateTime? _bookTime;
-    private DateTime? _imageSizeTime;
     
     const float fadeTime = 1.5f;
     private readonly DispatcherTimer animTimer;
@@ -134,13 +125,6 @@ public class StatusOverlay : Control
                 SetStartTime = t => _bookTime = t,
                 SetOpacity = o => _bookOpacity = o
             },
-            new FadeField
-            {
-                GetDisplayTime = () => _prefs.ShowImageSize,
-                GetStartTime = () => _imageSizeTime,
-                SetStartTime = t => _imageSizeTime = t,
-                SetOpacity = o => _imageSizeOpacity = o
-            }
         };
 
         foreach (var field in fadeFields)
@@ -181,15 +165,12 @@ public class StatusOverlay : Control
             _bookOpacity = 1;
             _pageTime = DateTime.Now;
             _pageOpacity = 1;
-            _imageSizeTime = DateTime.Now;
-            _imageSizeOpacity = 1;
         }
         else
         {
             PagingStatus = PagingStatus;
-            BookName = BookName;
-            PageName = PageName;
-            ImageSize = ImageSize;
+            BookStatus = BookStatus;
+            PageStatus = PageStatus;
         }
     }
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -213,7 +194,7 @@ public class StatusOverlay : Control
                 InvalidateVisual();
                 break;
             
-            case nameof(BookName):
+            case nameof(BookStatus):
                 _prefs = AppStorage.Instance.UserSettings;
                 _bookTime = null;
                 
@@ -228,7 +209,7 @@ public class StatusOverlay : Control
                 InvalidateVisual();
                 break;
             
-            case nameof(PageName):
+            case nameof(PageStatus):
                 _pageTime = null;
                 
                 if (_prefs.ShowPageName > 0)
@@ -242,26 +223,12 @@ public class StatusOverlay : Control
                 InvalidateVisual();
                 break;
 
-            case nameof(ImageSize):
-                _imageSizeTime = null;
-                
-                if (_prefs.ShowImageSize > 0)
-                {
-                    _imageSizeTime = DateTime.Now;
-                    _imageSizeOpacity = 1;
-                }
-                else if (_prefs.ShowImageSize == 0) _imageSizeOpacity = 1; //doesn't fade
-                else _imageSizeOpacity = 0; // never show
-                
-                InvalidateVisual();
-                break;
             case nameof(_prefs):
                 //_prefs is swapped when toggling fullscreen
                 //non fullscreen version never displays anything
                 PagingStatus = PagingStatus;
-                PageName = PageName;
-                ImageSize = ImageSize;
-                BookName = BookName;
+                PageStatus = PageStatus;
+                BookStatus = BookStatus;
                 break;
 
         } 
@@ -277,13 +244,11 @@ public class StatusOverlay : Control
             Tuple<string?, Point, double>[] arr = new[]
             {
                 new Tuple<string?, Point, double>(PagingStatus, new Point(bounds.Width - 8, 8), _pagingOpacity),
-                new Tuple<string?, Point, double>(BookName, new Point(8, 8), _bookOpacity),
-                new Tuple<string?, Point, double>(PageName, new Point(8, bounds.Height - 24), _pageOpacity),
-                new Tuple<string?, Point, double>(ImageSize, new Point(bounds.Width - 8, bounds.Height - 24), _imageSizeOpacity),
+                new Tuple<string?, Point, double>(BookStatus, new Point(8, 8), _bookOpacity),
+                new Tuple<string?, Point, double>(PageStatus, new Point(8, bounds.Height - 24), _pageOpacity),
             };
         
             int i = 0;
-            double pageNameWidth = 0;
         
             foreach (var tuple in arr)
             {
@@ -296,9 +261,6 @@ public class StatusOverlay : Control
                 {
                     var formattedText = new FormattedText(text, culture, flow, typeface, fontSize, Brushes.White);
                     if (i==0) pos = new Point(pos.X - formattedText.Width, pos.Y);
-                    if (i==2) pageNameWidth = formattedText.Width;
-                    //if (i==3) pos = new Point(pos.X + pageNameWidth + 48, pos.Y);
-                    if (i==3) pos = new Point(pos.X -formattedText.Width, pos.Y);
                 
                     using (context.PushOpacity(opacity))
                     {

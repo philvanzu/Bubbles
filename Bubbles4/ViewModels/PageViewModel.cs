@@ -51,10 +51,10 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
     public bool IsImageLoading { get; set; }
     
     public int Index => Book.GetPageIndex(this);
-    public string Path => _page.Path;
-    public string Name => _page.Name;
-    public DateTime Created => _page.Created;
-    public DateTime LastModified => _page.LastModified;
+    public string Path => Model.Path;
+    public string Name => Model.Name;
+    public DateTime Created => Model.Created;
+    public DateTime LastModified => Model.LastModified;
     public int RandomIndex {get; set;}
 
     ~PageViewModel()

@@ -36,59 +36,76 @@ public static class ImageLoader
     
     public static (Bitmap?, PixelSize?)? DecodeImage(Stream stream, int maxSize, CancellationToken token)
     {
+        PixelSize? pixelSize = null;
         try
         {
             token.ThrowIfCancellationRequested();
+            
             if (stream.CanSeek)
                 stream.Seek(0, SeekOrigin.Begin);
-            PixelSize? pixelSize = null;
-            using var codec = SKCodec.Create(stream);
+            
+            //don't let Create dispose of my stream (probably a rare bug but it happens)
+            using var codec = SKCodec.Create(new NonDisposableStream(stream));
             if (codec != null)
             {
                 var info = codec.Info;
                 pixelSize = new PixelSize(info.Width, info.Height);
             }
-            if (stream.CanSeek)
-                stream.Seek(0, SeekOrigin.Begin);
+
+            EnsureSeekable(ref stream);
             token.ThrowIfCancellationRequested();
             return (Bitmap.DecodeToWidth(stream, maxSize), pixelSize); // Decode directly from stream
         }
         catch (OperationCanceledException) { }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            //Console.Error.WriteLine(e);
+            return DecodeImageFallback(stream, maxSize, token);
         }
 
         return null;
     }
-/*
-    static Bitmap? DecodeImageFallback(Stream stream, int maxSize, CancellationToken token)
+
+    static (Bitmap?, PixelSize?)? DecodeImageFallback(Stream stream, int maxSize, CancellationToken token)
     {
         try
         {
-            
-            using var image = SixLabors.ImageSharp.Image.Load(
-                DecoderOptions.Default,
-                stream,
-                out IImageFormat format);
+            EnsureSeekable(ref stream);
+            using var image = SixLabors.ImageSharp.Image.Load( stream);
+            var pixelSize = new PixelSize(image.Size.Width, image.Size.Height);
             image.Mutate(x => 
                 x.Resize(new ResizeOptions {
                 Mode = ResizeMode.Max,
                 Size = new Size(maxSize, maxSize)
             }));
 
-            using var ms = new MemoryStream();
+            var ms = new MemoryStream();
             image.SaveAsPng(ms); // or SaveAsJpeg
             ms.Position = 0;
 
-            return new Bitmap(ms);
+            return (new Bitmap(ms), pixelSize);
         }
-        catch
+        catch  (Exception e)
         {
+            Console.WriteLine(e);
             return null;
         }
     }
-  */  
+    private static void EnsureSeekable(ref Stream stream)
+    {
+        if (stream.CanSeek)
+        {
+            stream.Position = 0;
+            return;
+        }
+
+        var memory = new MemoryStream();
+        stream.CopyTo(memory);
+        memory.Position = 0;
+
+        stream.Dispose(); // Dispose the original stream if it's unseekable
+        stream = memory;
+    }
     public static (int width, int height) GetTargetDimensions(int imageWidth, int imageHeight, int maxSize)
     {
         float scale =  Math.Min(1f, maxSize / (float)Math.Max(imageWidth, imageHeight));
@@ -212,6 +229,33 @@ public static class ImageLoader
 */
   
 
+    class NonDisposableStream : Stream
+    {
+        private readonly Stream _inner;
 
+        public NonDisposableStream(Stream inner)
+        {
+            _inner = inner;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            // Don't dispose the inner stream
+        }
+
+        // Override all required Stream members to delegate to _inner
+        public override bool CanRead => _inner.CanRead;
+        public override bool CanSeek => _inner.CanSeek;
+        public override bool CanWrite => _inner.CanWrite;
+        public override long Length => _inner.Length;
+        public override long Position { get => _inner.Position; set => _inner.Position = value; }
+
+        public override void Flush() => _inner.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => _inner.Seek(offset, origin);
+        public override void SetLength(long value) => _inner.SetLength(value);
+        public override void Write(byte[] buffer, int offset, int count) => _inner.Write(buffer, offset, count);
+    }
   
 }
+

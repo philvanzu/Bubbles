@@ -18,10 +18,6 @@ public class App : Application
     
     public override void Initialize()
     {
-        Console.WriteLine(typeof(SixLabors.ImageSharp.Formats.DecoderOptions).Assembly.FullName);
-        var asm = Assembly.LoadFile("/home/phil/RiderProjects/Bubbles4/Bubbles4.Desktop/bin/Release/net9.0/SixLabors.ImageSharp.dll");
-        Console.WriteLine($"FullName: {asm.FullName}");
-        Console.WriteLine($"Version: {asm.GetName().Version}");
         AvaloniaXamlLoader.Load(this);
     }
 

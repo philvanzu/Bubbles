@@ -9,7 +9,7 @@ public partial class ProgressViewModel: ViewModelBase
     [ObservableProperty]private string _message = "";
     [ObservableProperty]private double _progressValue=0;
     [ObservableProperty]private bool _isIndeterminate=false;
-
+    [ObservableProperty]private bool _isBusy=false;
     private Progress<(string msg, double progress, bool completed)> _progress;
     public Progress<(string msg, double progress, bool completed)> Progress => _progress;
 
@@ -25,9 +25,10 @@ public partial class ProgressViewModel: ViewModelBase
         if (progress.completed)
         {
             Close();
+            IsBusy = false;
             return;
         }
-        
+        if (!IsBusy) IsBusy = true;
         if (Dispatcher.UIThread.CheckAccess())
         {
             IsIndeterminate = Math.Abs(progress.value - (-1.0)) < 0.01;

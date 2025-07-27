@@ -21,7 +21,7 @@ namespace Bubbles4.ViewModels;
 public partial class LibraryViewModel : ViewModelBase, ISelectItems
 {
     public string Path { get; }
-    
+
     private readonly List<BookViewModel> _books = new();
     private ObservableCollection<BookViewModel> _booksMutable = new();
     public ReadOnlyObservableCollection<BookViewModel> Books { get; }
@@ -35,11 +35,12 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     public event EventHandler<SelectedItemChangedEventArgs>? SelectionChanged;
     public event EventHandler? SortOrderChanged;
     public event EventHandler<int>? ScrollToIndexRequested;
-    
+
     [ObservableProperty] private bool _isLoading;
 
     [ObservableProperty] private LibraryNodeViewModel _rootNode;
     private LibraryConfig _config;
+
     public LibraryConfig Config
     {
         get => _config;
@@ -50,43 +51,49 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
             {
                 _config.Bookmarks.CollectionChanged -= OnBookmarksCollectionChanged;
                 value.Bookmarks.CollectionChanged += OnBookmarksCollectionChanged;
+
+                var bmvms = value.Bookmarks.Select(bm => new BookmarkViewModel(bm, this));
+                Bookmarks = new(new ObservableCollection<BookmarkViewModel>(bmvms));
             }
+
             SetProperty(ref _config, value);
             MainViewModel.LibrarySortHeader.Value = (value.LibrarySortOption, value.LibrarySortAscending);
             MainViewModel.BookSortHeader.Value = (value.BookSortOption, value.BookSortAscending);
             MainViewModel.NodeSortHeader.Value = (value.NodeSortOption, value.NodeSortAscending);
             MainViewModel.PreviewIVPIsChecked = false;
             MainViewModel.ShowNavPane = value.ShowNavPane;
+            MainViewModel.ShowBookmarksMenu = value.AutoBookmarks;
         }
     }
-    [ObservableProperty] private ReadOnlyObservableCollection<string> _bookmarks;
+
+    [ObservableProperty] private ReadOnlyObservableCollection<BookmarkViewModel> _bookmarks;
 
     [ObservableProperty] private LibraryNodeViewModel? _selectedNode;
 
     partial void OnSelectedNodeChanged(LibraryNodeViewModel? value)
     {
-        if (value != null)
+        if (value != null && !Config.Recursive)
         {
             Sort();
         }
     }
-    
+
     public LibraryViewModel(MainViewModel mainViewModel, string path, LibraryConfig config)
     {
         MainViewModel = mainViewModel;
         Path = path;
         _config = config;
         _config.Bookmarks.CollectionChanged += OnBookmarksCollectionChanged;
-        var inner = new ObservableCollection<string>(_config.Bookmarks.Select(x => x.BookPath).ToList());
-        Bookmarks = new(inner);
+        var bmvms = _config.Bookmarks.Select(bm => new BookmarkViewModel(bm, this));
+        Bookmarks = new(new ObservableCollection<BookmarkViewModel>(bmvms));
 
         Books = new ReadOnlyObservableCollection<BookViewModel>(_booksMutable);
 
         CurrentSortOption = Config.LibrarySortOption;
         CurrentSortAscending = Config.LibrarySortAscending;
-        
-        var info  = new DirectoryInfo(path);
-        RootNode = new LibraryNodeViewModel(this,info.FullName, info.Name, info.CreationTime, info.LastWriteTime);
+
+        var info = new DirectoryInfo(path);
+        RootNode = new LibraryNodeViewModel(this, info.FullName, info.Name, info.CreationTime, info.LastWriteTime);
         Config = _config;
     }
 
@@ -96,15 +103,16 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     {
         //__book0__issue__hack
         //if( Books.Count != 0 )Books[0].Thumbnail?.Dispose();
-        
-        if(SelectedItem != null) 
+
+        if (SelectedItem != null)
             SelectedItem.IsSelected = false;
-        
+
         SelectedItem = null;
-        
+
         Clear();
         MainViewModel.ShowNavPane = false;
     }
+
     public void Clear()
     {
         //__book0__issue__hack
@@ -114,11 +122,11 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         OnPropertyChanged(nameof(Count));
     }
 
-    
 
-    public int NodeBooksCount(string libraryNodeId)=> _books.Count(b => b.LibraryNodeId == libraryNodeId);
-    
-    
+
+    public int NodeBooksCount(string libraryNodeId) => _books.Count(b => b.LibraryNodeId == libraryNodeId);
+
+
 
 
     [RelayCommand]
@@ -135,7 +143,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
             */
             vm.PrepareThumbnail();
         }
-            
+
     }
 
     [RelayCommand]
@@ -144,13 +152,13 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         if (parameter is BookViewModel vm)
         {
             //Console.WriteLine($"Clearing Thumbnail for book: {vm.Path}");
-            vm.ClearThumbnail();    
+            vm.ClearThumbnail();
         }
-            
-    }
-    
 
-    
+    }
+
+
+
 
 
     private IComparer<BookViewModel> GetComparer(LibraryConfig.SortOptions sort, bool ascending)
@@ -175,7 +183,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
 
             LibraryConfig.SortOptions.Natural => new BookViewModelNaturalComparer(ascending),
 
-            LibraryConfig.SortOptions.Random => 
+            LibraryConfig.SortOptions.Random =>
                 SortExpressionComparer<BookViewModel>.Ascending(x => x.RandomIndex),
 
             _ => SortExpressionComparer<BookViewModel>.Ascending(x => x.Name)
@@ -187,7 +195,8 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         foreach (var book in _books)
             book.RandomIndex = CryptoRandom.NextInt();
     }
-    public void Sort(LibraryConfig.SortOptions? sort=null, bool? ascending=null)
+
+    public void Sort(LibraryConfig.SortOptions? sort = null, bool? ascending = null)
     {
         if (sort == null) sort = Config.LibrarySortOption;
         if (ascending == null) ascending = Config.LibrarySortAscending;
@@ -199,11 +208,13 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         ApplyFilterAndSort();
         //InvokeSortOrderChanged();
     }
+
     public void Filter(List<string>? keywords = null)
     {
         _filters = keywords;
         ApplyFilterAndSort();
     }
+
     private void ApplyFilterAndSort()
     {
         var comparer = GetComparer(CurrentSortOption, CurrentSortAscending);
@@ -214,31 +225,34 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
 
         //__book0__issue__hack
         //if( Books.Count != 0 )Books[0].Thumbnail?.Dispose();
-        
+
         _booksMutable.Clear();
         _booksMutable.AddRange(filtered);
 
         OnPropertyChanged(nameof(Books));
     }
-    
+
     public void InvokeSortOrderChanged()
     {
         SortOrderChanged?.Invoke(this, EventArgs.Empty);
     }
+
     private bool MatchesKeywords(BookViewModel bvm, List<string>? keywords)
     {
         if (keywords == null && Config.Recursive == false)
-            if (SelectedNode == null || SelectedNode.Path != bvm.LibraryNodeId) return false;
+            if (SelectedNode == null || SelectedNode.Path != bvm.LibraryNodeId)
+                return false;
 
         if (keywords == null || keywords.Count == 0)
             return true;
-        
-        
+
+
         foreach (var keyword in keywords)
         {
             if (bvm.Path.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) < 0)
                 return false;
         }
+
         return true;
     }
 
@@ -254,52 +268,66 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     {
         BookViewModel? oldItem = null;
         MainViewModel.SelectedBook = value;
-        foreach (var book in Books)
+        foreach (var book in _books)
         {
             if (book != value && book.IsSelected)
             {
                 oldItem = book;
                 //unload book in BookView and dispose pages data
-                
+
                 book.IsSelected = false;
             }
         }
+
         if (value != null)
         {
             value.LoadingTask = value.LoadPagesListAsync();
             var node = RootNode.FindNode(value.LibraryNodeId);
-            if (node != null && SelectedNode != node) 
+            if (node != null && SelectedNode != node)
                 SelectedNode = node;
             //load book in bookview
             _ = Task.Run(async () =>
+            {
+                try
                 {
-                    try { await value.LoadingTask;}
-                    catch(Exception x){Console.WriteLine(x);}                    
-                    finally {value.LoadingTask = null;}
-                });
+                    await value.LoadingTask;
+                }
+                catch (Exception x)
+                {
+                    Console.WriteLine(x);
+                }
+                finally
+                {
+                    value.LoadingTask = null;
+                }
+            });
         }
+
         InvokeSelectionChanged(SelectedItem, oldItem);
         MainViewModel.UpdateBookStatus();
         //Console.WriteLine("Selected book :" + value.Name );
     }
+
     public void InvokeSelectionChanged(ISelectableItem? newItem, ISelectableItem? oldItem)
     {
-        SelectionChanged?.Invoke(this, new SelectedItemChangedEventArgs(this,  newItem, oldItem));
+        SelectionChanged?.Invoke(this, new SelectedItemChangedEventArgs(this, newItem, oldItem));
     }
-    
+
     public void RequestScrollToIndex(int index)
     {
         ScrollToIndexRequested?.Invoke(this, index);
     }
+
     public int GetSelectedIndex()
     {
         return GetBookIndex(SelectedItem);
     }
+
     public int GetBookIndex(BookViewModel? book)
     {
-        return (book != null)? Books.IndexOf(book) : -1;
+        return (book != null) ? Books.IndexOf(book) : -1;
     }
-    
+
     public void NextBook()
     {
         var index = GetBookIndex(SelectedItem);
@@ -312,9 +340,9 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
             index = newIndex;
         }
 
-        if (Books[index].IsSelected ) Books[index].SelectedPage = null;
+        if (Books[index].IsSelected) Books[index].SelectedPage = null;
         else Books[index].IsSelected = true;
-        
+
     }
 
     public void PreviousBook()
@@ -328,39 +356,43 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
             if (newIndex < 0) newIndex = Books.Count - 1;
             index = newIndex;
         }
+
         if (Books[index].IsSelected) Books[index].SelectedPage = null;
         else Books[index].IsSelected = true;
     }
+
     private void OnBookmarksCollectionChanged(object? _, NotifyCollectionChangedEventArgs __)
     {
-        var inner = new ObservableCollection<string>(_config.Bookmarks.Select(x => x.BookPath).ToList());
-        Bookmarks = new(inner);
+        var bmvms = Config.Bookmarks.Select(bm => new BookmarkViewModel(bm, this));
+        Bookmarks = new(new ObservableCollection<BookmarkViewModel>(bmvms));
     }
 
     [RelayCommand]
-    private async Task LoadBookmark(string bookPath)
+    private async Task LoadBookmark(BookmarkViewModel bmvm)
     {
-        var bm = Config.GetBookmark(bookPath);
-        if(bm != null)
+        var bm = Config.GetBookmark(bmvm.Model.BookPath);
+        if (bm != null)
         {
-            var book = _books.FirstOrDefault(b => b.Path == bookPath);
+            var book = _books.FirstOrDefault(b => b.Path == bmvm.Model.BookPath);
             if (book != null)
             {
                 book.IsSelected = true;
 
-                
+
                 if (book.LoadingTask != null)
                 {
                     await book.LoadingTask;
-                    if(book.Pages.Count > bm.pageIndex)
-                        book.Pages[bm.pageIndex].IsSelected = true;
+                    if (book.Pages.Count > bm.PageIndex)
+                        book.Pages[bm.PageIndex].IsSelected = true;
                 }
-            }    
+            }
         }
-        
+
     }
 
-    #region FileSystem Watcher Events
+    public BookViewModel? GetBook(string bookPath)=>_books.FirstOrDefault(x => x.Path == bookPath);
+
+#region FileSystem Watcher Events
 
     public virtual void FileSystemChanged(FileSystemEventArgs e)
     {

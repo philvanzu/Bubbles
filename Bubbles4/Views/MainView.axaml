@@ -67,7 +67,7 @@
                         </Canvas>
                     </Grid>
                     <!--Close Library button-->
-                    <Button Grid.Column="2"   Width="24" Height="24" Padding="4" Background="Transparent"  
+                    <Button Width="24" Height="24" Padding="4" Background="Transparent"  
                             ToolTip.Tip="Close Current Library"
                             IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}"
                             Command ="{Binding CloseLibraryCommand}">
@@ -83,7 +83,7 @@
                               Data="M6 18L18 6M6 6l12 12"/>
                     </Button>
                     <!--Library Refresh Button-->
-                    <Button Grid.Column="3" Width="24" Height="24" Padding="2" Background="Transparent" BorderBrush="Transparent"
+                    <Button Width="24" Height="24" Padding="2" Background="Transparent" BorderBrush="Transparent"
                             ToolTip.Tip="Refresh Current Library"
                             Command="{Binding RefreshLibraryCommand}"
                             IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}">
@@ -99,7 +99,7 @@
                               Data="M12 4V1L8 5l4 4V6a6 6 0 11-6 6H4a8 8 0 108-8z"/>
                     </Button>
                     <!--Library Options Button-->
-                    <Button Grid.Column="4"  Width="24" Height="24" Padding="2" Background="Transparent" BorderBrush="Transparent"
+                    <Button Width="24" Height="24" Padding="2" Background="Transparent" BorderBrush="Transparent"
                             ToolTip.Tip="Change Library Settings"
                             IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}"                            
                             Command="{Binding ConfigureLibraryCommand}">
@@ -115,7 +115,7 @@
                               Data="M19.43 12.98c.04-.32.07-.65.07-.98s-.03-.66-.07-.98l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.6-.22l-2.49 1a7.03 7.03 0 0 0-1.69-.98L14.5 2.5a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0-.5.5l-.38 2.55a7.03 7.03 0 0 0-1.69.98l-2.49-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98L2.43 14.63a.5.5 0 0 0-.12.64l2 3.46a.5.5 0 0 0 .6.22l2.49-1c.52.39 1.09.72 1.69.98l.38 2.55a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5l.38-2.55c.6-.26 1.17-.59 1.69-.98l2.49 1a.5.5 0 0 0 .6-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.11-1.65zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/>
                     </Button>
                     <!--Library Delete Button-->
-                    <Button Grid.Column="5" Width="24" Height="24" Padding="2" Background="Transparent" BorderBrush="Transparent"
+                    <Button Width="24" Height="24" Padding="2" Background="Transparent" BorderBrush="Transparent"
                             ToolTip.Tip="Remove Current Library"
                             Command="{Binding DeleteLibraryCommand}"
                             IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}">
@@ -131,7 +131,7 @@
                               Data="M6,7 L6,19 C6,20.1046 6.89543,21 8,21 L16,21 C17.1046,21 18,20.1046 18,19 L18,7 M9,7 L9,4 C9,3.44772 9.44772,3 10,3 L14,3 C14.5523,3 15,3.44772 15,4 L15,7 M10,10 L10,17 M14,10 L14,17"/>
                     </Button>
                     <!--Bookmarks Popup-->
-                    <Grid IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}">
+                    <Grid IsVisible="{Binding ShowBookmarksMenu}">
                         <!-- The ToggleButton to open the dropdown -->
                         <ToggleButton x:Name="BookmarkToggle" 
                                       ToolTip.Tip="Library Bookmarks"
@@ -145,20 +145,50 @@
                         </ToggleButton>
 
                         <!-- Floating Popup for dropdown content -->
-                        <Popup x:Name="BookmarkPopup"
+                        <Popup x:Name="BookmarkPopup" Width="400"
                                IsOpen="False"
                                PlacementTarget="{Binding #BookmarkToggle}"
                                Placement='BottomEdgeAlignedLeft'
                                IsLightDismissEnabled="True">
-                            <Border Background="Black"
-                                    BorderBrush="White"
-                                    BorderThickness="1"
-                                    CornerRadius="4"
-                                    Padding="4">
-                                <ListBox ItemsSource="{Binding Library.Bookmarks}"
-                                         MaxHeight="300"
-                                         SelectionChanged="OnBookmarkSelected"/>
-                            </Border>
+                            <ContentControl>
+                                <ContentControl.Content>
+                                    <Border Background="Black"
+                                            BorderBrush="White"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            Padding="4">
+                
+                                        <ListBox ItemsSource="{Binding Library.Bookmarks}"
+                                                 MaxHeight="300"
+                                                 SelectionChanged="OnBookmarkSelected">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid ColumnDefinitions="*, 24, Auto">
+                                                        <TextBlock Text="{Binding Name}"
+                                                                   ToolTip.Tip = "{Binding Model.BookPath}"
+                                                                   Height="24" Margin="4 0"
+                                                                   VerticalAlignment="Bottom"/>
+
+                                                        <Button Grid.Column="2"
+                                                                Width="24" Height="24" Padding="2"
+                                                                
+                                                                Background="Transparent"
+                                                                BorderBrush="Transparent"
+                                                                ToolTip.Tip="Delete Bookmark"
+                                                                Command="{Binding DeleteBookmarkCommand}">
+                                                            <Path StrokeThickness="1.5"
+                                                                  Fill="Transparent"
+                                                                  Stretch="Uniform"
+                                                                  Stroke="White"
+                                                                  Data="M6,7 L6,19 C6,20.1046 6.89543,21 8,21 L16,21 C17.1046,21 18,20.1046 18,19 L18,7 M9,7 L9,4 C9,3.44772 9.44772,3 10,3 L14,3 C14.5523,3 15,3.44772 15,4 L15,7 M10,10 L10,17 M14,10 L14,17"/>
+                                                        </Button> 
+                                                    </Grid> 
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Border>
+                                </ContentControl.Content>
+                            </ContentControl>
                         </Popup>
                     </Grid>
                     <Border Width="16"/>
@@ -354,9 +384,8 @@
                                 <controls:StatusOverlay x:Name="StatusOverlay"
                                                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                                                         PagingStatus="{Binding PagingStatus}"
-                                                        PageName="{Binding PageNameStatus}"
-                                                        BookName="{Binding BookStatus}"
-                                                        ImageSize="{Binding ImageStatus}"
+                                                        PageStatus="{Binding PageStatus}"
+                                                        BookStatus="{Binding BookStatus}"
                                                         IsFullscreen="{Binding IsFullscreen}"/>
                                 </Panel>
                             </controls:TouchControl>
@@ -370,23 +399,19 @@
 
             <!-- Status bar -->
             <Border Grid.Row="2" BorderThickness="1" BorderBrush="White">
-            <Grid  ColumnDefinitions="*, 250, 460" Background="#505050">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{Binding LibraryStatus}" Margin="8" VerticalAlignment="Center"/>
-                    <Separator Width="8"/>
-                    <TextBlock Text="{Binding PageNameStatus}" Margin="8" VerticalAlignment="Center"/>
-                    <Separator Width="8"/>
-                    <TextBlock Text="{Binding PageCreatedStatus}" Margin="8" VerticalAlignment="Center"/>
-                </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <TextBlock Text="{Binding PagingStatus}"  Margin="8" VerticalAlignment="Center"/>
-                <Separator Width="8"/>
-                <TextBlock Text="{Binding ImageStatus}"  Margin="8" VerticalAlignment="Center"/>
-                </StackPanel>
-                <ContentControl Grid.Column="2">
-                    <views:ProgressView DataContext="{Binding StatusProgress}"/>
-                </ContentControl>
-            </Grid>
+                <Grid  Background="#505050">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <TextBlock Text="{Binding LibraryStatus}" Margin="8" VerticalAlignment="Center"/>
+                        <Separator Width="1" Height="32" Margin="8 0"/>
+                        <TextBlock Text="{Binding PageStatus}" Margin="8" VerticalAlignment="Center"/>
+                        <Separator Width="1" Height="32" Margin="8 0"/>
+                        <TextBlock Text="{Binding PagingStatus}"  Margin="8" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <ContentControl Grid.Column="0" HorizontalAlignment="Center" 
+                                    IsVisible="{Binding StatusProgress.IsBusy}">
+                        <views:ProgressView DataContext="{Binding StatusProgress}"/>
+                    </ContentControl>
+                </Grid>
             </Border>
         </Grid>
 

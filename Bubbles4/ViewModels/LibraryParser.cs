@@ -162,12 +162,12 @@ public partial class LibraryViewModel
             else if (FileAssessor.IsArchive(file.Extension))
             {
                 if (file.DirectoryName != null)
-                    book = new BookArchive(file.FullName, file.Name, -1, file.CreationTime, file.LastWriteTime);
+                    book = new BookArchive(file.FullName, file.Name, -1, file.LastWriteTime, file.CreationTime);
             }
             else if (FileAssessor.IsPdf(file.Extension))
             {
                 if (file.DirectoryName != null)
-                    book = new BookPdf(file.FullName, file.Name, -1, file.CreationTime, file.LastWriteTime);
+                    book = new BookPdf(file.FullName, file.Name, -1, file.LastWriteTime, file.CreationTime);
             }
 
             if (book != null)

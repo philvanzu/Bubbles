@@ -49,6 +49,12 @@
                                         <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
                                         <MenuItem Header="Open Containing Folder" 
                                                   Command="{Binding OpenInExplorerCommand}" />
+                                        <MenuItem Header="Extract Creation Date From Name" 
+                                                  IsVisible="{Binding CanDateFromNameToCreated}"
+                                                  Command="{Binding DateFromNameToCreatedCommand}"
+                                                  ToolTip.Tip="{Binding DateFromNameToolTip}" />
+                                        <MenuItem Header="Set Last Write Time to Now" 
+                                                  Command="{Binding LastWriteNowCommand}"/>
                                         <MenuItem Header="Reorder Timestamps by Names" 
                                                   Command="{Binding NameOrderToModifiedAndCreatedCommand}"
                                                   avaloniaControls:ToolTip.Tip="File timestamps will be reassigned so that sorting them by last modified will reflect the alphabetic order"

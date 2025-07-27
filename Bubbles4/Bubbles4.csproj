@@ -38,6 +38,7 @@
         <PackageReference Include="Avalonia.Xaml.Interactivity" />
         <PackageReference Include="CommunityToolkit.Mvvm" />
         <PackageReference Include="DynamicData" />
+        <PackageReference Include="Microsoft.Recognizers.Text.DateTime" />
         <PackageReference Include="NaturalSort.Extension" />
         <PackageReference Include="PDFiumSharp.NativeBinaries" />
         <PackageReference Include="SharpCompress" />

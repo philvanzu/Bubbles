@@ -45,6 +45,7 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private ShortSortHeaderViewModel _nodeSortHeader;
 
     [ObservableProperty] private bool _showNavPane = false;
+    [ObservableProperty] private bool _showBookmarksMenu = false;
     #endregion
 
     #region Library exposure
@@ -80,9 +81,7 @@ public partial class MainViewModel : ViewModelBase
     }
 
     //status bar
-    [ObservableProperty] private string? _imageStatus;
-    [ObservableProperty] private string? _pageNameStatus;
-    [ObservableProperty] private string? _pageCreatedStatus;
+    [ObservableProperty] private string? _pageStatus;
     [ObservableProperty] private string? _bookStatus;
     [ObservableProperty] private string? _libraryStatus;
     [ObservableProperty] private string? _pagingStatus;
@@ -252,7 +251,7 @@ public partial class MainViewModel : ViewModelBase
             }
             CurrentViewerData = null;
             OnPropertyChanged(nameof(CurrentViewerData));
-
+            
             Library.Close();
             
             /*
@@ -271,16 +270,16 @@ public partial class MainViewModel : ViewModelBase
             if(SelectedBook!= null) SelectedBook = null;
             if(CurrentPageViewModel != null) CurrentPageViewModel = null;
             OnPropertyChanged(nameof(LibraryName));
-            
+            ShowBookmarksMenu = false;
+            ShowNavPane = false;
         }  
     }
 
     partial void OnCurrentViewerDataChanged(ViewerData? value)
     {
         _ = value;
-        UpdatePageNameStatus();
+        UpdatePageStatus();
         UpdatePagingStatus();
-        UpdateImageStatus();
     }
 
     [RelayCommand]
@@ -654,30 +653,27 @@ public partial class MainViewModel : ViewModelBase
     {
         if(Library != null)
         {
-            LibraryStatus = String.Format("Library Path : {0} | BookCount : {1}", Library.Path, Library.Count);    
+            LibraryStatus = String.Format($"Library Path : {Library.Path} | BookCount : {Library.Count}");    
         }
-        else LibraryStatus = "No Library Loaded"; 
+        else LibraryStatus = $"No Library Loaded"; 
     }
     public void UpdateBookStatus()
     {
         if (Library?.SelectedItem != null)
-            BookStatus = Library.SelectedItem.Name;
+            BookStatus = Library.SelectedItem.Path;
         else BookStatus = "";
     }
-    public void UpdatePageNameStatus()
+    public void UpdatePageStatus()
     {
         if (Library?.SelectedItem?.SelectedPage != null)
         {
-            PageNameStatus = String.Format("{0} ", Library.SelectedItem.SelectedPage.Name);
-            PageCreatedStatus = String.Format("Created : {0}", Library.SelectedItem.SelectedPage.Created);
+            PageStatus = $"{Library.SelectedItem.SelectedPage.Name} | " +
+                         $"Created : {Library.SelectedItem.SelectedPage.Created} | " +
+                         $"Modified : {Library.SelectedItem.SelectedPage.LastModified} | " +
+                         $"{CurrentViewerData?.Image?.PixelSize.Width}px X {CurrentViewerData?.Image?.PixelSize.Height}px";
         }
     }
-    public void UpdateImageStatus()
-    {
-        if(CurrentViewerData != null)
-            ImageStatus = String.Format("{0}px X {1}px", CurrentViewerData?.Image?.PixelSize.Width, CurrentViewerData?.Image?.PixelSize.Height);
-        else ImageStatus = "";
-    }
+    
 
     public void UpdatePagingStatus()
     {
@@ -689,7 +685,7 @@ public partial class MainViewModel : ViewModelBase
         
         int idx = SelectedBook.GetPageIndex(CurrentPageViewModel)+1;
         int total = SelectedBook.PageCount;
-        PagingStatus = String.Format("{0} / {1}", idx, total);
+        PagingStatus = $"Page {idx} / {total}";
     }
     #endregion
 

@@ -23,6 +23,7 @@
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageVersion Include="DynamicData" Version="9.4.1" />
     <PackageVersion Include="Eremex.Avalonia.Controls" Version="1.1.142" />
+    <PackageVersion Include="Microsoft.Recognizers.Text.DateTime" Version="1.8.13" />
     <PackageVersion Include="NaturalSort.Extension" Version="4.3.0" />
     <PackageVersion Include="PDFiumSharp" Version="1.4660.0-alpha1" />
     <PackageVersion Include="PDFiumSharp.NativeBinaries" Version="1.4660.0" />
