@@ -49,12 +49,13 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
     public bool ThumbnailLoaded => Thumbnail != null;
     public bool IsThumbnailLoading { get; set; }
     public bool IsImageLoading { get; set; }
+    public bool IsPrepared { get; set; }
     
     public int Index => Book.GetPageIndex(this);
     public string Path => Model.Path;
     public string Name => Model.Name;
     public DateTime Created => Model.Created;
-    public DateTime LastModified => Model.LastModified;
+    public DateTime Modified => Model.Modified;
     public int RandomIndex {get; set;}
 
     ~PageViewModel()
@@ -71,12 +72,26 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{Path}\"") { UseShellExecute = true });
+                //Process.Start(new ProcessStartInfo("explorer.exe", $"\"{path}\"") { UseShellExecute = true });
+                Process.Start("explorer.exe", string.Format("/select,\"{0}\"", Path));
+
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
+                string? desktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")
+                                  ?? Environment.GetEnvironmentVariable("DESKTOP_SESSION")
+                                  ?? string.Empty;
+                desktop = desktop.ToLowerInvariant();
+                
+                //GNOME (Nautilus)
+                if (desktop.Contains("gnome") || desktop.Contains("unity") || desktop.Contains("cinnamon"))
+                    Process.Start("nautilus", "--select " + Path);
+                //Dolphin (KDE)
+                else if (desktop.Contains("kde"))
+                    Process.Start("dolphin", "--select " + Path);
                 // Try with xdg-open (common across most Linux desktop environments)
-                Process.Start(new ProcessStartInfo("xdg-open", $"\"{Path}\"") { UseShellExecute = true });
+                else
+                    Process.Start(new ProcessStartInfo("xdg-open", $"\"{Book.Model.MetaDataPath}\"") { UseShellExecute = true });    
             }
             else
             {
@@ -122,12 +137,19 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
 
     public bool IsFirstPage => Book.GetPageIndex(this) == 0;
     
+
     public PageViewModel(BookViewModel book, Page page)
     {
         this.Book = book;
         this._page = page;
     }
-    
+
+    [RelayCommand]
+    void Deselect()
+    {
+        if (IsSelected)
+            IsSelected = false;
+    }
 
     partial void OnIsSelectedChanged(bool oldValue, bool newValue)
     {
@@ -218,5 +240,86 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
         return null;
     }
 
+    [RelayCommand] void MoveUp()=>Swap(true);
+    [RelayCommand] void MoveDown()=>Swap(false);
+    public bool CanSwap => Book.Model is BookDirectory && BookViewModel.CurrentSortOption != LibraryConfig.SortOptions.Random;
+    void Swap(bool up)
+    {
+        up = BookViewModel.CurrentSortAscending ? up : !up;
+        int idx=-1, tidx=-1;
+        idx = tidx =  Book.GetPageIndex(this);
+        if (idx < 0) return;
+        
+        tidx += up ? -1 : 1;
+        if (tidx < 0 || tidx >= Book.PageCount) return;
+        PageViewModel target = Book.Pages[tidx];
+        switch (BookViewModel.CurrentSortOption)
+        {
+            case LibraryConfig.SortOptions.Alpha:
+            case LibraryConfig.SortOptions.Path:
+            case LibraryConfig.SortOptions.Natural:
+                SwapFilePaths(target.Path, Path);
+                return;
+            case LibraryConfig.SortOptions.Created:
+                var targetCreated = target.Created;
+                target.ChangeCreated(Created);
+                ChangeCreated(targetCreated);
+                Book.Sort();
+                return;
+            case LibraryConfig.SortOptions.Modified:
+                var targetModified = target.Modified;
+                target.ChangeModified(Modified);
+                ChangeModified(targetModified);
+                Book.Sort();
+                return;
+                
+            default: return;
+        }
+    }
+    public static void SwapFilePaths(string pathA, string pathB)
+    {
+        string tempPath = pathA + ".swap_tmp";
+        try
+        {
+            File.Move(pathA, tempPath);     // A → temp
+            File.Move(pathB, pathA);        // B → A
+            File.Move(tempPath, pathB);     // temp → B
+        }
+        catch (Exception ex) { Console.Error.WriteLine(ex); }
+    }
+
+    public void RenameFile(string path)
+    {
+        var dir = System.IO.Path.GetDirectoryName(Path);
+        if (!string.IsNullOrEmpty(dir))
+        {
+            path = System.IO.Path.Combine(dir, path);
+            try
+            {
+                File.Move(Path, path);
+            }
+            catch (Exception ex) { Console.Error.WriteLine(ex); }
+        }
+    }
+
+    public void ChangeCreated(DateTime newCreated)
+    {
+        File.SetCreationTime(Path, newCreated);
+        Model.Created = newCreated;
+        RefreshViews();
+    }
+    public void ChangeModified(DateTime newModified)
+    {
+        File.SetLastWriteTime(Path, newModified);
+        Model.Modified = newModified;
+        RefreshViews();
+    }
+    public void RefreshViews()
+    {
+        OnPropertyChanged(nameof(Created));
+        OnPropertyChanged(nameof(Modified));
+        OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(Path));
+    }
     
 }

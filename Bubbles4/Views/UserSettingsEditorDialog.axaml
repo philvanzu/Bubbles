@@ -4,7 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Bubbles4.ViewModels"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="500"
-        x:Class="Bubbles4.Views.UserSettingsEditorView"
+        x:Class="Bubbles4.Views.UserSettingsEditorDialog"
         x:DataType="vm:UserSettingsEditorViewModel"
         Title="Edit Preferences"
         Width="800"
@@ -43,20 +43,23 @@
                         <Slider Minimum="10" Maximum="200" Value="{Binding ScrollSpeed, Mode=TwoWay}" 
                                 IsSnapToTickEnabled="True" Ticks="10,20,30,40,50,60,70,80,90,100,120,140,160,180,200"/>
                         <Border Height="16"/>
-                        <Grid ColumnDefinitions="Auto, 16, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto">
-                            <TextBlock Grid.Column="0" Grid.Row="0"  Text="Image Viewing Params Animation takes (ms)"/>
+                        <Grid ColumnDefinitions="Auto, 16, Auto, 16, Auto, 16, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto">
+                            <TextBlock Grid.Column="0" Grid.Row="0"  Text="Image Viewing Params Animation Time (ms)" VerticalAlignment="Center"/>
                             <TextBox Grid.Column="2" Grid.Row="0" Text="{Binding IvpAnimSpeed}"/>
-                        
-                            <TextBlock Grid.Column="0" Grid.Row="1" Text="Hide Cursor in Fullscreen After seconds"/>
+                            <TextBlock Grid.Row="0"  Grid.Column="4"   Text="Type" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="0" Grid.Column="6" 
+                                      ItemsSource="{Binding IvpAnimationTypes}"
+                                      SelectedIndex="{Binding IvpAnimType}"/>
+                            <TextBlock Grid.Column="0" Grid.Row="1" Text="Hide Cursor in Fullscreen After seconds" VerticalAlignment="Center"/>
                             <TextBox Grid.Column="2" Grid.Row="1" Text="{Binding HideCursorTime}"/>
                         
-                            <TextBlock Grid.Column="0" Grid.Row="2" Text="Fullscreen Scrolling Turn Page Bouncer lasts (ms)"/>
+                            <TextBlock Grid.Column="0" Grid.Row="2" Text="Fullscreen Scrolling Turn Page Bouncer lasts (ms)" VerticalAlignment="Center"/>
                             <TextBox Grid.Column="2" Grid.Row="2" Text="{Binding TurnpageBouncingTime}"/>
                             
-                            <TextBlock Grid.Column="0" Grid.Row="3" Text="Crop Resize down to Max Pixel Size"/>
+                            <TextBlock Grid.Column="0" Grid.Row="3" Text="Crop Resize down to Max Pixel Size" VerticalAlignment="Center"/>
                             <TextBox Grid.Column="2" Grid.Row="3" Text="{Binding CropResizeToMax}"/>
                             
-                            <TextBlock Grid.Column="0" Grid.Row="4" Text="Bookmarks Validity (in weeks) - zero means forever"/>
+                            <TextBlock Grid.Column="0" Grid.Row="4" Text="Bookmarks Validity (in weeks) - zero means forever" VerticalAlignment="Center"/>
                             <TextBox Grid.Column="2" Grid.Row="4" Text="{Binding BookmarkValidity}"/>
                         </Grid>
                         <Border Height="8"/>

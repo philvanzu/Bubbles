@@ -29,12 +29,12 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     public string Path => _model.Path;
     public string Name => _model.Name;
     [ObservableProperty] private int _pageCount;
-    public DateTime LastModified => Model.LastModified;
+    public DateTime Modified => Model.Modified;
     public DateTime Created => Model.Created;
     public int RandomIndex;
     public string LibraryNodeId;
-    public LibraryConfig.SortOptions CurrentSortOption { get; set; }
-    public bool CurrentSortAscending { get; set; } 
+    public static LibraryConfig.SortOptions CurrentSortOption { get; set; }
+    public static bool CurrentSortAscending { get; set; } 
     public Task? LoadingTask { get; set; }
 
     List<PageViewModel> _pages = new ();
@@ -48,11 +48,15 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     [ObservableProperty]Bookmark? _bookmark;
     
     private bool _isThumbnailLoading;
+    //__book0__issue__hack
+    public bool IsFirstBook=>_library.GetBookIndex(this) == 0;
+    bool _ignoreWatcherEvents ;
+    public bool IsPrepared;
 
     public event EventHandler<SelectedItemChangedEventArgs>? SelectionChanged;
     public event EventHandler? SortOrderChanged;
     public event EventHandler<int>? ScrollToIndexRequested;
-    Object? _bookmarkBlocker;
+
     public BookViewModel(BookBase book, LibraryViewModel library, string libraryNodeId)
     {
         _mainViewModel = library.MainViewModel;
@@ -61,18 +65,16 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         LibraryNodeId = libraryNodeId;
         
         Pages = new ReadOnlyObservableCollection<PageViewModel>(_pagesMutable);
-        CurrentSortOption = _library.Config.BookSortOption;
-        CurrentSortAscending = _library.Config.BookSortAscending;
+
     }
 
     
     partial void OnIsSelectedChanged(bool oldValue, bool newValue)
     {
+        if (!newValue && oldValue) UnloadPagesList();
         
         if (newValue && _library.SelectedItem != this) _library.SelectedItem = this;
         else if (oldValue && _library.SelectedItem == this) _library.SelectedItem = null;
-
-        if (!newValue && oldValue) UnloadPagesList();
     }
     public async Task LoadPagesListAsync()
     {
@@ -217,8 +219,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         
     }
     
-    //__book0__issue__hack
-    public bool IsFirstBook=>_library.GetBookIndex(this) == 0;
+    
     
     public void ClearThumbnail()
     {
@@ -234,6 +235,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     {
         if (parameter is PageViewModel vm)
         {
+            vm.IsPrepared = true;
             PreparePageThumbnail(vm);
         }
             
@@ -244,7 +246,8 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     {
         if (parameter is PageViewModel vm)
         {
-            vm.Unload();       
+            vm.Unload();
+            vm.IsPrepared = false;
         }
             
     }
@@ -291,6 +294,13 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         if(SelectedPage != null) SelectedPage.IsSelected = false;
         await MainViewModel.Next();
     }
+
+    [RelayCommand]
+    void Deselect()
+    {
+        if (IsSelected)
+            IsSelected = false;
+    }
     private IComparer<PageViewModel> GetComparer(LibraryConfig.SortOptions sort, bool ascending)
     {
         return sort switch
@@ -308,8 +318,8 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
                 : SortExpressionComparer<PageViewModel>.Descending(x => x.Created),
 
             LibraryConfig.SortOptions.Modified => ascending
-                ? SortExpressionComparer<PageViewModel>.Ascending(x => x.LastModified)
-                : SortExpressionComparer<PageViewModel>.Descending(x => x.LastModified),
+                ? SortExpressionComparer<PageViewModel>.Ascending(x => x.Modified)
+                : SortExpressionComparer<PageViewModel>.Descending(x => x.Modified),
 
             LibraryConfig.SortOptions.Natural => new PageViewModelNaturalComparer(ascending),
 
@@ -327,8 +337,8 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     }
     public void Sort(LibraryConfig.SortOptions? sort=null, bool? ascending=null)
     {
-        if(sort == null) sort  = _library.Config.BookSortOption;
-        if(ascending == null) ascending = _library.Config.BookSortAscending;
+        if (sort == null) sort = CurrentSortOption;
+        if (ascending == null) ascending = CurrentSortAscending;
         CurrentSortOption = sort.Value;
         CurrentSortAscending = ascending.Value;
         if(sort == LibraryConfig.SortOptions.Random)ShufflePages();
@@ -387,12 +397,24 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{Path}\"") { UseShellExecute = true });
+                Process.Start("explorer.exe", string.Format("/select,\"{0}\"", Path));
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
+                string? desktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")
+                                  ?? Environment.GetEnvironmentVariable("DESKTOP_SESSION")
+                                  ?? string.Empty;
+                desktop = desktop.ToLowerInvariant();
+                
+                //GNOME (Nautilus)
+                if (desktop.Contains("gnome") || desktop.Contains("unity") || desktop.Contains("cinnamon"))
+                    Process.Start("nautilus", "--select " + Path);
+                //Dolphin (KDE)
+                else if (desktop.Contains("kde"))
+                    Process.Start("dolphin", "--select " + Path);
                 // Try with xdg-open (common across most Linux desktop environments)
-                Process.Start(new ProcessStartInfo("xdg-open", $"\"{Path}\"") { UseShellExecute = true });
+                else
+                    Process.Start(new ProcessStartInfo("xdg-open", $"\"{Model.MetaDataPath}\"") { UseShellExecute = true });    
             }
             else
             {
@@ -646,7 +668,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         return true;
     }
     
-    bool _ignoreWatcherEvents ;
+    
     /// <summary>
     /// Rearrange pages LastModified values so that they are in the same order as
     /// their name when sorted by LastModified
@@ -655,8 +677,8 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     public async Task NameOrderToModifiedAndCreated()
     {
         var sortedModifieds = _pages
-            .OrderBy(o => o.LastModified)
-            .Select(o => o.LastModified)
+            .OrderBy(o => o.Modified)
+            .Select(o => o.Modified)
             .ToList();
         var sortedCreateds = _pages
             .OrderBy(o => o.Created)
@@ -680,7 +702,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         Sort();
     }
 
-    public bool CanNameOrderToModifiedAndCreated => Model is BookDirectory; 
+    public bool CanRenamePages => Model is BookDirectory; 
     
 
     [RelayCommand]
@@ -692,7 +714,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
             .ToList();
         
         var sorted= _pages
-            .OrderBy(o => o.LastModified)
+            .OrderBy(o => o.Modified)
             .ToList();
         
         _ignoreWatcherEvents=true;
@@ -706,7 +728,6 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         await Task.Delay(1000);
         _ignoreWatcherEvents=false;
     }
-    public bool CanModifiedOrderToName => Model is BookDirectory;
 
     private bool _dateFromNameFlag = false;
     private DateTime? _dateFromName=null;
@@ -728,39 +749,91 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     [RelayCommand ]
     void DateFromNameToCreated()
     {
-        var result = DateFromName;
-        if (result.HasValue)
-        {
-            _ignoreWatcherEvents = true;
-            Model.Created = FileAssessor.MergeDateAndTime(result.Value, Model.Created);
-            foreach (var page in _pages)
-            {
-                var modified = page.LastModified;
-                var created = FileAssessor.MergeDateAndTime(result.Value, page.Created);
-                System.IO.File.SetCreationTime(page.Path, created);
-                System.IO.File.SetLastWriteTime(page.Path, modified);
-                page.Model.Created = created;
-                page.Model.LastModified = modified;
-            }
-            _ignoreWatcherEvents = false;
-            
-        }
+        var createdFromName = DateFromName;
+        if (createdFromName.HasValue)
+            SetTimestamps(createdFromName, null);
     }
 
     [RelayCommand]
-    void LastWriteNow()
+    async Task FixTimeStamps()
     {
-        DateTime? first = null;
-        foreach (var page in _pages.OrderBy(o => o.LastModified))
+        var dialog = new TimeStampsDialogViewModel(this);
+        var window = MainViewModel.MainWindow;
+        if (window != null)
         {
-            var now = DateTime.Now;
-            if (first == null) first = now;
-            page.Model.LastModified = now;
-            File.SetLastWriteTime(page.Path, now);
+            var result = await MainViewModel.DialogService.ShowDialogAsync< (DateTime?, DateTime?)?>(window, dialog);
+            if (result.HasValue)
+            {
+                SetTimestamps(result.Value.Item1, result.Value.Item2);
+            }    
         }
-        if(first.HasValue)
-            Model.LastModified = first.Value;
     }
+
+    void SetTimestamps(DateTime? created = null, DateTime? modified = null)
+    {
+        _ignoreWatcherEvents = true;
+        if (created.HasValue)
+        {
+            Model.Created = FileAssessor.MergeDateAndTime(created.Value, Model.Created);
+            foreach (var page in _pages)
+            {
+                var oldCreated = File.GetCreationTime(page.Path);
+                var newCreated = FileAssessor.MergeDateAndTime(created.Value, oldCreated);
+                page.ChangeCreated(newCreated);
+            }
+        }
+        if (modified.HasValue)
+        {
+            Model.Modified = FileAssessor.MergeDateAndTime(modified.Value, Model.Created);
+            foreach (var page in _pages)
+            {
+                var oldModified = File.GetLastWriteTime(page.Path);
+                var newModified = FileAssessor.MergeDateAndTime(modified.Value, oldModified);
+                page.ChangeModified(newModified);
+            }
+        }
+
+        RefreshViews();
+        _ignoreWatcherEvents = false;
+    }
+
+    [RelayCommand]
+    async Task BatchRenamePages()
+    {
+        var dialog = new RenameDialogViewModel();
+        var window = MainViewModel.MainWindow;
+        if (window != null)
+        {
+            var result = await MainViewModel.DialogService.ShowDialogAsync<(string, string)?>(window, dialog);
+            if (result.HasValue)
+            {
+                var prefix=result.Value.Item1;
+                var suffix=result.Value.Item2;
+                int i = 0;
+                int padLength = Pages.Count.ToString().Length;
+                foreach (var page in Pages)
+                {
+                    var ext = System.IO.Path.GetExtension(page.Path);
+                    var pre = prefix.Replace("$AlbumName", Name).Replace("$PageName", page.Name);
+                    var suf =  suffix.Replace("$AlbumName", Name).Replace("$PageName", page.Name);
+                    page.RenameFile($"{pre}{i.ToString($"D{padLength}")}{suf}{ext}");
+                    i++;
+                }
+            }
+        }
+    }
+    
+    private void RefreshViews()
+    {
+        OnPropertyChanged(nameof(Created));
+        OnPropertyChanged(nameof(Modified));
+        OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(Path));
+        MainViewModel.UpdateBookStatus();
+        MainViewModel.UpdatePageStatus();
+    }
+
+
     [RelayCommand]private void ClearIVPCollection()
     {
         foreach (var page in Pages)
@@ -788,13 +861,6 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         RefreshModelInfo(Model.Path);
     }
 
-    public void FileSystemRenamed(RenamedEventArgs e)
-    {
-        if (_ignoreWatcherEvents) return;
-        if (Path == e.OldFullPath)
-            RefreshModelInfo(e.FullPath);
-    }
-
     public void PageFileChanged(FileSystemEventArgs e)
     {
         if (_ignoreWatcherEvents) return;
@@ -814,7 +880,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         {
             Model.Name = System.IO.Path.GetFileName(newPath);
             Model.Created = File.GetCreationTime(newPath);
-            Model.LastModified = File.GetLastWriteTime(newPath);
+            Model.Modified = File.GetLastWriteTime(newPath);
         }
     }
     

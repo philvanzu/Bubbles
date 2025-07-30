@@ -15,6 +15,14 @@ namespace Bubbles4.Controls {
     {
         private enum Edge { Top, Bottom, Left, Right }
         
+        private static readonly SolidColorBrush IvpAnimRectFillBrush = new SolidColorBrush(Color.FromArgb(11, 0, 120, 215));
+        private static readonly SolidColorBrush DrawZoomRectFillBrush = new SolidColorBrush(Color.FromArgb(64, 0, 120, 215));
+        private static readonly SolidColorBrush TransparentBrush = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
+        
+        private static readonly Pen ThickWhitePen = new Pen(Brushes.White, thickness: 3);
+        private static readonly Pen BlackPen = new Pen(Brushes.Black, thickness: 1);
+        private static readonly Pen BluePen = new Pen(Brushes.Blue, thickness: 1);
+        
         private Point _panOffset = new(0, 0);
         private double _zoom = 1.0;
         private double _minZoom = 1.0;
@@ -28,6 +36,8 @@ namespace Bubbles4.Controls {
         private PageViewModel? _page;  
         private BookViewModel? _previousBook;
         private IvpRect? _ivpRect;
+        public bool IsDrawingZoomRect => _ivpRect != null;
+        private Rect? _ivpAnimRect;
         private IvpAnimation? _ivpAnim;
         private bool _fullscreenToggled;
         private readonly DispatcherTimer turnPageTimer;
@@ -169,11 +179,10 @@ namespace Bubbles4.Controls {
                                 var ivp = _page?.Ivp;
                                 if (ivp != null && UseIvp)
                                 {
-                                    if (Config?.AnimateIVPs == true)
-                                    {
+                                    if (Config?.AnimateIVPs == true) 
                                         AnimateIVP(ivp, Config.Fit);
-                                    }
-                                    else RestoreFromIVP(ivp);
+                                    else 
+                                        RestoreFromIVP(ivp);
                                 }
 
                                 else if (KeepZoom)
@@ -372,11 +381,25 @@ namespace Bubbles4.Controls {
                 var selectionRect = _ivpRect.ToRect();
 
                 context.DrawRectangle(
-                    brush: new SolidColorBrush(Color.FromArgb(64, 0, 120, 215)), // semi-transparent fill
-                    pen: new Pen(Brushes.Blue),                                // solid blue border
+                    brush: DrawZoomRectFillBrush,
+                    pen: BluePen,                                // solid blue border
                     rect: selectionRect
                 );
             }
+            else if (_ivpAnimRect != null)
+            {
+                context.DrawRectangle(
+                    brush: IvpAnimRectFillBrush,
+                    pen: ThickWhitePen,                              
+                    rect: _ivpAnimRect.Value
+                );
+                context.DrawRectangle(
+                    brush: TransparentBrush,
+                    pen: BlackPen, 
+                    _ivpAnimRect.Value
+                );
+            }
+            
         }
         private void DrawVerticalScrollIndicator(DrawingContext context)
         {
@@ -403,10 +426,10 @@ namespace Bubbles4.Controls {
             var brush = Brushes.White;
             if(_topHit || _bottomHit) brush = Brushes.Red;
             else if(_turnPageOnScrollDown || _turnPageOnScrollUp) brush = Brushes.Green;    
-            var pen = new Pen(Brushes.Black);
+            
 
             var rect = new Rect(center.X - radius, center.Y - radius, radius * 2, radius * 2);
-            context.DrawGeometry(brush, pen, new EllipseGeometry(rect));
+            context.DrawGeometry(brush, BlackPen, new EllipseGeometry(rect));
         }
         
         void AdjustZoomLimits()
@@ -647,15 +670,38 @@ namespace Bubbles4.Controls {
             }
             var start = GetIVP();
             if (start == null) return;
-            
+            var type = AppStorage.Instance.UserSettings.IvpAnimationType;
+            var speed = AppStorage.Instance.UserSettings.IvpAnimSpeed;
             _ivpAnim = new IvpAnimation(start, end,
                 (ivp) =>
                 {
-                    RestoreFromIVP(ivp);
-                    if (_ivpAnim?.IsRunning == false) _ivpAnim = null;
+                    switch (type)
+                    {
+                        case IvpAnimationType.AnimatedRect:
+                            _ivpAnimRect = IvpRect.RectFromIvp(ivp, _zoom, _panOffset, Bounds.Size);
+                            InvalidateVisual();
+                            break;
+                        case IvpAnimationType.StaticRect:
+                            if (_ivpAnimRect == null)
+                            {
+                                _ivpAnimRect = IvpRect.RectFromIvp(end, _zoom, _panOffset, Bounds.Size);
+                                InvalidateVisual();
+                            }
+                            break;
+                        case IvpAnimationType.AnimatedZoom :
+                            RestoreFromIVP(ivp);
+                            break;
+                    }
+
+                    if (_ivpAnim?.IsRunning == false)
+                    {
+                        _ivpAnimRect = null;
+                        _ivpAnim = null;
+                        RestoreFromIVP(end);
+                    }
                     //Console.WriteLine("animation tick");
-                }, 
-                AppStorage.Instance.UserSettings.IvpAnimSpeed);
+                }, speed );
+                
         }
 
         private ImageViewingParams? GetIVP()
@@ -784,20 +830,18 @@ namespace Bubbles4.Controls {
             {
                 if (DateTime.Now - _ivpRect.StartTime < TimeSpan.FromMilliseconds(500))
                 {
-                    _ivpRect = null;
-                    InvalidateVisual();
+                    StopDrawingZoom();
                     return;
                 }
                 
                 _ivpRect.End = e.GetPosition(this);
                     
-                var ivp = _ivpRect?.ToIvp(_page.Name, _panOffset, _zoom, Bounds.Size);
+                var ivp = _ivpRect?.ToIvp(_panOffset, _zoom, Bounds.Size);
                 //var ivp = _ivpRect?.ToIvpFit(_page.Name, Bounds.Size, _panOffset);
                 if (ivp != null)
                 {
                     ivp = ClampIvpToZoomLimits(ivp);
-                    if (Config?.AnimateIVPs==true) AnimateIVP(ivp);
-                    else RestoreFromIVP(ivp);
+                    RestoreFromIVP(ivp);
                 }
                 _ivpRect = null;
             } 
@@ -817,6 +861,11 @@ namespace Bubbles4.Controls {
                 }
             }
             
+        }
+        public void StopDrawingZoom()
+        {
+                _ivpRect = null;
+                InvalidateVisual();
         }
         public void OnMouseWheel(object? sender, PointerWheelEventArgs e)
         {
@@ -994,7 +1043,7 @@ namespace Bubbles4.Controls {
                 return new Rect(left, top, width, height);
             }
 
-            public ImageViewingParams ToIvp(string filename, Point panOffset, double zoom, Size clientSize)
+            public ImageViewingParams ToIvp(Point panOffset, double zoom, Size clientSize)
             {
                 double leftPx = left-panOffset.X;
                 double topPx = top-panOffset.Y;
@@ -1005,12 +1054,32 @@ namespace Bubbles4.Controls {
                 var zoomY = clientSize.Height / height;
                 var newZoom = Math.Min(zoomX, zoomY) * zoom;
                 
-                return new ImageViewingParams(filename, newZoom, centerXpx, centerYpx);          
+                return new ImageViewingParams("", newZoom, centerXpx, centerYpx);          
+            }
+
+            public static Rect RectFromIvp(ImageViewingParams ivp, double zoom, Point panOffset, Size clientSize)
+            {
+                // Step 1: Determine the size of the visible area in image-space
+                double visibleWidth = clientSize.Width / ivp.zoom;
+                double visibleHeight = clientSize.Height / ivp.zoom;
+
+                // Step 2: Get the top-left corner of the visible area in image coordinates
+                double imageLeft = ivp.centerX - visibleWidth / 2.0;
+                double imageTop = ivp.centerY - visibleHeight / 2.0;
+
+                // Step 3: Convert image-space to screen-space using current zoom and panOffset
+                double screenLeft = (imageLeft * zoom) + panOffset.X;
+                double screenTop = (imageTop * zoom) + panOffset.Y;
+                double screenWidth = visibleWidth * zoom;
+                double screenHeight = visibleHeight * zoom;
+
+                return new Rect(screenLeft, screenTop, screenWidth, screenHeight);
             }
         }
-
+        
         private class IvpAnimation
         {
+            
             private readonly ImageViewingParams _startIvp;
             private readonly ImageViewingParams _endIvp;
             public ImageViewingParams EndIvp => _endIvp;
@@ -1019,6 +1088,7 @@ namespace Bubbles4.Controls {
             private readonly Action<ImageViewingParams> _onTick;
             private readonly DateTime _startTime;
             private bool _running = true;
+            
             public bool IsRunning => _running;
             
             //duration in milliseconds
@@ -1033,6 +1103,7 @@ namespace Bubbles4.Controls {
                 _startTime = DateTime.Now;
                 _timer.Tick += OnTick;
                 _timer.Start();
+                
             }
 
             private void OnTick(object? sender, EventArgs e)
@@ -1043,22 +1114,26 @@ namespace Bubbles4.Controls {
                 if (t >= 1.0)
                 {
                     Stop();
-                    _onTick(_endIvp); 
+                    return;
                 }
+
                 double zoom = Lerp(_startIvp.zoom, _endIvp.zoom, t);
                 double centerX = Lerp(_startIvp.centerX, _endIvp.centerX, t);
                 double centerY = Lerp(_startIvp.centerY, _endIvp.centerY, t);
-                _onTick(new ImageViewingParams(_startIvp.filename, zoom, centerX, centerY));
+                _onTick(new ImageViewingParams(_startIvp.filename, zoom, centerX, centerY));    
+
             }
 
             public void Stop()
             {
                 if (_timer != null)
                 {
+                    
                     _timer.Stop();
                     _timer.Tick -= OnTick;
                     _timer = null;
                     _running = false;
+                    _onTick(_endIvp);
                 }
             }
             
@@ -1079,3 +1154,4 @@ namespace Bubbles4.Controls {
     
     public enum BblRotation{up, down, left, right}
 }
+

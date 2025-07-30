@@ -16,15 +16,15 @@ public abstract class BookBase
     public string Path;
     public string Name;
     public int PageCount;
-    public DateTime LastModified;
+    public DateTime Modified;
     public DateTime Created;
     
     
-    protected BookBase (string path, string name, DateTime lastModified, int pageCount, DateTime created)
+    protected BookBase (string path, string name, DateTime modified, int pageCount, DateTime created)
     {
         this.Path = path;
         this.Name = name;
-        this.LastModified = lastModified;
+        this.Modified = modified;
         this.PageCount = pageCount;
         this.Created = created;
     }
@@ -56,7 +56,6 @@ public abstract class BookBase
     }
     public abstract string MetaDataPath { get; }
     public string IvpPath => MetaDataPath + ".ivp";
-    public string BookmarkPath => MetaDataPath + ".bblbookmark";
 
     public string Serialize()
     {
@@ -69,7 +68,7 @@ public abstract class BookBase
             Path = this.Path,
             Name = this.Name,
             Created = this.Created,
-            Modified = this.LastModified,
+            Modified = this.Modified,
             Type = t
         };
         var json = JsonSerializer.Serialize(info);

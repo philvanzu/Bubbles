@@ -4,7 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Bubbles4.ViewModels"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        x:Class="Bubbles4.Views.OkCancelWindow"
+        x:Class="Bubbles4.Views.OkCancelDialog"
         x:DataType="vm:OkCancelViewModel"
         Title="{Binding Title}"
         Width="350"
@@ -12,17 +12,20 @@
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         Background="#505050">
+    <Border x:Name="DlgBorder" BorderBrush="White" BorderThickness="1">
         <StackPanel Margin="16" Spacing="12">
             <TextBlock Text="{Binding Content}" TextWrapping="Wrap" FontSize="14"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                <Button Content="{Binding CancelText}" 
-                        Command="{Binding OnCancelPressed}" 
-                        IsVisible="{Binding ShowCancelButton}" 
-                        Width="80"/>
-                <Button Content="{Binding OkText}" 
-                        Command="{Binding OnOkPressed}" 
-                        IsVisible="{Binding ShowOkButton}"
-                        Width="80"/>
+                <Button x:Name="OkButton" Width="80" 
+                    Content="{Binding OkText}" 
+                    Command="{Binding OkPressedCommand}" 
+                    IsVisible="{Binding ShowOkButton}" />
+
+                <Button x:Name="CancelButton" Width="80" 
+                        Content="{Binding CancelText}" 
+                        Command="{Binding CancelPressedCommand}" 
+                        IsVisible="{Binding ShowCancelButton}" />
             </StackPanel>
         </StackPanel>
+    </Border>
 </Window>

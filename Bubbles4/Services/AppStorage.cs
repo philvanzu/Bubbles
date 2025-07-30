@@ -157,9 +157,10 @@ public class UserSettings
 {
     public double MouseSensitivity { get; set; } = 0.5;
     public double ControllerStickSensitivity { get; set; } = 0.5;
-    
-    
+
+    public IvpAnimationType IvpAnimationType { get; set; } = IvpAnimationType.AnimatedRect;
     public double IvpAnimSpeed { get; set; } = 300;
+    
     public float HideCursorTime { get; set; } = 5f;
     public double TurnPageBouncingTime { get; set; } = 500;
     public double ScrollSpeed { get; set; } = 40;
@@ -198,4 +199,4 @@ public class AppState
         return JsonSerializer.Deserialize<AppState>(json);
     }
 }
-
+public enum IvpAnimationType{ AnimatedZoom, AnimatedRect, StaticRect }

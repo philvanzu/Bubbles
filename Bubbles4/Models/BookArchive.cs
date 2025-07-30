@@ -21,8 +21,8 @@ public class BookArchive : BookBase
     
     //new static readonly SemaphoreSlim FileIOThrottler = new(1) ;
     
-    public BookArchive(string path, string name, int pageCount, DateTime lastModified, DateTime created)
-        : base(path, name, lastModified, pageCount, created) { }
+    public BookArchive(string path, string name, int pageCount, DateTime modified, DateTime created)
+        : base(path, name, modified, pageCount, created) { }
 
 
     
@@ -80,7 +80,7 @@ public class BookArchive : BookBase
                     Path = entry.Key!,
                     //Size = entry.Size,
                     Created = entry.CreatedTime ?? Created,
-                    LastModified = entry.LastModifiedTime ?? LastModified,
+                    Modified = entry.LastModifiedTime ?? Modified,
                     //LastAccessTime = _book.LastAccessTime
                 })
                 .OrderBy(p => p.Path, StringComparer.OrdinalIgnoreCase)

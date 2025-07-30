@@ -8,7 +8,7 @@ public class Page
     public required string Path { get; set; }
     public required string Name { get; set; }
     public required DateTime Created { get; set; }
-    public required DateTime LastModified { get; set; }
+    public required DateTime Modified { get; set; }
     
     public int Index { get; set; }
 
@@ -17,7 +17,7 @@ public class Page
         Path = info.FullName;
         Name = info.Name;
         Created = info.CreationTime;
-        LastModified = info.LastWriteTime;
+        Modified = info.LastWriteTime;
     }
 }
 

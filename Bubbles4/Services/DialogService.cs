@@ -39,10 +39,12 @@ public class DialogService : IDialogService
     {
         return viewModel switch
         {
-            LibraryConfigViewModel vm => new LibraryConfigWindow(vm),
-            OkCancelViewModel vm => new OkCancelWindow(vm), 
-            UserSettingsEditorViewModel vm => new UserSettingsEditorView(vm),
-            ProgressDialogViewModel vm => new ProgressDialogView(vm),
+            LibraryConfigViewModel vm => new LibraryConfigDialog(vm),
+            OkCancelViewModel vm => new OkCancelDialog(vm), 
+            UserSettingsEditorViewModel vm => new UserSettingsEditorDialog(vm),
+            ProgressDialogViewModel vm => new ProgressDialog(vm),
+            TimeStampsDialogViewModel vm => new TimeStampsDialog(vm),
+            RenameDialogViewModel vm =>new RenameDialog(vm),
             _ => throw new NotImplementedException($"No view mapped for view model: {viewModel.GetType().Name}")
         };
     }

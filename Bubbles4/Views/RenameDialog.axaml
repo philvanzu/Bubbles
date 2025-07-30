@@ -1,0 +1,35 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModels="clr-namespace:Bubbles4.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="Bubbles4.Views.RenameDialog"
+        x:DataType="viewModels:RenameDialogViewModel"
+        Title="Batch Rename" Width="500" Height="250">
+    <Border BorderBrush="White" BorderThickness="1" Background="#505050" Padding="16">
+        <StackPanel>
+            <TextBlock Text="'$PageName' will be replaced by the relevant Page current Filename" Margin="8"/>
+            <TextBlock Text="'$AlbumName' will be replaced by the relevant Album current Filename" Margin="8"/>
+            <Grid ColumnDefinitions="Auto, 8, *" RowDefinitions="Auto, Auto, Auto" Width="450">
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Prefix" VerticalAlignment="Center"/>
+            <TextBox  Grid.Row="0" Grid.Column="2" Text="{Binding Prefix, Mode=TwoWay}" Margin="8"/> 
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Suffix" VerticalAlignment="Center"/>
+            <TextBox  Grid.Row="1" Grid.Column="2" Text="{Binding Suffix, Mode=TwoWay}" Margin="8"/>
+
+            </Grid>
+            <Border Height="16"/>
+            <Grid ColumnDefinitions="*, *">
+                <Button Grid.Column="0" 
+                        Content="Ok" HorizontalAlignment="Center"
+                        Command="{Binding OkPressedCommand}"
+                        HorizontalContentAlignment="Right"/>
+                <Button Grid.Column="1" 
+                        Content="Cancel"  HorizontalAlignment="Center"
+                        Command="{Binding CancelPressedCommand}"
+                        HorizontalContentAlignment="Left"/>
+            </Grid>
+        </StackPanel>
+        
+    </Border>
+</Window>

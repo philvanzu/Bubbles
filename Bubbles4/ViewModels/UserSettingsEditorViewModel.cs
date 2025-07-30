@@ -12,6 +12,7 @@ namespace Bubbles4.ViewModels;
 
 public partial class UserSettingsEditorViewModel: ViewModelBase
 {
+    public string[] IvpAnimationTypes => Enum.GetNames(typeof(IvpAnimationType));
     
     [ObservableProperty]private double _mouseSensitivity;
     [ObservableProperty]private double _controllerStickSensitivity;
@@ -23,6 +24,7 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
     [ObservableProperty]int _showImageSize;
     [ObservableProperty] private float _hideCursorTime;
     [ObservableProperty] private double _ivpAnimSpeed;
+    [ObservableProperty] IvpAnimationType _ivpAnimType;
     [ObservableProperty] private double _turnpageBouncingTime;
     [ObservableProperty] private int _cropResizeToMax;
     [ObservableProperty] private int _bookmarkValidity;
@@ -94,6 +96,7 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
         ScrollSpeed = pref.ScrollSpeed;
         HideCursorTime = pref.HideCursorTime;
         IvpAnimSpeed = pref.IvpAnimSpeed;
+        IvpAnimType = pref.IvpAnimationType;
         TurnpageBouncingTime = pref.TurnPageBouncingTime;
         ShowPagingInfo = pref.ShowPagingInfo;
         ShowAlbumPath = pref.ShowAlbumPath;
@@ -142,6 +145,7 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
             CropResizeToMax = CropResizeToMax,
             HideCursorTime = HideCursorTime,
             IvpAnimSpeed = IvpAnimSpeed,
+            IvpAnimationType = IvpAnimType,
             TurnPageBouncingTime = TurnpageBouncingTime,
             ShowPagingInfo = ShowPagingInfo,
             ShowAlbumPath = ShowAlbumPath,

@@ -134,7 +134,7 @@ public partial class MainViewModel : ViewModelBase
             OpenLibrary(libraryPath);
     }
 
-    [RelayCommand] private void ShutdownPressed()
+    [RelayCommand] private void ShutdownRequested()
     {
         MainWindow?.Close();
     }
@@ -168,10 +168,12 @@ public partial class MainViewModel : ViewModelBase
                 config = new LibraryConfig(libraryPath);
                 newconfig = true;
             }
+            BookViewModel.CurrentSortOption = config.BookSortOption;
+            BookViewModel.CurrentSortAscending = config.BookSortAscending;
 
             var info = new DirectoryInfo(libraryPath);
-            Library = new LibraryViewModel(this, libraryPath, config); 
-
+            Library = new LibraryViewModel(this, libraryPath, config);
+            
             if (newconfig)
             {
                 AppStorage.Instance.AddOrUpdate(libraryPath, config.Serialize());
@@ -222,7 +224,7 @@ public partial class MainViewModel : ViewModelBase
                 finally
                 {
                     //ensure the dialog gets closed after library 
-                    progress.Report(("", -1.0, true));
+                    progress.Report(("", 0, true));
                     //_watcher.BeginBuffering();
                     _watcher.StartWatching(libraryPath, true, Library.FileSystemChanged);
                     //_watcher.FlushBufferedEvents();
@@ -254,16 +256,6 @@ public partial class MainViewModel : ViewModelBase
             
             Library.Close();
             
-            /*
-            if (Config != null)
-            {
-                var save = Library;
-                if (Library is LibraryNodeViewModel library) save = library.Root;
-                AppStorage.Instance.AddOrUpdate(save.Path, Config.Serialize());
-                AppStorage.Instance.Save();
-                Config = null;
-            }
-            */
             _cache.ClearCache();
             Library = null;
             
@@ -343,7 +335,7 @@ public partial class MainViewModel : ViewModelBase
         
         if (MainWindow != null)
         {
-            var dlgWin = new UserSettingsEditorView(dialogVm);
+            var dlgWin = new UserSettingsEditorDialog(dialogVm);
             if (showInputTab == "true")
             {
                 dlgWin.Tab2Toggle.IsChecked = true;
@@ -470,9 +462,9 @@ public partial class MainViewModel : ViewModelBase
         */
         if (SelectedBook != null)
         {
-            if (SelectedBook.CurrentSortOption != BookSortHeader.Value.sortOption)
+            if (BookViewModel.CurrentSortOption != BookSortHeader.Value.sortOption)
                 SelectedBook.Sort(BookSortHeader.Value.sortOption, BookSortHeader.Value.ascending);
-            else if (SelectedBook.CurrentSortAscending != BookSortHeader.Value.ascending)
+            else if (BookViewModel.CurrentSortAscending != BookSortHeader.Value.ascending)
                 SelectedBook.ReverseSortOrder();    
         }
     }
@@ -669,7 +661,7 @@ public partial class MainViewModel : ViewModelBase
         {
             PageStatus = $"{Library.SelectedItem.SelectedPage.Name} | " +
                          $"Created : {Library.SelectedItem.SelectedPage.Created} | " +
-                         $"Modified : {Library.SelectedItem.SelectedPage.LastModified} | " +
+                         $"Modified : {Library.SelectedItem.SelectedPage.Modified} | " +
                          $"{CurrentViewerData?.Image?.PixelSize.Width}px X {CurrentViewerData?.Image?.PixelSize.Height}px";
         }
     }

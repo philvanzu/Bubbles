@@ -11,7 +11,7 @@ public partial class ProgressViewModel: ViewModelBase
     [ObservableProperty]private bool _isIndeterminate=false;
     [ObservableProperty]private bool _isBusy=false;
     private Progress<(string msg, double progress, bool completed)> _progress;
-    public Progress<(string msg, double progress, bool completed)> Progress => _progress;
+    public IProgress<(string msg, double progress, bool completed)> Progress => _progress;
 
     public ProgressViewModel()
     {

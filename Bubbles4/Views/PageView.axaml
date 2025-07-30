@@ -26,13 +26,6 @@
                     Command="{Binding ListItemPointerPressedCommand}" />
             </i:Interaction.Behaviors>
             <StackPanel >
-                <StackPanel.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}" />
-                        <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
-                    </ContextMenu>
-                </StackPanel.ContextMenu>
-
                 <Border BorderThickness="1" CornerRadius="5" Width="128" Height="128"
                         BorderBrush="{Binding IsSelected, Converter={StaticResource BoolToBrushConverter}}"
                         Background="Transparent">

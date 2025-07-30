@@ -247,13 +247,14 @@ public partial class LibraryViewModel
                         progress.Report(($"Loading Cached Library Data...", (double)++i/total, false));
                     }    
                     progress.Report(($"Loading Cached Library Data...", -1, false));
-        
+                    //await RestoreTimestamps(bvms, progress);
                     await Dispatcher.UIThread.InvokeAsync(()=>
                     {
                         FinalizeBookCollection(bvms, false);
                         RootNode.SortChildren(Config.NodeSortOption, Config.NodeSortAscending);
                     });        
                     progress.Report(($"Loading Cached Library Data...", 0, true));
+                    
                     return true;    
                 }
             }
@@ -261,7 +262,6 @@ public partial class LibraryViewModel
         
         return false;
     }
-
 
     public virtual void FinalizeBookCollection(List<BookViewModel> batch, bool authoritative = true)
     {

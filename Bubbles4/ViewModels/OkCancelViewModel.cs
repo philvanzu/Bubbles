@@ -19,7 +19,7 @@ public partial class OkCancelViewModel: ViewModelBase
     public bool ShowOkButton { get; set; } = true;
     public bool ShowCancelButton { get; set; } = true;
     [RelayCommand]
-    public void OnOkPressed()
+    void OkPressed()
     {
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime app)
         {
@@ -29,7 +29,7 @@ public partial class OkCancelViewModel: ViewModelBase
     }
     
     [RelayCommand]
-    public void OnCancelPressed()
+    void CancelPressed()
     {
         // Close the window with a result
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime app)

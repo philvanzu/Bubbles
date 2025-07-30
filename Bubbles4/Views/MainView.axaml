@@ -27,14 +27,12 @@
                 <Menu Grid.Column="0">
                     <MenuItem Header="☰">
                         <MenuItem Header="New Library" Command="{Binding CreateLibraryCommand}"/>
-                        <MenuItem Header="Close Library" Command="{Binding CloseLibraryCommand}"
-                                  IsEnabled="{Binding Library, Converter={StaticResource NullToInverseBoolean}}"/>
                         <MenuItem Header="Edit Preferences" Command="{Binding EditPreferencesCommand}" />
                         <MenuItem Header="Edit Control Scheme" 
                                   Command="{Binding EditPreferencesCommand}"
                                   CommandParameter="true"/>
                         <MenuItem Header="About..." Command="{Binding EditPreferencesCommand}" />
-                        <MenuItem Header="Exit" Command="{Binding ShutdownPressedCommand}" />
+                        <MenuItem Header="Exit" Command="{Binding ShutdownRequestedCommand}" />
                     </MenuItem>
                 </Menu>
                 
@@ -66,6 +64,20 @@
                                        Foreground="{Binding Library, Converter={StaticResource NullToColor}}"/>
                         </Canvas>
                     </Grid>
+                    <Menu IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}">
+                        <MenuItem Header="☰">
+                            <MenuItem Header="Close Library" Command="{Binding CloseLibraryCommand}"/>
+                            <MenuItem Header="Remove Library" 
+                                      Command="{Binding DeleteLibraryCommand}"
+                                      CommandParameter="true"/>
+                            <MenuItem Header="Library Settings" Command="{Binding ConfigureLibraryCommand}" />
+                            
+                            <MenuItem Header="Run Script on all books" >
+                                <MenuItem Header="Name Dates to Created Timestamps" 
+                                          Command="{Binding Library.BatchCreatedFromNameCommand}"/>
+                            </MenuItem>
+                        </MenuItem>
+                    </Menu>
                     <!--Close Library button-->
                     <Button Width="24" Height="24" Padding="4" Background="Transparent"  
                             ToolTip.Tip="Close Current Library"
@@ -337,7 +349,7 @@
                         <!-- Book View -->
                         <Grid Grid.Row="2" Grid.RowDefinitions="28,*">
                             <Border Grid.Row="0" Background="#505050" BorderThickness="1" BorderBrush="White">
-                                <Grid ColumnDefinitions="*, Auto">
+                                <Grid ColumnDefinitions="*, Auto, Auto, Auto, Auto">
                                 <TextBlock Text="{Binding BookStatus}" Margin="4" VerticalAlignment="Center" />
                                 <ToggleButton Grid.Column="1" Content="👁️ ivp" IsChecked="{Binding PreviewIVPIsChecked, Mode=TwoWay}"
                                               ToolTip.Tip="Visualize Current Image Viewing Parameters(IVP)"
@@ -345,7 +357,68 @@
                                               IsVisible="{Binding CanCheckPreviewIvp}"
                                               Margin="0 "
                                               Padding="4 0"
-                                              HorizontalAlignment="Right"/>   
+                                              HorizontalAlignment="Right"/> 
+                                <Border Grid.Column="2" IsVisible="{Binding CurrentPageViewModel, Converter={StaticResource NullToBoolean}}">
+                                <Button Content="↑"
+                                        Margin="2" Padding="0"
+                                        IsVisible="{Binding CurrentPageViewModel.CanSwap}"
+                                        Command="{Binding CurrentPageViewModel.MoveUpCommand}"/>
+                                </Border>
+                                <Border Grid.Column="3" IsVisible="{Binding CurrentPageViewModel, Converter={StaticResource NullToBoolean}}">
+                                <Button  Content="↓"
+                                        Margin="2" Padding="0"
+                                        IsVisible="{Binding CurrentPageViewModel.CanSwap}"
+                                        Command="{Binding CurrentPageViewModel.MoveDownCommand}"/>
+                                </Border>
+                                <Menu Grid.Column="4" 
+                                      IsVisible="{Binding SelectedBook,
+                                      Converter={StaticResource NullToBoolean}}">
+                                    
+                                    <MenuItem Header="☰" DataContext ="{Binding SelectedBook}">
+                                        <MenuItem Header="Selected Page" DataContext="{Binding SelectedPage}"
+                                            IsEnabled="{Binding ., Converter={StaticResource NullToBoolean}}">
+                                            
+                                            <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}" />
+                                            <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+                                            <MenuItem Header="Move Up" ToolTip.Tip="Swap current sort attribute with the page above this one"
+                                                      IsVisible="{Binding CanSwap}"
+                                                      Command="{Binding MoveUpCommand}"/>
+                                            <MenuItem Header="Move Down" ToolTip.Tip="Swap current sort attribute with the page below this one"
+                                                      IsVisible="{Binding CanSwap}"
+                                                      Command="{Binding MoveDownCommand}"/>
+                                            <MenuItem Header="Close" ToolTip.Tip="Close current page" Command="{Binding DeselectCommand}"
+                                                      IsEnabled="{Binding IsSelected}"/>
+                                        </MenuItem>
+                                        
+                                        <MenuItem Header="Delete Current Album" Command="{Binding DeleteCommand}" />
+                                        <MenuItem Header="Open Containing Folder" 
+                                                  Command="{Binding OpenInExplorerCommand}" />
+                                        <MenuItem Header="Batch Rename Pages" 
+                                                  Command="{Binding BatchRenamePagesCommand}"
+                                                  IsEnabled="{Binding CanRenamePages}"/>
+                                        <MenuItem Header="Extract Creation Date From Name" 
+                                                  IsVisible="{Binding CanDateFromNameToCreated}"
+                                                  Command="{Binding DateFromNameToCreatedCommand}"
+                                                  ToolTip.Tip="{Binding DateFromNameToolTip}" />
+                                        <MenuItem Header="Fix TimeStamps" 
+                                                  Command="{Binding FixTimeStampsCommand}"/>
+                                        <MenuItem Header="Reorder Timestamps by Names" 
+                                                  Command="{Binding NameOrderToModifiedAndCreatedCommand}"
+                                                  ToolTip.Tip="File timestamps will be reassigned so that sorting them by last modified will reflect the alphabetic order"
+                                                  IsVisible="{Binding CanRenamePages}"/>
+                                        <MenuItem Header="Reorder Names by LastModified" 
+                                                  Command="{Binding ModifiedOrderToNameCommand}"
+                                                  ToolTip.Tip="Files names will be reassigned so that sorting them alphabetically will reflect the last modified order. 
+                                                  DON'T DO IT IF YOU'RE NOT CERTAIN. THIS COULD FUBAR YOUR PAGE ORDER"
+                                                  IsVisible="{Binding CanRenamePages}"/>
+                                        <MenuItem Header="Clear Image Viewing Params"
+                                                  Command="{Binding ClearIVPCollectionCommand}"/>
+                                        <MenuItem Header="IVP Crop and Resize down to MaxResize (in user settings)" 
+                                                  Command ="{Binding SaveCroppedIvpsToSizeCommand}"/>
+                                        <MenuItem Header="Close" ToolTip.Tip="Close Current Album" Command="{Binding DeselectCommand}"
+                                                  IsEnabled="{Binding IsSelected}"/>
+                                    </MenuItem>
+                                </Menu>
                                 </Grid>
                             </Border>
                             <Border Grid.Row="1" Background="#303030"
@@ -407,10 +480,13 @@
                         <Separator Width="1" Height="32" Margin="8 0"/>
                         <TextBlock Text="{Binding PagingStatus}"  Margin="8" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <ContentControl Grid.Column="0" HorizontalAlignment="Center" 
-                                    IsVisible="{Binding StatusProgress.IsBusy}">
-                        <views:ProgressView DataContext="{Binding StatusProgress}"/>
-                    </ContentControl>
+                    <Border BorderBrush="White" BorderThickness="1" Background="#505050"
+                            IsVisible="{Binding StatusProgress.IsBusy}"
+                            HorizontalAlignment="Right" Width="600">
+                        <ContentControl  >
+                            <views:ProgressView DataContext="{Binding StatusProgress}"/>
+                        </ContentControl>
+                    </Border>
                 </Grid>
             </Border>
         </Grid>

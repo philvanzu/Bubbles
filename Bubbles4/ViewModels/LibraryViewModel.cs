@@ -15,6 +15,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DynamicData;
 using DynamicData.Binding;
+using PDFiumSharp.Native;
 
 namespace Bubbles4.ViewModels;
 
@@ -66,6 +67,8 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         }
     }
 
+    
+
     [ObservableProperty] private ReadOnlyObservableCollection<BookmarkViewModel> _bookmarks;
 
     [ObservableProperty] private LibraryNodeViewModel? _selectedNode;
@@ -108,7 +111,9 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
             SelectedItem.IsSelected = false;
 
         SelectedItem = null;
-
+        foreach(var book in _books)
+            book.ClearThumbnail();
+        
         Clear();
         MainViewModel.ShowNavPane = false;
     }
@@ -134,13 +139,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     {
         if (parameter is BookViewModel vm)
         {
-            /*
-            if (vm.Thumbnail != null)
-            {
-                OnPropertyChanged(nameof(vm.Thumbnail));
-                return;
-            }
-            */
+            vm.IsPrepared = true;
             vm.PrepareThumbnail();
         }
 
@@ -153,6 +152,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         {
             //Console.WriteLine($"Clearing Thumbnail for book: {vm.Path}");
             vm.ClearThumbnail();
+            vm.IsPrepared = false;
         }
 
     }
@@ -178,8 +178,8 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
                 : SortExpressionComparer<BookViewModel>.Descending(x => x.Created),
 
             LibraryConfig.SortOptions.Modified => ascending
-                ? SortExpressionComparer<BookViewModel>.Ascending(x => x.LastModified)
-                : SortExpressionComparer<BookViewModel>.Descending(x => x.LastModified),
+                ? SortExpressionComparer<BookViewModel>.Ascending(x => x.Modified)
+                : SortExpressionComparer<BookViewModel>.Descending(x => x.Modified),
 
             LibraryConfig.SortOptions.Natural => new BookViewModelNaturalComparer(ascending),
 
@@ -392,6 +392,30 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
 
     public BookViewModel? GetBook(string bookPath)=>_books.FirstOrDefault(x => x.Path == bookPath);
 
+    [RelayCommand]
+    async Task BatchCreatedFromName()
+    {
+        var progress = MainViewModel.StatusProgress;
+        if (progress.IsBusy) return;
+        var total = _books.Count;
+        int current = 0;
+        List<Task> batchTasks = new List<Task>(4);
+        int concurrency = 4;
+        foreach (var book in _books)
+        {
+            var task = Task.Run(() => book.DateFromNameToCreatedCommand.Execute(null));
+            batchTasks.Add(task);
+            current++;
+            if (batchTasks.Count == concurrency || current == total)
+            {
+                await Task.WhenAll(batchTasks);
+                batchTasks.Clear();
+            }
+            progress.Progress.Report(($"Batch Created Timestamps from Album Names", (double)current / (double)total, false));
+        }
+        progress.Progress.Report(("", 0, true));
+    }
+
 #region FileSystem Watcher Events
 
     public virtual void FileSystemChanged(FileSystemEventArgs e)
@@ -401,8 +425,6 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         BookViewModel? existing = null;
         BookViewModel? shouldRemove = null;
         BookViewModel? shouldAdd = null;
-        (LibraryNodeViewModel, string)? shouldAddNode = null;
-        LibraryNodeViewModel? shouldRemoveNode = null;
         
         bool removeFlag = false;
         
@@ -412,6 +434,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
             string? imgDir = System.IO.Path.GetDirectoryName(e.FullPath);
             if (imgDir is not null)
             {
+                var selected = SelectedItem;
                 var bvm = _books.FirstOrDefault(x => string.Equals(x.Path, imgDir, StringComparison.OrdinalIgnoreCase));
                 if (bvm is not null)
                 {
@@ -577,11 +600,6 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         Sort(CurrentSortOption, CurrentSortAscending);
     }
     #endregion
-
-
-
-
-
 }
 
 public class DummyItem

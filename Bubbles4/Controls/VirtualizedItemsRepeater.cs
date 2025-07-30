@@ -130,15 +130,17 @@ public class VirtualizedItemsRepeater : ItemsRepeater
         if (context is BookViewModel book && book.IsFirstBook)
         {
             int row  = ViewportRow();
-            if (row > 3) return; //actual hack
-            Console.WriteLine($"first book prepared : Viewport at row {row}");
+            //if (row > 3) return; //actual hack
+            //Console.WriteLine($"first book prepared : Viewport at row {row}");
+            if (book.IsPrepared) return;
         }
 
         if (context is PageViewModel page && page.IsFirstPage)
         {
             int row  = ViewportRow();
-            if (row > 2) return;//actual hack
-            Console.WriteLine($"first page prepared : Viewport at row {row}");
+            //if (row > 2) return;//actual hack
+            //Console.WriteLine($"first page prepared : Viewport at row {row}");
+            if(page.IsPrepared) return;
         }    
 
         ItemPreparedCommand?.Execute(context);
@@ -154,14 +156,16 @@ public class VirtualizedItemsRepeater : ItemsRepeater
         if (context is BookViewModel book && book.IsFirstBook)
         {
             int row  = ViewportRow();
-            if (row < 4) return;//actual hack
-            Console.WriteLine($"first book clearing : Viewport at row {row}");
+            //if (row < 4) return;//actual hack
+            //Console.WriteLine($"first book clearing : Viewport at row {row}");
+            return;
         }
         if (context is PageViewModel page && page.IsFirstPage)
         {
             int row  = ViewportRow();
-            if (row < 3) return;//actual hack
-            Console.WriteLine($"first page clearing : Viewport at row {row}");
+            //if (row < 3) return;//actual hack
+            //Console.WriteLine($"first page clearing : Viewport at row {row}");
+            return;
         }    
         
         ItemClearingCommand?.Execute(context);

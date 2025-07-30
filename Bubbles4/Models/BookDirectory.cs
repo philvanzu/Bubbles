@@ -13,8 +13,8 @@ namespace Bubbles4.Models;
 
 public class BookDirectory:BookBase
 {
-    public BookDirectory (string path, string name, int pageCount, DateTime lastModified, DateTime created)
-        :base(path, name, lastModified, pageCount, created)
+    public BookDirectory (string path, string name, int pageCount, DateTime modified, DateTime created)
+        :base(path, name, modified, pageCount, created)
     {
     }
     
@@ -131,7 +131,7 @@ public class BookDirectory:BookBase
                             pages.Add(new Page()
                             {
                                 Path = file.FullName, Name = file.Name, Index = index++, Created = file.CreationTime,
-                                LastModified = file.LastWriteTime
+                                Modified = file.LastWriteTime
                             });
                         }
                     }

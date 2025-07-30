@@ -4,7 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Bubbles4.ViewModels"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        x:Class="Bubbles4.Views.ProgressDialogView"
+        x:Class="Bubbles4.Views.ProgressDialog"
         x:DataType="vm:ProgressDialogViewModel"
         Title="Progress"
         Width="400"

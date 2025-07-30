@@ -9,8 +9,8 @@
     
     <Grid>
         <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="350"/>
             <ColumnDefinition Width="250"/>
-            <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <TextBlock Grid.Column="0" 
                    Text="{Binding Message}" 

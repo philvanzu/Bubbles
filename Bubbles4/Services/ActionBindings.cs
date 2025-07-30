@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Bubbles4.ViewModels;
+using Bubbles4.Views;
 using CommunityToolkit.Mvvm.Input;
 
 namespace Bubbles4.Services;
@@ -106,7 +107,7 @@ public partial class InputManager
                 ShowOkButton = false,
             };
             Task<bool?>? listeningDlgTask = null;
-            Window? listeningDialog = null;
+            OkCancelDialog? listeningDialog = null;
             // Setup listener callbacks
             KeyComboListener = (combo) =>
             {
@@ -183,9 +184,10 @@ public partial class InputManager
             {
                 if (Instance.UserSettingsWindow != null)
                 {
-                    listeningDialog = (Instance.DialogService as DialogService)?.CreateWindowForViewModel(okcDlg);
+                    listeningDialog = (Instance.DialogService as DialogService)?.CreateWindowForViewModel(okcDlg) as OkCancelDialog;
                     if (listeningDialog != null)
                     {
+                        listeningDialog.KeyboardListener = Instance.OnUserSettingsEditorKeyUp;
                         listeningDialog.DataContext = okcDlg;
                         listeningDlgTask = listeningDialog.ShowDialog<bool?>(Instance.UserSettingsWindow);
 

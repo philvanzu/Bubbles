@@ -302,6 +302,13 @@ public partial class InputManager: IDisposable
     #region handlers
     public void GlobalKeyUp(object? sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Escape && ImageViewer != null && ImageViewer.IsDrawingZoomRect)
+        {
+            ImageViewer.StopDrawingZoom();
+            e.Handled = true;
+            return;
+        }
+        
         OnUserSettingsEditorKeyUp(sender, e);
         var combo = new KeyCombo(e.Key, e.KeyModifiers);
         if (_keyUpMap.TryGetValue(combo, out var binding))

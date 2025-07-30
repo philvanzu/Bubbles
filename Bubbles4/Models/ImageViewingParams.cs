@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -33,7 +35,6 @@ public class BookMetadata
     [JsonIgnore] public bool IsDirty { get; private set; }
 
     
-    
     public ImageViewingParams? Get(string filename)
     {
         return Collection.FirstOrDefault(x => x.filename == filename);
@@ -60,11 +61,15 @@ public class BookMetadata
         {
             try
             {
-                using var writer = File.CreateText(path);
                 string json = JsonSerializer.Serialize(this);
-                File.WriteAllText(path, json);    
+                using var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
+                using var writer = new StreamWriter(fs, Encoding.UTF8);
+                writer.Write(json);
             }
-            catch (Exception ex){Console.Error.WriteLine(ex);}
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex);
+            }
         }
         else if (File.Exists(path))
         {
@@ -75,8 +80,11 @@ public class BookMetadata
     {
         if (File.Exists(path))
         {
-            try{
-                var json = File.ReadAllText(path);
+            try
+            {
+                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using var reader = new StreamReader(fs, Encoding.UTF8);
+                string json = reader.ReadToEnd();
                 var ivps = JsonSerializer.Deserialize<BookMetadata>(json);
                 return ivps ?? new BookMetadata();
             }

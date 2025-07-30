@@ -11,10 +11,10 @@ using Bubbles4.ViewModels;
 
 namespace Bubbles4.Views;
 
-public partial class UserSettingsEditorView : Window
+public partial class UserSettingsEditorDialog : Window
 {
-    public UserSettingsEditorView() : this(null) { }
-    public UserSettingsEditorView(UserSettingsEditorViewModel? vm)
+    public UserSettingsEditorDialog() : this(null) { }
+    public UserSettingsEditorDialog(UserSettingsEditorViewModel? vm)
     {
         InitializeComponent();
         DataContext = vm;

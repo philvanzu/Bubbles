@@ -22,8 +22,6 @@ public class BackgroundFileWatcher
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _debounceTokens = new();
     private readonly TimeSpan _debounceDelay = TimeSpan.FromSeconds(2);
 
-    private volatile bool _buffering = false;
-
     ~BackgroundFileWatcher()
     {
         StopWatching();
@@ -67,8 +65,11 @@ public class BackgroundFileWatcher
     {
         if (skipWatchableCheck || FileAssessor.IsWatchable(e.FullPath))
         {
-             
-            _eventChannel.Writer.TryWrite(e);
+            if (e.ChangeType != WatcherChangeTypes.Changed)
+            {
+                if(!_eventChannel.Writer.TryWrite(e))
+                    Console.WriteLine($"Failed to watch event {e.ChangeType} | {e.FullPath}");
+            }
         }
     }
 
@@ -76,31 +77,30 @@ public class BackgroundFileWatcher
     {
         bool new_ = FileAssessor.IsWatchable(e.FullPath);
         bool old_ = FileAssessor.IsWatchable(e.OldFullPath);
-        if (! new_ && !old_) return;
+        if (!new_ && !old_) return;
 
         if (!old_ && new_)
         {
-            FileSystemEventArgs args = new FileSystemEventArgs(WatcherChangeTypes.Created, e.FullPath, e.Name);
-            HandleChange(args, true);
+            HandleChange(MakeArgs(WatcherChangeTypes.Created, e.FullPath), true);
             return;
         }
 
         if (old_ && !new_)
         {
-            FileSystemEventArgs args = new FileSystemEventArgs(WatcherChangeTypes.Deleted, e.FullPath, e.Name);
-            HandleChange(args, true);
+            HandleChange(MakeArgs(WatcherChangeTypes.Deleted, e.OldFullPath), true);
             return;
         }
 
         if (old_ && new_)
         {
-            var deleteArgs = new FileSystemEventArgs(WatcherChangeTypes.Deleted, e.OldFullPath, e.OldName);
-            HandleChange(deleteArgs, true);
-            var createArgs = new FileSystemEventArgs(WatcherChangeTypes.Created, e.FullPath, e.Name);
-            HandleChange(createArgs, true);
+            HandleChange(MakeArgs(WatcherChangeTypes.Deleted, e.OldFullPath), true);
+            HandleChange(MakeArgs(WatcherChangeTypes.Created, e.FullPath), true);
         }
     }
-
+    private static FileSystemEventArgs MakeArgs(WatcherChangeTypes type, string fullPath)
+    {
+        return new FileSystemEventArgs(type, Path.GetDirectoryName(fullPath)!, Path.GetFileName(fullPath));
+    }
     private async Task ProcessEventsAsync(CancellationToken token)
     {
         while (!token.IsCancellationRequested)
@@ -114,59 +114,20 @@ public class BackgroundFileWatcher
                 {
                     while (_eventChannel.Reader.TryRead(out var e))
                     {
-                        if (!_buffering)
-                        {
-                            if (e.ChangeType == WatcherChangeTypes.Changed)
-                            {
-                                return;
-                                var path = e.FullPath;
-                                if (_debounceTokens.TryGetValue(path, out var existingCts))
-                                    existingCts.Cancel();
-
-                                var cts = new CancellationTokenSource();
-                                _debounceTokens[path] = cts;
-
-                                var item = e;
-                                _ = Task.Run(async () =>
-                                {
-                                    try
-                                    {
-                                        await Task.Delay(_debounceDelay, cts.Token);
-                                        if (FileAssessor.IsFileReady(path))
-                                            _onFileChanged?.Invoke(item);
-                                    }
-                                    catch (OperationCanceledException) { /* ignored */ }
-                                    finally
-                                    {
-                                        _debounceTokens.TryRemove(path, out _);
-                                    }
-                                });
-                            }
-                            else _onFileChanged?.Invoke(e);
-                        }
-                            
+                        _onFileChanged?.Invoke(e);
                     }
                 }
                 // If buffering, just hold the data in the channels
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException){}
+            catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 break;
             }
         }
     }
 
-
-
-    public void BeginBuffering() => _buffering = true;
-
-    public void FlushBufferedEvents()
-    {
-        _buffering = false;
-
-        while (_eventChannel.Reader.TryRead(out var e))
-            _onFileChanged?.Invoke(e);
-    }
 
     public void StopWatching()
     {

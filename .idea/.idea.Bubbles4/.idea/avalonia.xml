@@ -6,6 +6,7 @@
         <entry key="Bubbles4/App.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Styles/CustomStyles.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/BblLibraryView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/BookMenuView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/BookView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/LibraryConfigWindow.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/LibraryTreeView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
@@ -14,14 +15,20 @@
         <entry key="Bubbles4/Views/MainWindow.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/NavPaneView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/OKCancelView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/OkCancelDialog.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/OkCancelView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/OkCancelWindow.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/PageView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/PreferencesEditorView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/ProgressDialogView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/ProgressView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/RenameDialogWindow.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/SortHeaderView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/TimeStampsDialog.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/TimeStampsWindow.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/UserSettingsEditorDialog.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
         <entry key="Bubbles4/Views/UserSettingsEditorView.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
+        <entry key="Bubbles4/Views/UserSettingsEditorWindow.axaml" value="Bubbles4.Desktop/Bubbles4.Desktop.csproj" />
       </map>
     </option>
   </component>

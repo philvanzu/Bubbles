@@ -1,0 +1,55 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModels="clr-namespace:Bubbles4.ViewModels"
+        xmlns:converters="clr-namespace:Bubbles4.Converters"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="Bubbles4.Views.TimeStampsDialog"
+        x:DataType="viewModels:TimeStampsDialogViewModel"
+        Height="400" Width="800"
+        Title="TimeStampsWindow">
+        <Window.Resources>
+                <converters:NullToBooleanConverter x:Key="NullToBoolean"/>
+        </Window.Resources>
+        <Border BorderBrush="White" BorderThickness="1" Background="#505050">
+        <Grid RowDefinitions="Auto, Auto, 32, Auto" ColumnDefinitions="200, Auto, Auto, Auto, Auto" Margin="16">
+            
+            <TextBlock Text="Creation Date" />
+            <DatePicker Grid.Row="0" Grid.Column="1"  DayFormat="ddd dd"
+                        SelectedDate="{Binding Created, Mode=TwoWay}" />
+            <Button Grid.Row="0" Grid.Column="2" Content="Now"
+                    Command="{Binding CreatedNowCommand}"/>
+            <Button Grid.Row="0" Grid.Column="3" Content="↓"
+                    Command="{Binding CreatedToModifiedCommand}"/>
+            <Button Grid.Row="0" Grid.Column="4" Content="From Title"
+                    IsVisible="{Binding TitleDate, Converter={StaticResource NullToBoolean}}"
+                    ToolTip.Tip="{Binding TitleDate}"
+                    Command="{Binding CreatedFromTitleCommand}"/>
+            
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Last Modified Date" />
+            <DatePicker Grid.Row="1" Grid.Column="1"  DayFormat="ddd dd"
+                        SelectedDate="{Binding Modified, Mode=TwoWay}" />
+            <Button Grid.Row="1" Grid.Column="2" Content="Now"
+                    Command="{Binding ModifiedNowCommand}"/>
+            <Button Grid.Row="1" Grid.Column="3" Content="↑"
+                    Command="{Binding ModifiedToCreatedCommand}"/>
+            <Button Grid.Row="1" Grid.Column="4" Content="From Title"
+                    IsVisible="{Binding TitleDate, Converter={StaticResource NullToBoolean}}"
+                    ToolTip.Tip="{Binding TitleDate}"
+                    Command="{Binding ModifiedFromTitleCommand}"/>
+            
+            <Button Grid.Row="3" Grid.Column="0" 
+                    Content="Ok" HorizontalAlignment="Center"
+                    Command="{Binding OkPressedCommand}"/>
+            <Button Grid.Row="3" Grid.Column="1" 
+                    Content="Cancel"  HorizontalAlignment="Center"
+                    Command="{Binding CancelPressedCommand}"/>
+            <Button Grid.Row="3" Grid.Column="2" 
+                    Content="Swap"  HorizontalAlignment="Center"
+                    Command="{Binding SwapCommand}"/>
+
+            
+        </Grid>
+    </Border>
+</Window>
