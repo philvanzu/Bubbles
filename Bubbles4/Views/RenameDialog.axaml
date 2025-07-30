@@ -3,20 +3,31 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:Bubbles4.ViewModels"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d"
         x:Class="Bubbles4.Views.RenameDialog"
         x:DataType="viewModels:RenameDialogViewModel"
-        Title="Batch Rename" Width="500" Height="250">
+        Title="{Binding Title}" Width="500" MinHeight="200"
+        SizeToContent="Height">
     <Border BorderBrush="White" BorderThickness="1" Background="#505050" Padding="16">
         <StackPanel>
-            <TextBlock Text="'$PageName' will be replaced by the relevant Page current Filename" Margin="8"/>
-            <TextBlock Text="'$AlbumName' will be replaced by the relevant Album current Filename" Margin="8"/>
-            <Grid ColumnDefinitions="Auto, 8, *" RowDefinitions="Auto, Auto, Auto" Width="450">
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="Prefix" VerticalAlignment="Center"/>
-            <TextBox  Grid.Row="0" Grid.Column="2" Text="{Binding Prefix, Mode=TwoWay}" Margin="8"/> 
-            <TextBlock Grid.Row="1" Grid.Column="0" Text="Suffix" VerticalAlignment="Center"/>
-            <TextBox  Grid.Row="1" Grid.Column="2" Text="{Binding Suffix, Mode=TwoWay}" Margin="8"/>
-
+            <TextBlock Text="{Binding ContentText}" Margin="8" TextWrapping="Wrap"/>
+            <Grid>
+                <!--this-->
+                <Grid ColumnDefinitions="Auto, 8, *" RowDefinitions="Auto, Auto, Auto" Width="450"
+                      IsVisible="{Binding ShowNewName}">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="New Name" VerticalAlignment="Center" />
+                    <TextBox Grid.Row="0" Grid.Column="2" x:Name="NewNameTextBox"  
+                             Text="{Binding NewName, Mode=TwoWay}" Margin="8"/> 
+                </Grid>
+                <!-- or that-->
+                <Grid ColumnDefinitions="Auto, 8, *" RowDefinitions="Auto, Auto, Auto" Width="450"
+                      IsVisible="{Binding ShowPrefixAndSuffix}">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Prefix" VerticalAlignment="Center"/>
+                    <TextBox  Grid.Row="0" Grid.Column="2"  x:Name="PrefixTextBox"
+                              Text="{Binding Prefix, Mode=TwoWay}" Margin="8"/> 
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Suffix" VerticalAlignment="Center"/>
+                    <TextBox  Grid.Row="1" Grid.Column="2" Text="{Binding Suffix, Mode=TwoWay}" Margin="8"/>
+                </Grid>
             </Grid>
             <Border Height="16"/>
             <Grid ColumnDefinitions="*, *">

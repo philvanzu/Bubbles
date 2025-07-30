@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
+using System.Net;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -94,6 +96,23 @@ public abstract class BookBase
     }
 
     public abstract Task SaveCroppedIvpToSizeAsync(PageViewModel page, string path, Rect? cropRect, int maxSize);
+
+    public virtual void RenameFile(string newName)
+    {
+        try
+        {
+            var ext = System.IO.Path.GetExtension(Path);
+            var folder = System.IO.Path.GetDirectoryName(Path);
+            if (folder != null)
+            {
+                var newPath = System.IO.Path.Combine(folder, newName);
+                var newExt = System.IO.Path.GetExtension(newPath);
+                if (ext != newExt) newPath += ext;
+                File.Move(Path, newPath);    
+            }
+        }
+        catch(Exception e){Console.Error.WriteLine(e);}
+    }
 }
 
 public class BookInfo

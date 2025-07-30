@@ -7,6 +7,7 @@ using Avalonia.Media.Imaging;
 using Bubbles4.Services;
 using Bubbles4.ViewModels;
 using PDFiumSharp;
+using PDFiumSharp.Types;
 
 namespace Bubbles4.Models;
 
@@ -73,6 +74,7 @@ public class BookPdf : BookBase
                 ImageLoader.GetTargetDimensions((int)pdfPage.Width, (int)pdfPage.Height, ImageLoader.ThumbMaxSize);
 
             using var bitmap = new PDFiumBitmap(targetDimensions.width, targetDimensions.height, true);
+            bitmap.Fill(new PDFiumColor(255, 255, 255));
             pdfPage.Render(bitmap);
 
             using var ms = bitmap.AsBmpStream();
@@ -160,6 +162,7 @@ public class BookPdf : BookBase
             var targetDimensions = ImageLoader.GetTargetDimensions((int)pdfPage.Width*8, (int)pdfPage.Height*8, ImageLoader.ImageMaxSize);
 
             using var bitmap = new PDFiumBitmap(targetDimensions.width, targetDimensions.height, true);
+            bitmap.Fill(new PDFiumColor(255, 255, 255));
             pdfPage.Render(bitmap);
 
             using var ms = bitmap.AsBmpStream();

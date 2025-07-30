@@ -17,7 +17,7 @@ public static class FileAssessor
 
     static readonly HashSet<string> ArchiveExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".rar", ".cbr", ".7z", ".zip", ".cbz", ".tar", ".tgz"
+        ".rar", ".cbr", ".7z", ".zip", ".cbz", ".tar", ".tgz", ".epub"
     };
 
     static readonly HashSet<string> PdfExtensions = new(StringComparer.OrdinalIgnoreCase)

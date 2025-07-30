@@ -22,7 +22,8 @@ public class BookDirectory:BookBase
 
     void FindThumbnailPath()
     {
-        foreach (var filePath in Directory.EnumerateFileSystemEntries(Path))
+        var files = Directory.EnumerateFileSystemEntries(Path);
+        foreach (var filePath in files)
         {
             if (FileAssessor.IsImage(filePath))
             {
@@ -31,7 +32,20 @@ public class BookDirectory:BookBase
             }
         }
     }
-    
+
+    void AltFindThumbnailPath()
+    {
+        DirectoryInfo dir = new DirectoryInfo(Path);
+        var files = dir.GetFiles();
+        foreach (var file in files)
+        {
+            if (FileAssessor.IsImage(file.FullName))
+            {
+                _thumbnailPath = file.FullName;
+                break;
+            }
+        }
+    }
     
     public override async Task<Bitmap?> LoadThumbnailAsync()
     {
@@ -39,7 +53,16 @@ public class BookDirectory:BookBase
         if (string.IsNullOrEmpty(_thumbnailPath))
         {
             FindThumbnailPath();
-            if (string.IsNullOrEmpty(_thumbnailPath)) return null;
+            if (string.IsNullOrEmpty(_thumbnailPath))
+            {
+                await Task.Delay(1000);
+                AltFindThumbnailPath();
+                if (string.IsNullOrEmpty(_thumbnailPath))
+                {
+                    Console.WriteLine($"No thumbnail path found for {Path}");
+                    return null;    
+                }
+            }
         }
         
         ThumbnailCts?.Cancel();
@@ -219,5 +242,18 @@ public class BookDirectory:BookBase
     public override string MetaDataPath =>
         Path + (Path.EndsWith(System.IO.Path.DirectorySeparatorChar) ? "" : System.IO.Path.DirectorySeparatorChar);
 
+    public override void RenameFile(string newName)
+    {
+        try
+        {
+            var parentfolder = System.IO.Path.GetDirectoryName(Path);
+            
+            if (parentfolder == null)
+                throw new DirectoryNotFoundException();
 
+            var newPath = System.IO.Path.Combine(parentfolder, newName);
+            Directory.Move(Path, newPath);   
+        }
+        catch(Exception e){Console.Error.WriteLine(e);}
+    }
 }

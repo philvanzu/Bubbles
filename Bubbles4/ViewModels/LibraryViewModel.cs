@@ -77,6 +77,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     {
         if (value != null && !Config.Recursive)
         {
+            OnPropertyChanged(nameof(CanBatchRenameBooks));
             Sort();
         }
     }
@@ -415,6 +416,36 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
         }
         progress.Progress.Report(("", 0, true));
     }
+    
+    [RelayCommand]
+    async Task BatchRenameBooks()
+    {
+        if (!CanBatchRenameBooks) return;
+        var dialog = new RenameDialogViewModel(){
+            Title = "Batch Rename Albums",
+            ContentText = $"Batch Rename all Albums in Folder '{SelectedNode!.Name}'.",
+            ShowPrefixAndSuffix = true
+        };;
+        var window = MainViewModel.MainWindow;
+        if (window != null)
+        {
+            var result = await MainViewModel.DialogService.ShowDialogAsync<(string?,string?)?>(window, dialog);
+            if (result.HasValue)
+            {
+                var prefix=result.Value.Item1;
+                var suffix=result.Value.Item2;
+                int i = 1;
+                int padLength = Books.Count.ToString().Length;
+                if(padLength < 2) padLength = 2;
+                foreach (var book in Books)
+                {
+                    book.Model.RenameFile($"{prefix}{i.ToString($"D{padLength}")}{suffix}");
+                    i++;
+                }
+            }
+        }
+    }
+    public bool CanBatchRenameBooks => !Config.Recursive && SelectedNode != null;
 
 #region FileSystem Watcher Events
 

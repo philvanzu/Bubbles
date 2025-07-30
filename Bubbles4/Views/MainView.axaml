@@ -16,25 +16,109 @@
         <converters:NullToBooleanConverter x:Key="NullToBoolean"/>
         <converters:NullToInverseBooleanConverter x:Key="NullToInverseBoolean"/>
         <converters:NullToColorConverter x:Key="NullToColor"/>
+        <converters:InverseBooleanConverter x:Key="InverseBoolean"/>
     </UserControl.Resources>
 
     <Grid>
         <!-- Main UI layout -->
         <Grid RowDefinitions="36,*,36">
-            <!-- Top toolbar/menu -->
+            <!-- Top toolbar -->
             <Border BorderThickness="1" BorderBrush="White" Background="#505050">
-            <Grid ColumnDefinitions="Auto, Auto, *, Auto" ><!--menu, library, page, search -->
-                <Menu Grid.Column="0">
-                    <MenuItem Header="☰">
-                        <MenuItem Header="New Library" Command="{Binding CreateLibraryCommand}"/>
-                        <MenuItem Header="Edit Preferences" Command="{Binding EditPreferencesCommand}" />
-                        <MenuItem Header="Edit Control Scheme" 
-                                  Command="{Binding EditPreferencesCommand}"
-                                  CommandParameter="true"/>
-                        <MenuItem Header="About..." Command="{Binding EditPreferencesCommand}" />
-                        <MenuItem Header="Exit" Command="{Binding ShutdownRequestedCommand}" />
-                    </MenuItem>
-                </Menu>
+            <Grid ColumnDefinitions="Auto, Auto, *, Auto" > <!-- menus, library tools, page tools, search -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <!-- App Menu -->
+                    <Menu Grid.Column="0">
+                        <MenuItem Header="☰">
+                            <MenuItem Header="New Library" Command="{Binding CreateLibraryCommand}"/>
+                            <MenuItem Header="Edit Preferences" Command="{Binding EditPreferencesCommand}" />
+                            <MenuItem Header="Edit Control Scheme" 
+                                      Command="{Binding EditPreferencesCommand}"
+                                      CommandParameter="true"/>
+                            <MenuItem Header="About..." Command="{Binding EditPreferencesCommand}" />
+                            <MenuItem Header="Exit" Command="{Binding ShutdownRequestedCommand}" />
+                        </MenuItem>
+                    </Menu>
+                    <!-- Library Menu -->
+                    <Menu  DataContext="{Binding Library}"
+                           IsEnabled="{Binding ., Converter={StaticResource NullToBoolean}}">
+                        <MenuItem Header="Library">
+                            <MenuItem Header="Close Library" Command="{Binding MainViewModel.CloseLibraryCommand}"/>
+                            <MenuItem Header="Remove Library" 
+                                      Command="{Binding MainViewModel.DeleteLibraryCommand}"
+                                      CommandParameter="true"/>
+                            <MenuItem Header="Library Settings" Command="{Binding MainViewModel.ConfigureLibraryCommand}" />
+                            <MenuItem Header="Batch operations (on all books in the currently selected node)"
+                                      IsVisible="{Binding Config.Recursive, Converter={StaticResource InverseBoolean}}"
+                                      IsEnabled="{Binding SelectedNode, Converter={StaticResource NullToBoolean}}">
+                                <MenuItem Header="Batch Rename Albums" 
+                                          IsEnabled="{Binding CanBatchRenameBooks}"
+                                          Command="{Binding BatchRenameBooksCommand}"/>
+                                <MenuItem Header="Filename Date to Created Timestamps"
+                                          ToolTip.Tip="try extracting dates from filenames and assigning it to the album's Creation Time"
+                                          Command="{Binding BatchCreatedFromNameCommand}"/>
+                            </MenuItem>
+                        </MenuItem>
+                    </Menu>
+                    <!-- Album Menu -->
+                    <Menu  DataContext ="{Binding SelectedBook}" 
+                           IsEnabled="{Binding ., Converter={StaticResource NullToBoolean}}">
+                        <MenuItem Header="Album">
+                            <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+                            <MenuItem Header= "Rename" Command="{Binding RenameBookCommand}"
+                                      IsEnabled="{Binding CanRenameBook}"/>
+                            <MenuItem Header="Open Containing Folder" 
+                                      Command="{Binding OpenInExplorerCommand}" />
+                            <MenuItem Header="Close" ToolTip.Tip="Close Current Album" Command="{Binding DeselectCommand}"
+                                      IsEnabled="{Binding IsSelected}"/>
+                            <MenuItem Header="Batch Operations (on all pages)">
+                                <MenuItem Header="Batch Rename Pages" 
+                                          Command="{Binding BatchRenamePagesCommand}"
+                                          IsEnabled="{Binding CanRenamePages}"/>
+                                <MenuItem Header="Fix TimeStamps" 
+                                          Command="{Binding FixTimeStampsCommand}"/>
+                                <MenuItem Header="Album Name Date to Creation Time" 
+                                          IsVisible="{Binding CanDateFromNameToCreated}"
+                                          Command="{Binding DateFromNameToCreatedCommand}"
+                                          ToolTip.Tip="{Binding DateFromNameToolTip}" />
+                                <MenuItem Header="Reorder Timestamps by Alphabetic Order" 
+                                          Command="{Binding NameOrderToModifiedAndCreatedCommand}"
+                                          ToolTip.Tip="Page files timestamps will be reassigned following the alphabetic order"
+                                          IsVisible="{Binding CanRenamePages}"/>
+                                <MenuItem Header="Reorder Filenames by LastModified" 
+                                          Command="{Binding ModifiedOrderToNameCommand}"
+                                          ToolTip.Tip="Pages filenames will be reassigned following the last modified order."
+                                          IsVisible="{Binding CanRenamePages}"/>
+                                <MenuItem Header="Clear Image Viewing Params"
+                                          Command="{Binding ClearIVPCollectionCommand}"/>
+                                <MenuItem Header="IVP Crop and Resize down to MaxResize (in user settings)" 
+                                          Command ="{Binding SaveCroppedIvpsToSizeCommand}"/>
+
+                            </MenuItem>
+                        </MenuItem>
+                    </Menu>
+                    <!-- Page Menu -->
+                    <Menu DataContext="{Binding SelectedBook.SelectedPage}"
+                          IsEnabled="{Binding ., Converter={StaticResource NullToBoolean}}">
+                        <MenuItem Header="Page" >
+                                
+                            <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}" />
+                            <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+                            <MenuItem Header="Move Up" ToolTip.Tip="Swap current sort attribute with the page above this one"
+                                      IsVisible="{Binding CanSwap}"
+                                      Command="{Binding MoveUpCommand}"/>
+                            <MenuItem Header="Move Down" ToolTip.Tip="Swap current sort attribute with the page below this one"
+                                      IsVisible="{Binding CanSwap}"
+                                      Command="{Binding MoveDownCommand}"/>
+                            <MenuItem Header="Close" ToolTip.Tip="Close current page" Command="{Binding DeselectCommand}"
+                                      IsEnabled="{Binding IsSelected}"/>
+                        </MenuItem>
+                    </Menu>
+                    <Separator Width="1"
+                               Height="24"
+                               Margin="8,0">
+                    </Separator>
+                </StackPanel>
+                
                 
                 <!--Library Selector-->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
@@ -64,20 +148,7 @@
                                        Foreground="{Binding Library, Converter={StaticResource NullToColor}}"/>
                         </Canvas>
                     </Grid>
-                    <Menu IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}">
-                        <MenuItem Header="☰">
-                            <MenuItem Header="Close Library" Command="{Binding CloseLibraryCommand}"/>
-                            <MenuItem Header="Remove Library" 
-                                      Command="{Binding DeleteLibraryCommand}"
-                                      CommandParameter="true"/>
-                            <MenuItem Header="Library Settings" Command="{Binding ConfigureLibraryCommand}" />
-                            
-                            <MenuItem Header="Run Script on all books" >
-                                <MenuItem Header="Name Dates to Created Timestamps" 
-                                          Command="{Binding Library.BatchCreatedFromNameCommand}"/>
-                            </MenuItem>
-                        </MenuItem>
-                    </Menu>
+                    
                     <!--Close Library button-->
                     <Button Width="24" Height="24" Padding="4" Background="Transparent"  
                             ToolTip.Tip="Close Current Library"
@@ -204,10 +275,7 @@
                         </Popup>
                     </Grid>
                     <Border Width="16"/>
-                    <Separator Width="1"
-                               Height="24"
-                               Margin="0,0">
-                    </Separator>
+
 
                 </StackPanel>
                 <Grid Grid.Column="2">
@@ -370,55 +438,7 @@
                                         IsVisible="{Binding CurrentPageViewModel.CanSwap}"
                                         Command="{Binding CurrentPageViewModel.MoveDownCommand}"/>
                                 </Border>
-                                <Menu Grid.Column="4" 
-                                      IsVisible="{Binding SelectedBook,
-                                      Converter={StaticResource NullToBoolean}}">
-                                    
-                                    <MenuItem Header="☰" DataContext ="{Binding SelectedBook}">
-                                        <MenuItem Header="Selected Page" DataContext="{Binding SelectedPage}"
-                                            IsEnabled="{Binding ., Converter={StaticResource NullToBoolean}}">
-                                            
-                                            <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}" />
-                                            <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
-                                            <MenuItem Header="Move Up" ToolTip.Tip="Swap current sort attribute with the page above this one"
-                                                      IsVisible="{Binding CanSwap}"
-                                                      Command="{Binding MoveUpCommand}"/>
-                                            <MenuItem Header="Move Down" ToolTip.Tip="Swap current sort attribute with the page below this one"
-                                                      IsVisible="{Binding CanSwap}"
-                                                      Command="{Binding MoveDownCommand}"/>
-                                            <MenuItem Header="Close" ToolTip.Tip="Close current page" Command="{Binding DeselectCommand}"
-                                                      IsEnabled="{Binding IsSelected}"/>
-                                        </MenuItem>
-                                        
-                                        <MenuItem Header="Delete Current Album" Command="{Binding DeleteCommand}" />
-                                        <MenuItem Header="Open Containing Folder" 
-                                                  Command="{Binding OpenInExplorerCommand}" />
-                                        <MenuItem Header="Batch Rename Pages" 
-                                                  Command="{Binding BatchRenamePagesCommand}"
-                                                  IsEnabled="{Binding CanRenamePages}"/>
-                                        <MenuItem Header="Extract Creation Date From Name" 
-                                                  IsVisible="{Binding CanDateFromNameToCreated}"
-                                                  Command="{Binding DateFromNameToCreatedCommand}"
-                                                  ToolTip.Tip="{Binding DateFromNameToolTip}" />
-                                        <MenuItem Header="Fix TimeStamps" 
-                                                  Command="{Binding FixTimeStampsCommand}"/>
-                                        <MenuItem Header="Reorder Timestamps by Names" 
-                                                  Command="{Binding NameOrderToModifiedAndCreatedCommand}"
-                                                  ToolTip.Tip="File timestamps will be reassigned so that sorting them by last modified will reflect the alphabetic order"
-                                                  IsVisible="{Binding CanRenamePages}"/>
-                                        <MenuItem Header="Reorder Names by LastModified" 
-                                                  Command="{Binding ModifiedOrderToNameCommand}"
-                                                  ToolTip.Tip="Files names will be reassigned so that sorting them alphabetically will reflect the last modified order. 
-                                                  DON'T DO IT IF YOU'RE NOT CERTAIN. THIS COULD FUBAR YOUR PAGE ORDER"
-                                                  IsVisible="{Binding CanRenamePages}"/>
-                                        <MenuItem Header="Clear Image Viewing Params"
-                                                  Command="{Binding ClearIVPCollectionCommand}"/>
-                                        <MenuItem Header="IVP Crop and Resize down to MaxResize (in user settings)" 
-                                                  Command ="{Binding SaveCroppedIvpsToSizeCommand}"/>
-                                        <MenuItem Header="Close" ToolTip.Tip="Close Current Album" Command="{Binding DeselectCommand}"
-                                                  IsEnabled="{Binding IsSelected}"/>
-                                    </MenuItem>
-                                </Menu>
+
                                 </Grid>
                             </Border>
                             <Border Grid.Row="1" Background="#303030"

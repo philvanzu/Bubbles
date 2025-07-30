@@ -79,19 +79,7 @@ public class BackgroundFileWatcher
         bool old_ = FileAssessor.IsWatchable(e.OldFullPath);
         if (!new_ && !old_) return;
 
-        if (!old_ && new_)
-        {
-            HandleChange(MakeArgs(WatcherChangeTypes.Created, e.FullPath), true);
-            return;
-        }
-
-        if (old_ && !new_)
-        {
-            HandleChange(MakeArgs(WatcherChangeTypes.Deleted, e.OldFullPath), true);
-            return;
-        }
-
-        if (old_ && new_)
+        if (old_ || new_)
         {
             HandleChange(MakeArgs(WatcherChangeTypes.Deleted, e.OldFullPath), true);
             HandleChange(MakeArgs(WatcherChangeTypes.Created, e.FullPath), true);

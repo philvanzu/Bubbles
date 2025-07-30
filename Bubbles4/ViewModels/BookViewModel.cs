@@ -798,9 +798,37 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     }
 
     [RelayCommand]
+    async Task RenameBook()
+    {
+        if (!CanRenameBook) return;
+        var dialog = new RenameDialogViewModel(){
+            Title = "Rename Album",
+            ContentText = $"Rename '{Name}' to...",
+            NewName = Name,
+            ShowNewName = true
+        };;
+        var window = MainViewModel.MainWindow;
+        if (window != null)
+        {
+            var result = await MainViewModel.DialogService.ShowDialogAsync<string?>(window, dialog);
+            if (result != null) 
+                Model.RenameFile(result);
+        }
+    }
+
+    public bool CanRenameBook => true;
+
+    [RelayCommand]
     async Task BatchRenamePages()
     {
-        var dialog = new RenameDialogViewModel();
+        var dialog = new RenameDialogViewModel()
+        {
+            Title = "Batch Rename Pages",
+            ContentText = $"Batch Rename all pages in '{Name}'.\n" + 
+                "'$PageName' will be replaced by the relevant Page current Filename. \n" +
+                "'$AlbumName' will be replaced by the relevant Album current Filename.",
+            ShowPrefixAndSuffix = true
+        };
         var window = MainViewModel.MainWindow;
         if (window != null)
         {
@@ -809,8 +837,9 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
             {
                 var prefix=result.Value.Item1;
                 var suffix=result.Value.Item2;
-                int i = 0;
+                int i = 1;
                 int padLength = Pages.Count.ToString().Length;
+                if(padLength < 2) padLength = 2;
                 foreach (var page in Pages)
                 {
                     var ext = System.IO.Path.GetExtension(page.Path);
@@ -822,6 +851,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
             }
         }
     }
+
     
     private void RefreshViews()
     {

@@ -37,16 +37,26 @@
                         <Border Background="Transparent" 
                             ToolTip.Tip="{Binding Path}"
                                 Tag="{Binding IsSelected}">
+                            <Border.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+                                    <MenuItem Header= "Rename" Command="{Binding RenameBookCommand}"
+                                              IsEnabled="{Binding CanRenameBook}"/>
+                                    <MenuItem Header="Open Containing Folder" 
+                                              Command="{Binding OpenInExplorerCommand}" />
+                                </ContextMenu>
+                            </Border.ContextMenu>
                             
                             <i:Interaction.Behaviors>
                                 <bhv:PointerPressedCommandBehavior 
                                     Command="{Binding OnSelection}" />
                             </i:Interaction.Behaviors>
                             <StackPanel>
+
                                 <Border  CornerRadius="5" Width="172" Height="150"
                                          BorderThickness="{Binding IsSelected, Converter={StaticResource BoolToThickness}}"
-                                        BorderBrush="{Binding IsSelected, Converter={StaticResource BoolToBrushConverter}}"
-                                        Background="Transparent">
+                                         BorderBrush="{Binding IsSelected, Converter={StaticResource BoolToBrushConverter}}"
+                                         Background="Transparent">
                                     <Grid>
                                         <Image Source="{Binding Thumbnail}" Stretch="Uniform"/>
                                     </Grid>

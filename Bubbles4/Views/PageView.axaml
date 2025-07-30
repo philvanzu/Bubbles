@@ -21,14 +21,22 @@
         <Border Background="Transparent"
                 ToolTip.Tip="{Binding Name}"
                 Tag="{Binding IsSelected}">
+            <Border.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}" />
+                    <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
+                </ContextMenu>
+            </Border.ContextMenu>
             <i:Interaction.Behaviors>
                 <bhv:PointerPressedCommandBehavior 
                     Command="{Binding ListItemPointerPressedCommand}" />
             </i:Interaction.Behaviors>
             <StackPanel >
+                
                 <Border BorderThickness="1" CornerRadius="5" Width="128" Height="128"
                         BorderBrush="{Binding IsSelected, Converter={StaticResource BoolToBrushConverter}}"
                         Background="Transparent">
+
                     <Grid>
                         <Image x:Name="ThumbnailImage" 
                                Source="{Binding Thumbnail}" 
