@@ -13,12 +13,7 @@
         WindowStartupLocation="CenterOwner"
         Background="#505050">
     
-    <Grid Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
+    <Grid Margin="16" RowDefinitions="Auto, Auto, Auto">
         <TextBlock Grid.Row="0" 
                    Text="{Binding Message}" 
                    FontSize="16"
@@ -30,5 +25,7 @@
                      Value="{Binding ProgressValue}"
                      IsIndeterminate="{Binding IsIndeterminate}"
                      Height="24"/>
+        <Button Grid.Row="2" Content="Cancel" Margin="16"
+                Command="{Binding CancelPressedCommand}"/>
     </Grid>
 </Window>

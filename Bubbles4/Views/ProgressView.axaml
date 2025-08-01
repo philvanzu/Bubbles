@@ -7,11 +7,7 @@
              x:Class="Bubbles4.Views.ProgressView"
              x:DataType="vm:ProgressViewModel">
     
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="350"/>
-            <ColumnDefinition Width="250"/>
-        </Grid.ColumnDefinitions>
+    <Grid ColumnDefinitions="*,250,Auto">
         <TextBlock Grid.Column="0" 
                    Text="{Binding Message}" 
                    FontSize="16"
@@ -23,5 +19,10 @@
                      Value="{Binding ProgressValue}"
                      IsIndeterminate="{Binding IsIndeterminate}"
                      Height="24"/>
+        <Button Grid.Column="2" Content="X"
+                ToolTip.Tip="Cancel Task"
+                Command="{Binding CancelPressedCommand}"
+                IsVisible="{Binding CanPressCancel}"
+                Margin="2"/>
     </Grid>
 </UserControl>

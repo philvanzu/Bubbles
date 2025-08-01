@@ -205,19 +205,21 @@ public class BookDirectory:BookBase
 
         return null;
     }
-    public override async Task SaveCroppedIvpToSizeAsync(PageViewModel page, string path, Rect? cropRect, int maxSize)
+    public override async Task SaveCroppedIvpToSizeAsync(PageViewModel page, string path, Rect? cropRect, int maxSize, CancellationToken token)
     {
         if (!File.Exists(page.Path)) return;
         DateTime created = File.GetCreationTime(page.Path);
         DateTime lastModified = File.GetLastWriteTime(page.Path);
         try
         {
+            token.ThrowIfCancellationRequested();
             using var inputStream = File.OpenRead(page.Path);
             using var resizedStream = await Task.Run(() => ImageLoader.DecodeCropImage(inputStream, maxSize, cropRect));
 
             if (resizedStream != null)
             {
-                await FileIOThrottler.WaitAsync();
+                await FileIOThrottler.WaitAsync(token);
+                token.ThrowIfCancellationRequested();
                 try
                 {
                     using var fileStream = File.Create(path);
@@ -246,7 +248,7 @@ public class BookDirectory:BookBase
     {
         try
         {
-            var parentfolder = System.IO.Path.GetDirectoryName(Path);
+            var parentfolder = ParentPath;
             
             if (parentfolder == null)
                 throw new DirectoryNotFoundException();

@@ -22,7 +22,9 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
     
     public bool IsFirst { get; set; }
     [ObservableProperty]private Bitmap? _thumbnail;
+    [ObservableProperty] bool _isSelected;
 
+    public bool IsFirstPage => Book.GetPageIndex(this) == 0;
     public PixelSize? ImageSize { get; set; }
     [ObservableProperty] private Rect _ivpRect;
     [ObservableProperty] private double _ivpRectTop;
@@ -58,85 +60,6 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
     public DateTime Modified => Model.Modified;
     public int RandomIndex {get; set;}
 
-    ~PageViewModel()
-    {
-        Unload();
-    }
-
-
-    [RelayCommand] private void ListItemPointerPressed()=>IsSelected = true;
-    [RelayCommand]
-    private void OpenInExplorer()
-    {
-        try
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                //Process.Start(new ProcessStartInfo("explorer.exe", $"\"{path}\"") { UseShellExecute = true });
-                Process.Start("explorer.exe", string.Format("/select,\"{0}\"", Path));
-
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                string? desktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")
-                                  ?? Environment.GetEnvironmentVariable("DESKTOP_SESSION")
-                                  ?? string.Empty;
-                desktop = desktop.ToLowerInvariant();
-                
-                //GNOME (Nautilus)
-                if (desktop.Contains("gnome") || desktop.Contains("unity") || desktop.Contains("cinnamon"))
-                    Process.Start("nautilus", "--select " + Path);
-                //Dolphin (KDE)
-                else if (desktop.Contains("kde"))
-                    Process.Start("dolphin", "--select " + Path);
-                // Try with xdg-open (common across most Linux desktop environments)
-                else
-                    Process.Start(new ProcessStartInfo("xdg-open", $"\"{Book.Model.MetaDataPath}\"") { UseShellExecute = true });    
-            }
-            else
-            {
-                throw new PlatformNotSupportedException("Only Windows and Linux are supported.");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"Failed to open path: {ex.Message}");
-        }
-    }
-
-    
-    [RelayCommand(CanExecute = nameof(CanDelete))]
-    private async Task Delete()
-    {
-        var dialog = new OkCancelViewModel
-        {
-            Content = $"Do you want to delete [{Path}] permanently?"
-        };
-        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            ? desktop.MainWindow
-            : null;
-        if (window != null)
-        {
-            var result = await Book.MainViewModel.DialogService.ShowDialogAsync<bool>(window, dialog);
-            if (result)
-            {
-                try
-                {
-                    if (File.Exists(Path)) File.Delete(Path);
-                    else Console.Error.WriteLine($"Path not found: {Path}");
-
-                    // Wait a tick in case the OS needs to release file handles
-                    await Task.Yield();
-                }
-                catch (Exception ex) { Console.Error.WriteLine($"Hard delete failed: {ex.Message}"); }
-            }    
-        }
-    }
-    private bool CanDelete() => Book.Model is BookDirectory;
-    [ObservableProperty] bool _isSelected;
-
-    public bool IsFirstPage => Book.GetPageIndex(this) == 0;
-    
 
     public PageViewModel(BookViewModel book, Page page)
     {
@@ -168,6 +91,78 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
         Thumbnail?.Dispose();
         Thumbnail = null;
     }
+    [RelayCommand] private void ListItemPointerPressed()=>IsSelected = true;
+    [RelayCommand (CanExecute=nameof(CanOpenInExplorer))]
+    private void OpenInExplorer()
+    {
+        try
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                //Process.Start(new ProcessStartInfo("explorer.exe", $"\"{path}\"") { UseShellExecute = true });
+                Process.Start("explorer.exe", string.Format("/select,\"{0}\"", Path));
+
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                string? desktop = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")
+                                  ?? Environment.GetEnvironmentVariable("DESKTOP_SESSION")
+                                  ?? string.Empty;
+                desktop = desktop.ToLowerInvariant();
+                
+                //GNOME (Nautilus)
+                if (desktop.Contains("gnome") || desktop.Contains("unity") || desktop.Contains("cinnamon"))
+                    Process.Start("nautilus", $"--select \"{Path}\"");
+                //Dolphin (KDE)
+                else if (desktop.Contains("kde"))
+                    Process.Start("dolphin", $"--select \"{Path}\"");
+                // Try with xdg-open (common across most Linux desktop environments)
+                else
+                    Process.Start(new ProcessStartInfo("xdg-open", $"\"{Book.Model.MetaDataPath}\"") { UseShellExecute = true });    
+            }
+            else
+            {
+                throw new PlatformNotSupportedException("Only Windows and Linux are supported.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Failed to open path: {ex.Message}");
+        }
+    }
+
+    public bool CanOpenInExplorer() => Book.Model is BookDirectory;
+    
+    [RelayCommand(CanExecute = nameof(CanDelete))]
+    private async Task Delete()
+    {
+        var dialog = new OkCancelViewModel
+        {
+            Content = $"Do you want to delete [{Path}] permanently?"
+        };
+        var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow
+            : null;
+        if (window != null)
+        {
+            var result = await Book.MainViewModel.DialogService.ShowDialogAsync<bool>(window, dialog);
+            if (result)
+            {
+                try
+                {
+                    if (File.Exists(Path)) File.Delete(Path);
+                    else Console.Error.WriteLine($"Path not found: {Path}");
+
+                    // Wait a tick in case the OS needs to release file handles
+                    await Task.Yield();
+                }
+                catch (Exception ex) { Console.Error.WriteLine($"Hard delete failed: {ex.Message}"); }
+            }    
+        }
+    }
+    private bool CanDelete() => Book.Model is BookDirectory;
+    
+    
 
     public void ShowIvpRect()
     {

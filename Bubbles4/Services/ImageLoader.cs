@@ -195,6 +195,7 @@ public static class ImageLoader
 
     public static void WriteStreamToFile(Stream stream, string filePath)
     {
+        
         using var fileStream = File.Create(filePath);
         stream.CopyTo(fileStream);
     }

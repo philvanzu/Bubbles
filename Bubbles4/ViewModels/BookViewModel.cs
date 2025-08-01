@@ -408,10 +408,10 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
                 
                 //GNOME (Nautilus)
                 if (desktop.Contains("gnome") || desktop.Contains("unity") || desktop.Contains("cinnamon"))
-                    Process.Start("nautilus", "--select " + Path);
+                    Process.Start("nautilus", $"--select \"{Path}\"");
                 //Dolphin (KDE)
                 else if (desktop.Contains("kde"))
-                    Process.Start("dolphin", "--select " + Path);
+                    Process.Start("dolphin", $"--select \"{Path}\"");
                 // Try with xdg-open (common across most Linux desktop environments)
                 else
                     Process.Start(new ProcessStartInfo("xdg-open", $"\"{Model.MetaDataPath}\"") { UseShellExecute = true });    
@@ -429,123 +429,88 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
 
     
     [RelayCommand]
-    private void SaveCroppedIvpsToSize()
+    private async Task SaveCroppedIvpsToSize()
     {
-        var progress = MainViewModel.StatusProgress;
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                int maxSize = AppStorage.Instance.UserSettings.CropResizeToMax;
-                string prefix = "_";
-                string suffix = $"_{maxSize}.png";
-                int batchSize = 8;
-
-                var factories = new Queue<Func<Task>>();
-                foreach (var page in _pages.ToList())
-                {
-                    var cropRect = page.GetIvpCropRect();
-                    var directory = Model.MetaDataPath;
-                    string name = $"{prefix}{page.Name}{suffix}";
-                    string path = System.IO.Path.Combine(directory, name);
-
-                    factories.Enqueue(() => Model.SaveCroppedIvpToSizeAsync(page, path, cropRect, maxSize));
-                }
-
-                int count = 0;
-                int total = factories.Count;
-
-                progress.OnProgressUpdated(($"cropping task 0 of {total}", 0.0, false));
-
-                while (factories.Count > 0)
-                {
-                    var batch = new List<Task>();
-                    while (batch.Count < batchSize && factories.Count > 0)
-                    {
-                        var taskFactory = factories.Dequeue();
-                        batch.Add(taskFactory());
-                        count++;
-                    }
-
-                    await Task.WhenAll(batch);
-                    progress.OnProgressUpdated(($"cropping task {count} of {total}", (double)count / total, false));
-                }
-
-                progress.OnProgressUpdated(("", 1.0, true));
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine(ex);
-            }
-        });
-    }
-
-    /*
-    public async Task PromptBookmarkSelectedPage( string pageName)
-    {
-        var dialog = new OkCancelViewModel
-        {
-            Title ="Bookmark current page?",
-            Content = $"Do you want to bookmark your current position in {Name}?",
+        
+        int maxSize = AppStorage.Instance.UserSettings.CropResizeToMax;
+        var text = $"Render all pages in {Name} to max {maxSize} pixels (png).\n" +
+                   $"Render Size is defined in User Settings. '$PageName' and '$Index' will be replaced by the page filename and the page's index. \n";
+        if (_library.Config.UseIVPs)
+            text += $"Image Viewing Parameters will be used to crop the image first. If you don't want that make sure to clear Ivps first.";
+        
+        var dialog = new RenameDialogViewModel(){
+            Title = "Render to MaxSize",
+            ContentText = text,
+            ShowNewName = true,
+            NewName = $"_$Index_$PageName_{maxSize}",
         };
         var window = MainViewModel.MainWindow;
         if (window != null)
         {
-            var result = await MainViewModel.DialogService.ShowDialogAsync<bool>(window, dialog);
-            if (result)
+            var result = await MainViewModel.DialogService.ShowDialogAsync<string?>(window, dialog);
+            if (result != null)
             {
-                try
+                
+                var progress = MainViewModel.StatusProgress;
+                progress.CancellationTokenSource = new CancellationTokenSource();
+                var token = progress.CancellationTokenSource.Token;
+                _ = Task.Run(async () =>
                 {
-                    File.WriteAllText(Model.BookmarkPath, pageName);
-                }
-                catch (Exception ex) { Console.Error.WriteLine($"bookmark file creation failed: {ex.Message}"); }
-            } 
-            if (_bookmarkBlocker != null)
-            {
-                MainViewModel.ShutdownCoordinator.UnregisterBlocker(_bookmarkBlocker);
-                _bookmarkBlocker = null;
+                    try
+                    {
+                        int batchSize = 8;
+                        var directory = Model.MetaDataPath;
+                        if (!Directory.Exists(directory))
+                            Directory.CreateDirectory(directory);
+
+                        var factories = new Queue<Func<Task>>();
+                        int i = 0;
+                        int padLength = _pages.Count.ToString().Length;
+                        foreach (var page in _pages.ToList())
+                        {
+                            var cropRect = page.GetIvpCropRect();
+                            var filename = result.Replace("$PageName", $"{page.Name}")
+                                .Replace("$Index", i.ToString($"D{padLength}"));
+                            string path = System.IO.Path.Combine(directory, filename + ".png");
+                            i++;
+                            factories.Enqueue(() =>
+                                Model.SaveCroppedIvpToSizeAsync(page, path, cropRect, maxSize, token));
+                        }
+
+                        int count = 0;
+                        int total = factories.Count;
+
+                        progress.Progress.Report(($"cropping task 0 of {total}", 0.0, false));
+
+                        while (factories.Count > 0)
+                        {
+                            var batch = new List<Task>();
+                            while (batch.Count < batchSize && factories.Count > 0)
+                            {
+                                var taskFactory = factories.Dequeue();
+                                batch.Add(taskFactory());
+                                count++;
+                            }
+
+                            await Task.WhenAll(batch);
+                            token.ThrowIfCancellationRequested();
+                            progress.Progress.Report(($"cropping task {count} of {total}", (double)count / total,
+                                false));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex is not OperationCanceledException)
+                            Console.Error.WriteLine(ex);
+                    }
+                    finally
+                    {
+                        progress.Progress.Report(("", 0, true));
+                    }
+                }, token);
             }
         }
     }
-
-    public async Task PromptLoadBookmark()
-    {
-        string? name = null;
-        try
-        {
-            name = File.ReadAllText(Model.BookmarkPath);
-        }
-        catch (Exception ex) {Console.WriteLine(ex); }
-        finally
-        {
-            try {File.Delete(Model.BookmarkPath);}
-            catch (Exception ex) {Console.WriteLine(ex); }
-        }
-
-        PageViewModel? bookmarked = null;
-        if (name != null)
-            bookmarked = _pages.FirstOrDefault(x => x.Name == name);
-        if (bookmarked != null)
-        {
-            var dialog = new OkCancelViewModel
-            {
-                Title ="Load Bookmark?",
-                Content = $"Do you want to load bookmarked page [{bookmarked.Name}]?"
-            };
-            var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-                ? desktop.MainWindow
-                : null;
-            if (window != null)
-            {
-                var result = await MainViewModel.DialogService.ShowDialogAsync<bool>(window, dialog);
-                if (result)
-                {
-                    bookmarked.IsSelected = true;
-                }    
-            }    
-        }
-    }
-*/
     public void RequestScrollToIndex(int index)
     {
         ScrollToIndexRequested?.Invoke(this, index);

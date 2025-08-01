@@ -23,7 +23,7 @@
                 Tag="{Binding IsSelected}">
             <Border.ContextMenu>
                 <ContextMenu>
-                    <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}" />
+                    <MenuItem Header="Open in Explorer" Command="{Binding OpenInExplorerCommand}"/>
                     <MenuItem Header="Delete" Command="{Binding DeleteCommand}" />
                 </ContextMenu>
             </Border.ContextMenu>

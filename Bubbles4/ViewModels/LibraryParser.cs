@@ -14,16 +14,14 @@ namespace Bubbles4.ViewModels;
 public partial class LibraryViewModel
 {
     private ConcurrentDictionary<string, List<BookBase>?> _parsingData = new ();
-    private CancellationTokenSource? _parsingCts;
 
-    public virtual async Task StartParsingLibraryAsync(string path, IProgress<(string, double, bool)> progress)
+    public virtual async Task StartParsingLibraryAsync(string path, ProgressViewModel progress)
     {
         // Cancel previous parsing run if active
-        _parsingCts?.Cancel();
-        _parsingCts?.Dispose();
-        _parsingCts = new CancellationTokenSource();
-        var token = _parsingCts.Token;
+        if (progress.CancellationTokenSource == null)
+            throw new OperationCanceledException("Progess object not initialized properly.");
 
+        var token = progress.CancellationTokenSource.Token;
         //Clear();
 
         try
@@ -31,65 +29,70 @@ public partial class LibraryViewModel
             Dispatcher.UIThread.Post(()=>IsLoading = true);
             var info  = new DirectoryInfo(path);
             var root = new LibraryNodeViewModel(this,info.FullName, info.Name, info.CreationTime, info.LastWriteTime);
-            await ParseLibraryNodeAsync(root, token,  book =>
+            await ParseLibraryNodeAsync(root, progress,  book =>
             {
-                if(_parsingData[path] == null)
-                    _parsingData[path] = new List<BookBase>();
+                try
+                {
+                    token.ThrowIfCancellationRequested();
+                    if(_parsingData[path] == null)
+                        _parsingData[path] = new List<BookBase>();
                 
-                _parsingData[path]!.Add(book);
+                    _parsingData[path]!.Add(book);    
+                }
+                catch(OperationCanceledException){}
                 // Marshal to UI thread
-            }, progress: progress);
+            });
+            token.ThrowIfCancellationRequested();
             Dispatcher.UIThread.Post(()=>
             {
-                List<BookViewModel> batch = new();
-                foreach (var node in _parsingData)
+                try
                 {
-                    if (node.Value == null) continue;
-                    batch.AddRange(node.Value.Select(bookbase => 
-                        new BookViewModel(bookbase, this, node.Key)));
+                    token.ThrowIfCancellationRequested();
+                    List<BookViewModel> batch = new();
+                    foreach (var node in _parsingData)
+                    {
+                        if (node.Value == null) continue;
+                        batch.AddRange(node.Value.Select(bookbase => 
+                            new BookViewModel(bookbase, this, node.Key)));
+                    }
+                
+                    LibraryNodeViewModel? selected = null;
+                    if (SelectedNode != null)
+                        selected = root.FindNode(SelectedNode.Path);
+                
+                    RootNode = root;    
+                    if(selected != null) SelectedNode = selected;
+                
+                    FinalizeBookCollection(batch);
+                    OnPropertyChanged(nameof(RootNode));
+                    IsLoading = false;    
                 }
-                
-                LibraryNodeViewModel? selected = null;
-                if (SelectedNode != null)
-                    selected = root.FindNode(SelectedNode.Path);
-                
-                RootNode = root;    
-                if(selected != null) SelectedNode = selected;
-                
-                FinalizeBookCollection(batch);
-                OnPropertyChanged(nameof(RootNode));
-                IsLoading = false;
+                catch(OperationCanceledException){}
             });
         }
         catch (OperationCanceledException)
         {
+            
             // Optional: handle cancellation gracefully
         }
 
     }
 
-    public void CancelParsing()
-    {
-        _parsingCts?.Cancel();
-        _parsingCts?.Dispose();
-        _parsingCts = null;
-    }
-
     public async Task<bool> ParseLibraryNodeAsync(  LibraryNodeViewModel node,
-                                                    CancellationToken cancellationToken,
+                                                    ProgressViewModel progress,
                                                     Action<BookBase>? bookToParent = null,
-                                                    int maxParallelism = 4,
-                                                    IProgress<(string, double, bool)>? progress = null)
+                                                    int maxParallelism = 4)
     {
         if (!Directory.Exists(node.Path)) return false;
         
-        progress?.Report(($"Loaded Directories : {++node.Root.progressCounter}", -1.0, false));
+        progress.Progress.Report(($"Loaded Directories : {++node.Root.progressCounter}", -1.0, false));
         var dirInfo = new DirectoryInfo(node.Path);
         var subDirs = dirInfo.GetDirectories();
         var files = dirInfo.GetFiles();
 
         var bookList = new List<BookBase>();
         var imageCount = 0;
+        var cancellationToken =  progress.CancellationTokenSource!.Token;
 
         // Recursively parse subdirectories
         var subTasks = new List<Task<bool>>();
@@ -112,16 +115,17 @@ public partial class LibraryViewModel
                 {
                     try
                     {
-                        return await ParseLibraryNodeAsync(subNode, cancellationToken,
-                            (BookBase) => { bookList.Add(BookBase); }, maxParallelism, progress);
+                        return await ParseLibraryNodeAsync(subNode, progress,
+                            (BookBase) => { bookList.Add(BookBase); }, maxParallelism);
                     }
-                    catch (OperationCanceledException) { }
+                    catch (OperationCanceledException) {  }
                     catch (Exception ex){Console.WriteLine(ex);}
                     return false;
 
                 }, cancellationToken);
                 subTasks.Add(task);
             }
+            catch (OperationCanceledException) { }
             finally
             {
                 throttler.Release();

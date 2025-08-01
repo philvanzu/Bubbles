@@ -90,7 +90,8 @@
                                           IsVisible="{Binding CanRenamePages}"/>
                                 <MenuItem Header="Clear Image Viewing Params"
                                           Command="{Binding ClearIVPCollectionCommand}"/>
-                                <MenuItem Header="IVP Crop and Resize down to MaxResize (in user settings)" 
+                                <MenuItem Header="IVP Crop and Render to file" 
+                                          ToolTip.Tip="Use stored Ivps to Crop, then resize to UserSettings defined MaxRenderSize,\n and Render to png in the album folder.\n Clear Ivps first if you don't want to crop."
                                           Command ="{Binding SaveCroppedIvpsToSizeCommand}"/>
 
                             </MenuItem>

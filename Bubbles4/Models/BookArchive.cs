@@ -350,17 +350,20 @@ public class BookArchive : BookBase
 
         return null;
     }
-    public override async Task SaveCroppedIvpToSizeAsync(PageViewModel page, string path, Rect? cropRect, int maxSize)
+    public override async Task SaveCroppedIvpToSizeAsync(PageViewModel page, string path, Rect? cropRect, int maxSize, CancellationToken token)
     {
+        
         var key = page.Path;
         
         MemoryStream? stream = null;
         try
         {
+            token.ThrowIfCancellationRequested();
             
             IArchive? archive = null;
             FileStream? fstream = null;
-            await FileIOThrottler.WaitAsync();
+            await FileIOThrottler.WaitAsync(token);
+            token.ThrowIfCancellationRequested();
             try
             {
                 var pair = TryOpenArchive();
@@ -368,6 +371,7 @@ public class BookArchive : BookBase
                 (archive, fstream) = pair.Value;
 
                 stream = ExtractPage(archive, key);
+                token.ThrowIfCancellationRequested();
             }
             catch (Exception ex)
             {
@@ -386,6 +390,7 @@ public class BookArchive : BookBase
                 if (resizedStream != null)
                 {
                     await FileIOThrottler.WaitAsync();
+                    token.ThrowIfCancellationRequested();
                     try
                     {
                         using var fileStream = File.Create(path);
@@ -395,6 +400,8 @@ public class BookArchive : BookBase
 
                         await resizedStream.CopyToAsync(fileStream);
                         await fileStream.FlushAsync();
+                        File.SetCreationTime(path, Created);
+                        File.SetLastWriteTime(path, Modified);
                     }
                     finally
                     {

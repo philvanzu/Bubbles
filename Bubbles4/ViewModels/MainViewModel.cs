@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Bubbles4.Models;
 using System.Threading.Tasks;
 using Avalonia.Threading;
@@ -183,7 +184,8 @@ public partial class MainViewModel : ViewModelBase
             OnPropertyChanged(nameof(LibraryName));
             
             
-            IProgress<(string, double, bool)> progress = _progressDialog.Progress;
+            ProgressViewModel progress = _progressDialog;
+            
             Dispatcher.UIThread.Post(()=> _ = _progressDialog.Show(), DispatcherPriority.Render);
 
             _ = Task.Run(async () =>
@@ -197,25 +199,34 @@ public partial class MainViewModel : ViewModelBase
 
                         await _progressDialog.DialogShown;
                         // fast cache load will report progress to the progress dialog
-                        var success = await Library.LoadSerializedCollection(json, progress);
+                        var success = await Library.LoadSerializedCollection(json, progress.Progress);
                         await Task.Delay(1);
-                        await Dispatcher.UIThread.InvokeAsync(() => {}, DispatcherPriority.Background);
+                        await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
                         // slow parsing will report progress to the status bar
-                        if(success) progress = StatusProgress.Progress;
+                        if (success)
+                        {
+                            progress = StatusProgress;
+                        }
                         else throw new Exception("Failed to load library data");
                     }
-                    catch
+                    catch 
                     {
                         //fast load failed, parsing process will report to the progress dialog
-                        progress = _progressDialog.Progress;
+                        progress = _progressDialog;
                         await _progressDialog.DialogShown;
                     }
                 }
 
                 try
                 {
+                    progress.CancellationTokenSource = new CancellationTokenSource();
                     await Library.StartParsingLibraryAsync(libraryPath, progress);
-                    
+                    progress.CancellationTokenSource?.Token.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    CloseLibrary();
+                    return;
                 }
                 catch (Exception ex)
                 {
@@ -224,11 +235,9 @@ public partial class MainViewModel : ViewModelBase
                 finally
                 {
                     //ensure the dialog gets closed after library 
-                    progress.Report(("", 0, true));
-                    //_watcher.BeginBuffering();
-                    _watcher.StartWatching(libraryPath, true, Library.FileSystemChanged);
-                    //_watcher.FlushBufferedEvents();
-                    
+                    progress.Progress.Report(("", 0, true));
+                    if(Library != null)
+                        _watcher.StartWatching(libraryPath, true, Library.FileSystemChanged);
                 }
 
             });

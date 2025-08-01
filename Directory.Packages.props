@@ -29,7 +29,7 @@
     <PackageVersion Include="PDFiumSharp.NativeBinaries" Version="1.4660.0" />
     <PackageVersion Include="SDL2-CS" Version="2.0.0" />
     <PackageVersion Include="SharpCompress" Version="0.40.0" />
-    <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.10" />
+    <PackageVersion Include="SixLabors.ImageSharp" Version="3.1.11" />
     <PackageVersion Include="SkiaSharp" Version="3.119.0" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="3.119.0" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.3" />

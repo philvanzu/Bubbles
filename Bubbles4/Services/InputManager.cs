@@ -16,9 +16,10 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Bubbles4.Services;
 
-public partial class InputManager: IDisposable
+public partial class InputManager : IDisposable
 {
     #region Definitions
+
     class InputBindings
     {
         public int? DragZoomButton { get; set; }
@@ -29,30 +30,34 @@ public partial class InputManager: IDisposable
         public ButtonName? StickInverter { get; set; }
         public string? Bindings { get; set; }
     }
+
     public record KeyCombo(Key Key, KeyModifiers Modifiers);
+
     public enum MouseButton
     {
         LeftMouseButton,
         MiddleMouseButton,
         RightMouseButton
     }
+
     #endregion
+
     #region init
 
     private static readonly Lazy<InputManager> _instance = new(() => new InputManager());
     public static InputManager Instance => _instance.Value;
-    
-    private readonly SdlInputService _sdlInput=new();
-    private readonly CancellationTokenSource _cts = new();
-    
-    
+
+    private readonly SdlInputService _sdlInput = new();
+    private CancellationTokenSource? _sdlCts;
+
+
     public static MainViewModel? MainViewModel { get; set; }
     public static FastImageViewer? ImageViewer { get; set; }
 
-    
-    
+
+
     public bool IsInitialized { get; private set; }
-    
+
 
     public MouseButton DragZoomButton { get; set; } = MouseButton.MiddleMouseButton;
     public MouseButton DragPanButton { get; set; } = MouseButton.LeftMouseButton;
@@ -61,9 +66,9 @@ public partial class InputManager: IDisposable
     public StickName ZoomStick { get; set; } = StickName.RStick;
     public StickName PanStick { get; set; } = StickName.LStick;
     public ButtonName? StickInverter { get; set; } = ButtonName.Paddle1;
-    
+
     private bool _inverted;
-    
+
     private Dictionary<string, ActionBindings> _bindings = new()
     {
         ["Next Page"] = new ActionBindings("Next Page", Next),
@@ -91,7 +96,7 @@ public partial class InputManager: IDisposable
         ["Rotate Left"] = new ActionBindings("Rotate Left", RotateLeft),
     };
 
-    
+
 
 
 
@@ -101,24 +106,33 @@ public partial class InputManager: IDisposable
     private readonly Dictionary<ButtonName, ActionBindings> _buttonUpMap = new();
     public static HashSet<KeyCombo> UsedKeyCombos { get; } = new();
     public static HashSet<ButtonName> UsedButtons { get; } = new();
-    
+
 
     #endregion
 
-    
+
     public InputManager()
     {
         _sdlInput.Initialize();
 
-        
+
         _sdlInput.ButtonUp += ControllerButtonUp;
         _sdlInput.ButtonDown += ControllerButtonDown;
-        _sdlInput.StickUpdated +=  ControllerStickUpdated;
-        Task.Run(async() =>
+        _sdlInput.StickUpdated += ControllerStickUpdated;
+        StartSdlService();
+    }
+
+    public void StartSdlService()
+    {
+        Task.Run(async () =>
         {
             try
             {
-                await _sdlInput.StartPollingAsync(_cts.Token);
+                _sdlCts?.Cancel();
+                _sdlCts?.Dispose();
+                _sdlCts = new();
+                _sdlInput.Enabled = true;
+                await _sdlInput.StartPollingAsync(_sdlCts.Token);    
             }
             catch (TaskCanceledException)
             {
@@ -132,14 +146,22 @@ public partial class InputManager: IDisposable
 
         });
     }
+
+    public void StopSdlService()
+    {
+        _sdlInput.Enabled = false;
+        _sdlCts?.Cancel();
+        _sdlCts?.Dispose();
+        _sdlCts = null;
+    }
+
     public void Dispose()
     {
-        _cts.Cancel();
+        StopSdlService();
         _sdlInput.Shutdown();
-        _cts.Dispose();
     }
-    
-    #region State
+
+#region State
     void Reset()
     {
         IsInitialized = false;

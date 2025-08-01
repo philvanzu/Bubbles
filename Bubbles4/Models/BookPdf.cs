@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
@@ -8,6 +9,7 @@ using Bubbles4.Services;
 using Bubbles4.ViewModels;
 using PDFiumSharp;
 using PDFiumSharp.Types;
+using SkiaSharp;
 
 namespace Bubbles4.Models;
 
@@ -36,13 +38,13 @@ public class BookPdf : BookBase
         {
             using var doc = new PdfDocument(Path);
             PageCount = doc.Pages.Count;
-            
+            var padLength = PageCount.ToString().Length;
             for (int i = 0; i < PageCount; i++)
             {
                 var p = new Page
                 {
                     Path = $"{Path}/page_{i}",
-                    Name = $"page_{i}",
+                    Name = $"page_{i.ToString($"D{padLength}")}",
                     Index = i,
                     Created = Created,
                     Modified = Modified
@@ -183,9 +185,39 @@ public class BookPdf : BookBase
         return null;
     }
     
-    public override async Task SaveCroppedIvpToSizeAsync(PageViewModel page, string path, Rect? cropRect, int maxSize)
+    public override async Task SaveCroppedIvpToSizeAsync(PageViewModel page, string path, Rect? cropRect, int maxSize, CancellationToken token)
     {
-        Console.WriteLine($"Saving cropped image from PDF is not implemented : {path}");
-        await Task.CompletedTask;
+        
+        try
+        {
+            token.ThrowIfCancellationRequested();
+            await FileIOThrottler.WaitAsync(token);
+            token.ThrowIfCancellationRequested();
+            using var doc = new PdfDocument(Path);
+            using var pdfPage = doc.Pages[page.Index];
+            var targetDimensions = ImageLoader.GetTargetDimensions(
+                (int)pdfPage.Width*8, 
+                (int)pdfPage.Height*8, 
+                maxSize);
+
+            using var bitmap = new PDFiumBitmap(targetDimensions.width, targetDimensions.height, true);
+            bitmap.Fill(new PDFiumColor(255, 255, 255));
+            pdfPage.Render(bitmap);
+            using var stream = bitmap.AsBmpStream();
+            using var pngStream = ImageLoader.DecodeCropImage(stream, maxSize, cropRect);
+            ImageLoader.WriteStreamToFile(pngStream, path);
+            File.SetCreationTime(path, Created);
+            File.SetLastWriteTime(path, Modified);
+        }
+        catch (Exception ex)
+        {
+            if (ex is not OperationCanceledException)
+                Console.WriteLine($"Full image load failed: {ex}");
+        }
+        finally
+        {
+            FileIOThrottler.Release();
+        }
+
     }
 }

@@ -58,6 +58,7 @@ public abstract class BookBase
     }
     public abstract string MetaDataPath { get; }
     public string IvpPath => MetaDataPath + ".ivp";
+    public string? ParentPath => System.IO.Path.GetDirectoryName(Path);
 
     public string Serialize()
     {
@@ -95,14 +96,14 @@ public abstract class BookBase
         return null;
     }
 
-    public abstract Task SaveCroppedIvpToSizeAsync(PageViewModel page, string path, Rect? cropRect, int maxSize);
+    public abstract Task SaveCroppedIvpToSizeAsync(PageViewModel page, string path, Rect? cropRect, int maxSize, CancellationToken cancellationToken);
 
     public virtual void RenameFile(string newName)
     {
         try
         {
             var ext = System.IO.Path.GetExtension(Path);
-            var folder = System.IO.Path.GetDirectoryName(Path);
+            var folder = ParentPath;
             if (folder != null)
             {
                 var newPath = System.IO.Path.Combine(folder, newName);

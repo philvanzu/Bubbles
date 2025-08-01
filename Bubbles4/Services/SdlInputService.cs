@@ -15,6 +15,7 @@ public class SdlInputService
     private readonly Dictionary<SDL.SDL_GameControllerButton, bool> _buttonStates = new();
     private readonly Dictionary<SDL.SDL_GameControllerAxis, double> _axisStates = new();
     private bool _rtrig, _ltrig;
+    public bool Enabled { get; set; } = true;
     
     public void Initialize()
     {
@@ -83,6 +84,7 @@ public class SdlInputService
 
     public bool PollInput()
     {
+        if (!Enabled) return false;
         SDL.SDL_Event e;
         while (SDL.SDL_PollEvent(out e) != 0)
         {

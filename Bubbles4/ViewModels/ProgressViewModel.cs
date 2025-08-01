@@ -1,6 +1,8 @@
 using System;
+using System.Threading;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Bubbles4.ViewModels;
 
@@ -12,6 +14,16 @@ public partial class ProgressViewModel: ViewModelBase
     [ObservableProperty]private bool _isBusy=false;
     private Progress<(string msg, double progress, bool completed)> _progress;
     public IProgress<(string msg, double progress, bool completed)> Progress => _progress;
+    private CancellationTokenSource? _cancellationTokenSource;
+    public CancellationTokenSource? CancellationTokenSource 
+    { 
+        get => _cancellationTokenSource;
+        set
+        {
+            SetProperty(ref _cancellationTokenSource, value);
+            OnPropertyChanged(nameof(CanPressCancel));
+        } 
+    }
 
     public ProgressViewModel()
     {
@@ -25,7 +37,6 @@ public partial class ProgressViewModel: ViewModelBase
         if (progress.completed)
         {
             Close();
-            IsBusy = false;
             return;
         }
         if (!IsBusy) IsBusy = true;
@@ -45,11 +56,21 @@ public partial class ProgressViewModel: ViewModelBase
         }
     }
 
+    [RelayCommand]
+    private void CancelPressed()
+    {
+        if(CancellationTokenSource != null)
+            CancellationTokenSource.Cancel();
+    }
+    public bool CanPressCancel =>CancellationTokenSource!=null;
+
     public virtual void Close()
     {
         IsIndeterminate = false;
         Message = "";
         ProgressValue = 0;
+        IsBusy = false;
+        CancellationTokenSource = null;
     }
 
 }
