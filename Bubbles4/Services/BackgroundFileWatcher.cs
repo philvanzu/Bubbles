@@ -16,7 +16,7 @@ public class BackgroundFileWatcher
     private Channel<FileSystemEventArgs> _eventChannel = Channel.CreateUnbounded<FileSystemEventArgs>();
     private CancellationTokenSource? _cts;
     private Task? _processingTask;
-
+    private string? _rootPath;
     private Action<FileSystemEventArgs>? _onFileChanged;
 
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _debounceTokens = new();
@@ -40,7 +40,7 @@ public class BackgroundFileWatcher
         _cts = new CancellationTokenSource();
 
         _processingTask = Task.Run(() => ProcessEventsAsync(_cts.Token));
-
+        _rootPath = path;
         _watcher = new FileSystemWatcher(path)
         {
             IncludeSubdirectories = recursive,
@@ -79,10 +79,12 @@ public class BackgroundFileWatcher
         bool old_ = FileAssessor.IsWatchable(e.OldFullPath);
         if (!new_ && !old_) return;
 
-        if (old_ || new_)
+        if (old_ || new_ )
         {
-            HandleChange(MakeArgs(WatcherChangeTypes.Deleted, e.OldFullPath), true);
-            HandleChange(MakeArgs(WatcherChangeTypes.Created, e.FullPath), true);
+            if(FileAssessor.IsDescendantPath(_rootPath!, e.OldFullPath))
+                HandleChange(MakeArgs(WatcherChangeTypes.Deleted, e.OldFullPath), true);
+            if(FileAssessor.IsDescendantPath(_rootPath!, e.FullPath))
+                HandleChange(MakeArgs(WatcherChangeTypes.Created, e.FullPath), true);
         }
     }
     private static FileSystemEventArgs MakeArgs(WatcherChangeTypes type, string fullPath)
@@ -133,6 +135,7 @@ public class BackgroundFileWatcher
             _watcher = null;
         }
 
+        _rootPath = null;
         _cts?.Dispose();
         _cts = null;
         _processingTask = null;

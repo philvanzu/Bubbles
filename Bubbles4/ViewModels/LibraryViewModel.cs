@@ -224,11 +224,13 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
             .Where(b => MatchesKeywords(b, _filters))
             .OrderBy(b => b, comparer);
 
-        //__book0__issue__hack
-        //if( Books.Count != 0 )Books[0].Thumbnail?.Dispose();
-
         _booksMutable.Clear();
         _booksMutable.AddRange(filtered);
+
+        if (Books.Count == 0)
+        {
+            Console.WriteLine("Sort resulted in Empty books list. _books count :{_books.Count}. _filters :[{_filters.ToString()}]");
+        }
 
         OnPropertyChanged(nameof(Books));
     }
@@ -574,54 +576,53 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
     
     private async Task ProcessWatcherEvents()
     {
-        bool dosort = false;
-        HashSet<string> addedPaths = new(StringComparer.OrdinalIgnoreCase);
-        while (_watcherProcessQueue.TryDequeue(out var item))
+        await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            var add = item.add;
-            var remove = item.remove;
-            var sort = item.sort;
-            await Dispatcher.UIThread.InvokeAsync(() =>
+            bool dosort = false;
+            while (_watcherProcessQueue.TryDequeue(out var item))
             {
-                if (remove != null)
+                try
                 {
-                    var node = RootNode.FindNode(remove.LibraryNodeId);
-                    if (_books.Remove(remove))
+                    var add = item.add;
+                    var remove = item.remove;
+                    var sort = item.sort;
+
+                    if (remove != null)
                     {
-                        dosort = true;
-                        if (node != null)
+                        var node = RootNode.FindNode(remove.LibraryNodeId);
+                        if (_books.Remove(remove))
                         {
-                            node.BooksCountChanged();
-                            RemoveNodeIfEmpty(node);
+                            if (node != null)
+                            {
+                                node.BooksCountChanged();
+                                RemoveNodeIfEmpty(node);
+                            }
+                            dosort = true;
                         }
                     }
-                }
 
-                if (add != null && _books.All(b => b.Path != add.Path))
-                {
-                    
-                    var node = RootNode.FindNode(add.LibraryNodeId);
-                    if (node is null)
+                    if (add != null && _books.All(b => b.Path != add.Path) )
                     {
-                        //Create the node if we need to
-                        node = RootNode.FindClosestNode(add.LibraryNodeId);
-                        if (node is null) return;
-                        node = AddNode (node, add.LibraryNodeId);
-                        if (node is null) return;
+                        var node = RootNode.FindNode(add.LibraryNodeId);
+                        if (node is null)
+                        {
+                            //Create the node if we need to
+                            node = RootNode.FindClosestNode(add.LibraryNodeId);
+                            if (node is null) continue;
+                            node = AddNode (node, add.LibraryNodeId);
+                            if (node is null) continue;
+                        }
+                        _books.Add(add);
+                        node.BooksCountChanged();
+                        dosort = true;
                     }
-                    _books.Add(add);
-                    node.BooksCountChanged();
-                    dosort = true;
+                    if (sort) dosort = true;    
                 }
-
-                if (sort) dosort = true;
-            });
-        }
-
-        if (dosort)
-        {
-            await Dispatcher.UIThread.InvokeAsync(() => Sort(CurrentSortOption, CurrentSortAscending));
-        }
+                catch (Exception e){Console.Error.WriteLine(e);}
+            }
+            
+            if (dosort) Sort(CurrentSortOption, CurrentSortAscending);
+        });
     }
     public void RemoveEmptyBook(BookViewModel bookViewModel)
     {

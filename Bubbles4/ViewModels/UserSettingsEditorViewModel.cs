@@ -28,6 +28,7 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
     [ObservableProperty] private double _turnpageBouncingTime;
     [ObservableProperty] private int _cropResizeToMax;
     [ObservableProperty] private int _bookmarkValidity;
+    [ObservableProperty] private string? _realesrgan_ncnn_vulkan_path; 
     [ObservableProperty]ReadOnlyObservableCollection<InputManager.ActionBindings> _actionBindings;
     
     public IEnumerable<InputManager.MouseButton> MouseButtons 
@@ -104,6 +105,7 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
         ShowPageName = pref.ShowPageName;
         CropResizeToMax = pref.CropResizeToMax;
         BookmarkValidity = pref.BookmarkValidity;
+        Realesrgan_ncnn_vulkan_path = pref.Realesrgan_ncnn_vulkan_path;
         _actionBindings = new ReadOnlyObservableCollection<InputManager.ActionBindings>(InputManager.Instance.Bindings);
     }
 
@@ -152,6 +154,7 @@ public partial class UserSettingsEditorViewModel: ViewModelBase
             ShowPageName = ShowPageName,
             ShowImageSize = ShowImageSize,
             BookmarkValidity = BookmarkValidity,
+            Realesrgan_ncnn_vulkan_path = Realesrgan_ncnn_vulkan_path,
             
         };  
         

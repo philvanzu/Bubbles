@@ -61,21 +61,21 @@ namespace Bubbles4.Controls {
             get => GetValue(DataProperty);
             set => SetValue(DataProperty, value);
         }
-        public static readonly StyledProperty<LibraryConfig?> ConfigProperty =
-            AvaloniaProperty.Register<FastImageViewer, LibraryConfig?>(nameof(Config));
-        public LibraryConfig? Config
+        public static readonly StyledProperty<LibraryViewModel?> LibraryProperty =
+            AvaloniaProperty.Register<FastImageViewer, LibraryViewModel?>(nameof(Library));
+        public LibraryViewModel? Library
         {
-            get => GetValue(ConfigProperty);
-            set => SetValue(ConfigProperty, value);
+            get => GetValue(LibraryProperty);
+            set => SetValue(LibraryProperty, value);
         }
 
         private bool _isFullscreen;
 
         
-        bool UseIvp => _isFullscreen && Config != null && Config.UseIVPs;
-        bool InScrollMode => _isFullscreen && Config?.ScrollAction == LibraryConfig.ScrollActions.Scroll;
+        bool UseIvp => _isFullscreen && Library?.Config != null && Library.Config.UseIVPs;
+        bool InScrollMode => _isFullscreen && Library?.Config.ScrollAction == LibraryConfig.ScrollActions.Scroll;
         bool BookChanged => _page?.Book != _previousBook;
-        private bool KeepZoom => _isFullscreen && Config?.LookAndFeel == LibraryConfig.LookAndFeels.Reader && !BookChanged; 
+        private bool KeepZoom => _isFullscreen && Library?.Config.LookAndFeel == LibraryConfig.LookAndFeels.Reader && !BookChanged; 
         public FastImageViewer()
         {
             Focusable = true;
@@ -179,8 +179,8 @@ namespace Bubbles4.Controls {
                                 var ivp = _page?.Ivp;
                                 if (ivp != null && UseIvp)
                                 {
-                                    if (Config?.AnimateIVPs == true) 
-                                        AnimateIVP(ivp, Config.Fit);
+                                    if (Library?.Config.AnimateIVPs == true) 
+                                        AnimateIVP(ivp, Library?.Config.Fit);
                                     else 
                                         RestoreFromIVP(ivp);
                                 }
@@ -193,7 +193,7 @@ namespace Bubbles4.Controls {
                                 }
                                 else
                                 {
-                                    switch (Config?.Fit)
+                                    switch (Library?.Config.Fit)
                                     {
                                         case LibraryConfig.FitTypes.Height : FitHeight();
                                             break;
@@ -229,7 +229,7 @@ namespace Bubbles4.Controls {
             {
                 //Console.WriteLine($"fstoggled: {_fullscreenToggled}, fs:{_isFullscreen}, bounds:{Bounds.Size}");
                 var ivp = _ivpAnim?.IsRunning == true ? _ivpAnim.EndIvp : GetIVP();
-                double defaultzoom = Config?.Fit switch
+                double defaultzoom = Library?.Config.Fit switch
                 {
                     LibraryConfig.FitTypes.Best => _fitZoom,
                     LibraryConfig.FitTypes.Height => _fitHZoom,
@@ -281,10 +281,10 @@ namespace Bubbles4.Controls {
                         //Console.WriteLine("fullscreen on => ivp found, restoring it");
                         RestoreFromIVP(_page.Ivp);
                     }
-                    else if (Config != null)
+                    else if (Library?.Config != null)
                     {
-                        //Console.WriteLine("fullscreen on => config.Fit");
-                        switch (Config?.Fit)
+                        //Console.WriteLine("fullscreen on => Library?.Config.Fit");
+                        switch (Library?.Config?.Fit)
                         {
                             case LibraryConfig.FitTypes.Height:
                                 
@@ -869,7 +869,7 @@ namespace Bubbles4.Controls {
         }
         public void OnMouseWheel(object? sender, PointerWheelEventArgs e)
         {
-            if (Config?.ScrollAction == LibraryConfig.ScrollActions.TurnPage || !_isFullscreen )
+            if (Library?.Config.ScrollAction == LibraryConfig.ScrollActions.TurnPage || !_isFullscreen )
             {
                 if (Math.Abs(e.Delta.Y - (-1.0)) < 0.01f) _ = MainViewModel?.Next();
                 
@@ -948,7 +948,7 @@ namespace Bubbles4.Controls {
 
         public void OnDownArrowPressed()
         {
-            if (Config?.ScrollAction == LibraryConfig.ScrollActions.Scroll)
+            if (Library?.Config.ScrollAction == LibraryConfig.ScrollActions.Scroll)
             {
                 Scroll(0, -1.0);
             }
@@ -961,7 +961,7 @@ namespace Bubbles4.Controls {
 
         public void OnUpArrowPressed()
         {
-            if (Config?.ScrollAction == LibraryConfig.ScrollActions.Scroll)
+            if (Library?.Config.ScrollAction == LibraryConfig.ScrollActions.Scroll)
             {
                 Scroll(0, 1.0);
             }
@@ -974,7 +974,7 @@ namespace Bubbles4.Controls {
 
         public void OnRightArrowPressed()
         {
-            if (Config?.ScrollAction == LibraryConfig.ScrollActions.Scroll)
+            if (Library?.Config.ScrollAction == LibraryConfig.ScrollActions.Scroll)
             {
                 Scroll(-1.0, 0);
             }
@@ -987,7 +987,7 @@ namespace Bubbles4.Controls {
 
         public void OnLeftArrowPressed()
         {
-            if (Config?.ScrollAction == LibraryConfig.ScrollActions.Scroll)
+            if (Library?.Config.ScrollAction == LibraryConfig.ScrollActions.Scroll)
             {
                 Scroll(1.0, 0);
             }

@@ -93,12 +93,15 @@
                                 <MenuItem Header="IVP Crop and Render to file" 
                                           ToolTip.Tip="Use stored Ivps to Crop, then resize to UserSettings defined MaxRenderSize,\n and Render to png in the album folder.\n Clear Ivps first if you don't want to crop."
                                           Command ="{Binding SaveCroppedIvpsToSizeCommand}"/>
+                                <MenuItem Header="4x Upscale" 
+                                          ToolTip.Tip="Use realesrgan-ncnn-vulkan for batch upscale 4x"
+                                          Command ="{Binding BatchUpscaleCommand}"/>
 
                             </MenuItem>
                         </MenuItem>
                     </Menu>
                     <!-- Page Menu -->
-                    <Menu DataContext="{Binding SelectedBook.SelectedPage}"
+                    <Menu DataContext="{Binding CurrentPageViewModel}"
                           IsEnabled="{Binding ., Converter={StaticResource NullToBoolean}}">
                         <MenuItem Header="Page" >
                                 
@@ -151,7 +154,7 @@
                     </Grid>
                     
                     <!--Close Library button-->
-                    <Button Width="24" Height="24" Padding="4" Background="Transparent"  
+                    <Button Width="24" Height="24" Padding="5" Background="Transparent"  
                             ToolTip.Tip="Close Current Library"
                             IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}"
                             Command ="{Binding CloseLibraryCommand}">
@@ -167,7 +170,7 @@
                               Data="M6 18L18 6M6 6l12 12"/>
                     </Button>
                     <!--Library Refresh Button-->
-                    <Button Width="24" Height="24" Padding="2" Background="Transparent" BorderBrush="Transparent"
+                    <Button Width="24" Height="24" Padding="4 2 2 2" Background="Transparent" BorderBrush="Transparent"
                             ToolTip.Tip="Refresh Current Library"
                             Command="{Binding RefreshLibraryCommand}"
                             IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}">
@@ -199,8 +202,8 @@
                               Data="M19.43 12.98c.04-.32.07-.65.07-.98s-.03-.66-.07-.98l2.11-1.65a.5.5 0 0 0 .12-.64l-2-3.46a.5.5 0 0 0-.6-.22l-2.49 1a7.03 7.03 0 0 0-1.69-.98L14.5 2.5a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0-.5.5l-.38 2.55a7.03 7.03 0 0 0-1.69.98l-2.49-1a.5.5 0 0 0-.6.22l-2 3.46a.5.5 0 0 0 .12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98L2.43 14.63a.5.5 0 0 0-.12.64l2 3.46a.5.5 0 0 0 .6.22l2.49-1c.52.39 1.09.72 1.69.98l.38 2.55a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5l.38-2.55c.6-.26 1.17-.59 1.69-.98l2.49 1a.5.5 0 0 0 .6-.22l2-3.46a.5.5 0 0 0-.12-.64l-2.11-1.65zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/>
                     </Button>
                     <!--Library Delete Button-->
-                    <Button Width="24" Height="24" Padding="2" Background="Transparent" BorderBrush="Transparent"
-                            ToolTip.Tip="Remove Current Library"
+                    <Button Width="24" Height="24" Background="Transparent" BorderBrush="Transparent"
+                            ToolTip.Tip="Remove Current Library"  Padding="5 2 2 2"
                             Command="{Binding DeleteLibraryCommand}"
                             IsVisible="{Binding Library, Converter={StaticResource NullToBoolean}}">
                         <Button.Styles>
@@ -219,7 +222,7 @@
                         <!-- The ToggleButton to open the dropdown -->
                         <ToggleButton x:Name="BookmarkToggle" 
                                       ToolTip.Tip="Library Bookmarks"
-                                      Width="24" Height="24" Padding="2" 
+                                      Width="24" Height="24" Padding="5 4 2 2" 
                                       IsCheckedChanged="OnBookmarkPopupToggled">
                             <Path Stretch="Uniform"
                                   Fill="Transparent"
@@ -242,7 +245,9 @@
                                             CornerRadius="4"
                                             Padding="4">
                 
-                                        <ListBox ItemsSource="{Binding Library.Bookmarks}"
+                                        <ListBox
+                                            DataContext="{Binding Library}"
+                                            ItemsSource="{Binding Bookmarks}"
                                                  MaxHeight="300"
                                                  SelectionChanged="OnBookmarkSelected">
                                             <ListBox.ItemTemplate>
@@ -275,38 +280,38 @@
                             </ContentControl>
                         </Popup>
                     </Grid>
-                    <Border Width="16"/>
-
 
                 </StackPanel>
                 <Grid Grid.Column="2">
                     <StackPanel Orientation="Horizontal" IsVisible="{Binding SelectedBook, Converter={StaticResource NullToBoolean}}">
-                        <Border Width="16"/>
                         <Separator Width="1"
                                    Height="24"
-                                   Margin="0,0">
+                                   Margin="8,0">
                         </Separator>
                         <Border Width="120">
                         <TextBlock Text="Go to Page" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                         </Border >
                         <NumericUpDown x:Name="GotoPageNumericUpDown" FormatString="F0" Width="64"
                                        ShowButtonSpinner="False"
-                                       Minimum="1" Maximum="{Binding SelectedBook.PageCount}" 
-                                       Value="{Binding GotoPageNumber, Mode=TwoWay}" 
+                                       DataContext="{Binding SelectedBook}"
+                                       Minimum="1" Maximum="{Binding PageCount}" 
+                                       Value="{Binding MainViewModel.GotoPageNumber, Mode=TwoWay}" 
                                        KeyDown="GotoPage_KeyDown"/>
                         <Border Margin="8 0  32  0">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <TextBlock Text="/ " VerticalAlignment="Center" />
-                                <TextBlock Text="{Binding SelectedBook.PageCount}"
+                                <TextBlock
+                                    DataContext="{Binding SelectedBook}"
+                                    Text="{Binding PageCount}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                         </Border >
                         <Button x:Name="GotoPageButton" Content="Go"  Command="{Binding GotoPageCommand}"/>
                         <Button x:Name="GotoBookmarkButton" 
                                 ToolTip.Tip="Load Bookmarked Page"
-                                IsVisible="{Binding SelectedBook.Bookmark, 
-                                                Converter={StaticResource NullToBoolean}}"
-                                Command="{Binding SelectedBook.LoadBookmarkCommand }"
+                                DataContext="{Binding SelectedBook}"
+                                IsVisible="{Binding Bookmark,  Converter={StaticResource NullToBoolean}}"
+                                Command="{Binding LoadBookmarkCommand }"
                                 Margin="4">
                             <Path Stretch="Uniform"
                                   Fill="Transparent"
@@ -427,17 +432,21 @@
                                               Margin="0 "
                                               Padding="4 0"
                                               HorizontalAlignment="Right"/> 
-                                <Border Grid.Column="2" IsVisible="{Binding CurrentPageViewModel, Converter={StaticResource NullToBoolean}}">
+                                <Border Grid.Column="2"
+                                        DataContext="{Binding CurrentPageViewModel}"
+                                        IsVisible="{Binding ., Converter={StaticResource NullToBoolean}}">
                                 <Button Content="↑"
                                         Margin="2" Padding="0"
-                                        IsVisible="{Binding CurrentPageViewModel.CanSwap}"
-                                        Command="{Binding CurrentPageViewModel.MoveUpCommand}"/>
+                                        IsVisible="{Binding CanSwap}"
+                                        Command="{Binding MoveUpCommand}"/>
                                 </Border>
-                                <Border Grid.Column="3" IsVisible="{Binding CurrentPageViewModel, Converter={StaticResource NullToBoolean}}">
+                                <Border Grid.Column="3"
+                                        DataContext="{Binding CurrentPageViewModel}"
+                                        IsVisible="{Binding ., Converter={StaticResource NullToBoolean}}">
                                 <Button  Content="↓"
                                         Margin="2" Padding="0"
-                                        IsVisible="{Binding CurrentPageViewModel.CanSwap}"
-                                        Command="{Binding CurrentPageViewModel.MoveDownCommand}"/>
+                                        IsVisible="{Binding CanSwap}"
+                                        Command="{Binding MoveDownCommand}"/>
                                 </Border>
 
                                 </Grid>
@@ -473,7 +482,7 @@
                                                           HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                                                           MainViewModel="{Binding}"
                                                           Data="{Binding CurrentViewerData}"
-                                                          Config="{Binding Library.Config}"/>
+                                                          Library="{Binding Library}"/>
                                 
                                 <controls:StatusOverlay x:Name="StatusOverlay"
                                                         HorizontalAlignment="Stretch" VerticalAlignment="Stretch"

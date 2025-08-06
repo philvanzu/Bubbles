@@ -427,6 +427,92 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         }
     }
 
+    [RelayCommand (CanExecute=nameof(CanBatchUpscale))]
+    private async Task BatchUpscale()
+    {
+        var progress = MainViewModel.StatusProgress;
+        if (progress.IsBusy) return;
+        var exepath = AppStorage.Instance.UserSettings.Realesrgan_ncnn_vulkan_path;
+        if (!FileAssessor.IsExecutableAvailable(exepath!))
+        {
+            Console.Error.WriteLine($"Realesrgan_ncnn_vulkan_path not found: {exepath}");
+            return;
+        }
+        
+        var text = $"Upscale all pages in {Name} by 4x.";
+        
+        var dialog = new RenameDialogViewModel(){
+            Title = "Upscale",
+            ContentText = text,
+            ShowNewName = true,
+            NewName = $"_$Index_$PageName_4xUpscaled",
+        };
+        var window = MainViewModel.MainWindow;
+        if (window != null)
+        {
+            var result = await MainViewModel.DialogService.ShowDialogAsync<string?>(window, dialog);
+            if (result != null)
+            {
+                progress.CancellationTokenSource = new CancellationTokenSource();
+                var token = progress.CancellationTokenSource.Token;
+                _ = Task.Run(async() =>
+                {
+                    try
+                    {
+                        var directory = Model.MetaDataPath;
+                        if (!Directory.Exists(directory))
+                            Directory.CreateDirectory(directory);
+
+                        int i = 0;
+                        int padLength = _pages.Count.ToString().Length;
+                        int total = _pages.Count;
+                        foreach (var page in _pages.ToList())
+                        {
+                            
+                            token.ThrowIfCancellationRequested();
+                            var filename = result.Replace("$PageName", $"{page.Name}")
+                                .Replace("$Index", i.ToString($"D{padLength}"));
+                            string outputPath = System.IO.Path.Combine(directory, filename + ".png");
+                            
+                            
+                            var process = new Process
+                            {
+                                StartInfo = new ProcessStartInfo
+                                {
+                                    FileName = exepath,
+                                    Arguments = $"-i \"{page.Path}\" -o \"{outputPath}\" -n realesrgan-x4plus",
+                                    UseShellExecute = false,
+                                    RedirectStandardOutput = true,
+                                    RedirectStandardError = true,
+                                    CreateNoWindow = true
+                                }
+                            };
+                            process.Start();
+                            string stderr = await process.StandardError.ReadToEndAsync();
+                            await process.WaitForExitAsync();
+
+                            if (process.ExitCode != 0)
+                                Console.Error.WriteLine($"Error: {stderr}");
+
+                            token.ThrowIfCancellationRequested();
+                            progress.Progress.Report(($"Upscaling task {++i} of {total}", (double)i/total, false));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex is not OperationCanceledException)
+                            Console.Error.WriteLine(ex);
+                    }
+                    finally
+                    {
+                        progress.Progress.Report(("", 0, true));
+                    }
+                }, token);
+            }
+        }
+    }
+    public bool CanBatchUpscale() => !MainViewModel.StatusProgress.IsBusy && 
+                                     !string.IsNullOrEmpty(AppStorage.Instance.UserSettings.Realesrgan_ncnn_vulkan_path);
     
     [RelayCommand]
     private async Task SaveCroppedIvpsToSize()

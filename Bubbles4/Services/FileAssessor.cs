@@ -190,4 +190,46 @@ public static DateTime? TryExtractDate(string input)
             timePart.Kind  // preserves local/UTC/unspecified kind
         );
     }
+    
+    public static bool IsExecutableAvailable(string exePath)
+    {
+        if (string.IsNullOrWhiteSpace(exePath))
+            return false;
+
+        // Absolute path
+        if (Path.IsPathRooted(exePath))
+        {
+            return File.Exists(exePath) && (
+                OperatingSystem.IsWindows() ||
+                new FileInfo(exePath).UnixFileMode.HasFlag(UnixFileMode.UserExecute)
+            );
+        }
+
+        // Try to resolve from PATH
+        try
+        {
+            var envPath = Environment.GetEnvironmentVariable("PATH") ?? "";
+            var paths = envPath.Split(Path.PathSeparator);
+            foreach (var path in paths)
+            {
+                var full = Path.Combine(path, exePath);
+                if (OperatingSystem.IsWindows())
+                {
+                    if (File.Exists(full) || File.Exists(full + ".exe"))
+                        return true;
+                }
+                else if (File.Exists(full) && new FileInfo(full).UnixFileMode.HasFlag(UnixFileMode.UserExecute))
+                {
+                    return true;
+                }
+            }
+        }
+        catch
+        {
+            // swallow fallback failure
+        }
+
+        return false;
+    }
+
 }

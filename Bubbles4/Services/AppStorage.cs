@@ -164,6 +164,7 @@ public class UserSettings
     public float HideCursorTime { get; set; } = 5f;
     public double TurnPageBouncingTime { get; set; } = 500;
     public double ScrollSpeed { get; set; } = 40;
+    public string? Realesrgan_ncnn_vulkan_path { get; set; }
     
     public int ShowPagingInfo { get; set; } // 0 : persistent // -1 : don't show // >0 : show for x seconds
     public int ShowAlbumPath { get; set; } = 5;

@@ -7,7 +7,8 @@
         x:Class="Bubbles4.Views.RenameDialog"
         x:DataType="viewModels:RenameDialogViewModel"
         Title="{Binding Title}" Width="500" MinHeight="200"
-        SizeToContent="Height">
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner">
     <Border BorderBrush="White" BorderThickness="1" Background="#505050" Padding="16">
         <StackPanel>
             <TextBlock Text="{Binding ContentText}" Margin="8" TextWrapping="Wrap"/>
