@@ -590,6 +590,7 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
                     if (remove != null)
                     {
                         var node = RootNode.FindNode(remove.LibraryNodeId);
+                        
                         if (_books.Remove(remove))
                         {
                             if (node != null)

@@ -183,7 +183,7 @@ public static class ImageLoader
     public static Stream ConvertSkiaBitmapToStream(SKBitmap skBitmap)
     {
         using var image = SKImage.FromBitmap(skBitmap);
-        using var data = image.Encode(SKEncodedImageFormat.Png, 90);
+        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 90);
 
         var memoryStream = new MemoryStream();
         data.SaveTo(memoryStream);

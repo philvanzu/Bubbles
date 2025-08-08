@@ -828,7 +828,7 @@ namespace Bubbles4.Controls {
             var now = DateTime.Now;
             if ( _page != null &&  UseIvp && _ivpRect != null && button == InputManager.Instance.DrawZoomRectButton)
             {
-                if (DateTime.Now - _ivpRect.StartTime < TimeSpan.FromMilliseconds(500))
+                if (DateTime.Now - _ivpRect.StartTime < TimeSpan.FromMilliseconds(300))
                 {
                     StopDrawingZoom();
                     return;

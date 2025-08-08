@@ -136,6 +136,7 @@ public partial class PageViewModel:ViewModelBase, ISelectableItem
     [RelayCommand(CanExecute = nameof(CanDelete))]
     private async Task Delete()
     {
+        
         var dialog = new OkCancelViewModel
         {
             Content = $"Do you want to delete [{Path}] permanently?"

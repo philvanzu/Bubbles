@@ -94,6 +94,7 @@ public partial class InputManager : IDisposable
         ["Rotate Right"] = new ActionBindings("Rotate Right", RotateRight),
         ["Rotate Down"] = new ActionBindings("Rotate Down", RotateDown),
         ["Rotate Left"] = new ActionBindings("Rotate Left", RotateLeft),
+        ["Delete Page"] = new ActionBindings("Delete Page", DeletePage),
     };
 
 
@@ -306,6 +307,7 @@ public partial class InputManager : IDisposable
         _bindings["Rotate Left"].Add(new KeyCombo(Key.Left, KeyModifiers.Alt));
         _bindings["Rotate Down"].Add(new KeyCombo(Key.Down, KeyModifiers.Alt));
         _bindings["Rotate Right"].Add(new KeyCombo(Key.Right, KeyModifiers.Alt));
+        _bindings["Delete Page"].Add(new KeyCombo(Key.Delete, KeyModifiers.None));
         _bindings["Enter Fullscreen"].Add(ButtonName.A);
         _bindings["Exit Fullscreen"].Add(ButtonName.B);
         _bindings["Next Page"].Add(ButtonName.LTrigger);
@@ -318,6 +320,7 @@ public partial class InputManager : IDisposable
         _bindings["Fit"].Add(ButtonName.DpadRight);
         _bindings["First Page"].Add(ButtonName.Select);
         _bindings["Last Page"].Add(ButtonName.Start);
+        
     }
 #endregion
 
@@ -417,6 +420,7 @@ public partial class InputManager : IDisposable
     private static void RotateLeft() => ImageViewer?.Rotate(BblRotation.left);
     private static void RotateDown()=> ImageViewer?.Rotate(BblRotation.down);
     private static void RotateRight()=> ImageViewer?.Rotate(BblRotation.right);
+    private static void DeletePage()=> MainViewModel?.CurrentPageViewModel?.DeleteCommand.Execute(null);
     private static void DoNothing(){}
     #endregion
     

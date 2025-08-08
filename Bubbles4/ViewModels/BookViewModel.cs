@@ -519,7 +519,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     {
         
         int maxSize = AppStorage.Instance.UserSettings.CropResizeToMax;
-        var text = $"Render all pages in {Name} to max {maxSize} pixels (png).\n" +
+        var text = $"Render all pages in {Name} to max {maxSize} pixels (jpg).\n" +
                    $"Render Size is defined in User Settings. '$PageName' and '$Index' will be replaced by the page filename and the page's index. \n";
         if (_library.Config.UseIVPs)
             text += $"Image Viewing Parameters will be used to crop the image first. If you don't want that make sure to clear Ivps first.";
@@ -557,7 +557,7 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
                             var cropRect = page.GetIvpCropRect();
                             var filename = result.Replace("$PageName", $"{page.Name}")
                                 .Replace("$Index", i.ToString($"D{padLength}"));
-                            string path = System.IO.Path.Combine(directory, filename + ".png");
+                            string path = System.IO.Path.Combine(directory, filename + ".jpg");
                             i++;
                             factories.Enqueue(() =>
                                 Model.SaveCroppedIvpToSizeAsync(page, path, cropRect, maxSize, token));
@@ -945,6 +945,16 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
     public void PageFileChanged(FileSystemEventArgs e)
     {
         if (_ignoreWatcherEvents) return;
+        if (e.ChangeType == WatcherChangeTypes.Deleted && 
+            SelectedPage!= null && 
+            SelectedPage.Path == e.FullPath)
+        {
+            var idx = GetPageIndex(SelectedPage);
+            if (idx < Pages.Count - 1)
+                Pages[++idx].IsSelected = true;
+            else
+                _library.NextBook();
+        }
         EnqueueRebuildPagesListJob();  
     } 
 
