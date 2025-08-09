@@ -1,18 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
 using Bubbles4.Controls;
 using Bubbles4.Models;
 using Bubbles4.ViewModels;
-using CommunityToolkit.Mvvm.Input;
 
 namespace Bubbles4.Services;
 
@@ -52,6 +48,7 @@ public partial class InputManager : IDisposable
 
 
     public static MainViewModel? MainViewModel { get; set; }
+    public static StatusOverlay? StatusOverlay { get; set; }
     public static FastImageViewer? ImageViewer { get; set; }
 
 
@@ -95,6 +92,7 @@ public partial class InputManager : IDisposable
         ["Rotate Down"] = new ActionBindings("Rotate Down", RotateDown),
         ["Rotate Left"] = new ActionBindings("Rotate Left", RotateLeft),
         ["Delete Page"] = new ActionBindings("Delete Page", DeletePage),
+        ["Show Status"] = new ActionBindings("Show Status", ShowStatus),
     };
 
 
@@ -120,11 +118,17 @@ public partial class InputManager : IDisposable
         _sdlInput.ButtonUp += ControllerButtonUp;
         _sdlInput.ButtonDown += ControllerButtonDown;
         _sdlInput.StickUpdated += ControllerStickUpdated;
+
+        AppFocusManager.Instance.AppGainedFocus += (s, e) => StartSdlService();
+        AppFocusManager.Instance.AppLostFocus += (s, e) => StopSdlService();
+        
         StartSdlService();
     }
 
     public void StartSdlService()
     {
+        if (_sdlInput.Enabled) return;
+        _sdlInput.Enabled = true;
         Task.Run(async () =>
         {
             try
@@ -132,7 +136,6 @@ public partial class InputManager : IDisposable
                 _sdlCts?.Cancel();
                 _sdlCts?.Dispose();
                 _sdlCts = new();
-                _sdlInput.Enabled = true;
                 await _sdlInput.StartPollingAsync(_sdlCts.Token);    
             }
             catch (TaskCanceledException)
@@ -147,7 +150,7 @@ public partial class InputManager : IDisposable
 
         });
     }
-
+    
     public void StopSdlService()
     {
         _sdlInput.Enabled = false;
@@ -308,6 +311,7 @@ public partial class InputManager : IDisposable
         _bindings["Rotate Down"].Add(new KeyCombo(Key.Down, KeyModifiers.Alt));
         _bindings["Rotate Right"].Add(new KeyCombo(Key.Right, KeyModifiers.Alt));
         _bindings["Delete Page"].Add(new KeyCombo(Key.Delete, KeyModifiers.None));
+        _bindings["Show Status"].Add(new KeyCombo(Key.I, KeyModifiers.None));
         _bindings["Enter Fullscreen"].Add(ButtonName.A);
         _bindings["Exit Fullscreen"].Add(ButtonName.B);
         _bindings["Next Page"].Add(ButtonName.LTrigger);
@@ -421,6 +425,7 @@ public partial class InputManager : IDisposable
     private static void RotateDown()=> ImageViewer?.Rotate(BblRotation.down);
     private static void RotateRight()=> ImageViewer?.Rotate(BblRotation.right);
     private static void DeletePage()=> MainViewModel?.CurrentPageViewModel?.DeleteCommand.Execute(null);
+    private static void ShowStatus() => StatusOverlay?.ShowAll();
     private static void DoNothing(){}
     #endregion
     

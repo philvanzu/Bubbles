@@ -7,7 +7,7 @@ using Bubbles4.ViewModels;
 
 namespace Bubbles4.Views;
 
-public partial class RenameDialog : Window
+public partial class RenameDialog : WindowBase
 {
     public RenameDialog( RenameDialogViewModel vm )
     {

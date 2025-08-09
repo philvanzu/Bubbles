@@ -5,7 +5,7 @@ using Bubbles4.ViewModels;
 
 namespace Bubbles4.Views;
 
-public partial class TimeStampsDialog : Window
+public partial class TimeStampsDialog : WindowBase
 {
     public TimeStampsDialog(TimeStampsDialogViewModel viewModel)
     {

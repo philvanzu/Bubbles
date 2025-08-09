@@ -8,7 +8,7 @@ using Bubbles4.ViewModels;
 
 namespace Bubbles4.Views;
 
-public partial class OkCancelDialog : Window
+public partial class OkCancelDialog : WindowBase
 {
     public Action<object?, KeyEventArgs>? KeyboardListener {get; set;}
     public OkCancelDialog() : this(null) { }

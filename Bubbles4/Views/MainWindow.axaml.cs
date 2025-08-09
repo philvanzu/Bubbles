@@ -12,7 +12,7 @@ using Bubbles4.ViewModels;
 
 namespace Bubbles4.Views;
 
-public partial class MainWindow : Window
+public partial class MainWindow : WindowBase
 {
     private static Cursor? _invisibleCursor;
 

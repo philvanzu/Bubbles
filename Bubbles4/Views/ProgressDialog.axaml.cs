@@ -5,7 +5,7 @@ using Bubbles4.ViewModels;
 
 namespace Bubbles4.Views;
 
-public partial class ProgressDialog : Window
+public partial class ProgressDialog : WindowBase
 {
     public ProgressDialog() : this(null) { }
     public ProgressDialog(ProgressDialogViewModel? vm)

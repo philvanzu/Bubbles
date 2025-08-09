@@ -65,9 +65,13 @@ public class StatusOverlay : Control
     FlowDirection flow = FlowDirection.LeftToRight;
 
 
-    private DateTime? _pagingTime;
-    private DateTime? _pageTime;
-    private DateTime? _bookTime;
+    private DateTime? _pagingStartTime;
+    private DateTime? _pageStartTime;
+    private DateTime? _bookStartTime;
+
+    private int? _showPaging = null;
+    private int? _showBook = null;
+    private int? _showPage = null;
     
     const float fadeTime = 1.5f;
     private readonly DispatcherTimer animTimer;
@@ -94,6 +98,7 @@ public class StatusOverlay : Control
         public required Func<DateTime?> GetStartTime;
         public required Action<DateTime?> SetStartTime;
         public required Action<double> SetOpacity;
+        public required Action ResetDuration;
     }
     private void OnAnimTick(object? sender, EventArgs e)
     {
@@ -106,24 +111,27 @@ public class StatusOverlay : Control
         {
             new FadeField
             {
-                GetDisplayTime = () => _prefs.ShowPagingInfo,
-                GetStartTime = () => _pagingTime,
-                SetStartTime = t => _pagingTime = t,
-                SetOpacity = o => _pagingOpacity = o
+                GetDisplayTime = () => _showPaging ?? _prefs.ShowPagingInfo,
+                GetStartTime = () => _pagingStartTime,
+                SetStartTime = t => _pagingStartTime = t,
+                SetOpacity = o => _pagingOpacity = o,
+                ResetDuration = () =>_showPaging = null
             },
             new FadeField
             {
-                GetDisplayTime = () => _prefs.ShowPageName,
-                GetStartTime = () => _pageTime,
-                SetStartTime = t => _pageTime = t,
-                SetOpacity = o => _pageOpacity = o
+                GetDisplayTime = () => _showPage ?? _prefs.ShowPageName,
+                GetStartTime = () => _pageStartTime,
+                SetStartTime = t => _pageStartTime = t,
+                SetOpacity = o => _pageOpacity = o,
+                ResetDuration = () =>_showPage = null
             },
             new FadeField
             {
-                GetDisplayTime = () => _prefs.ShowAlbumPath,
-                GetStartTime = () => _bookTime,
-                SetStartTime = t => _bookTime = t,
-                SetOpacity = o => _bookOpacity = o
+                GetDisplayTime = () => _showBook ?? _prefs.ShowAlbumPath,
+                GetStartTime = () => _bookStartTime,
+                SetStartTime = t => _bookStartTime = t,
+                SetOpacity = o => _bookOpacity = o,
+                ResetDuration = () =>_showBook = null
             },
         };
 
@@ -141,6 +149,7 @@ public class StatusOverlay : Control
                 if (elapsed >= fadeTime)
                 {
                     field.SetStartTime(null);
+                    field.ResetDuration();
                     field.SetOpacity(0);
                 }
                 else
@@ -155,24 +164,18 @@ public class StatusOverlay : Control
         if (invalidateVisual) InvalidateVisual();
     }
 
-    public void ShowAll(bool show)
+    public void ShowAll()
     {
-        if (show)
-        {
-            _pagingTime = DateTime.Now;
-            _pagingOpacity = 1;
-            _bookTime = DateTime.Now;
-            _bookOpacity = 1;
-            _pageTime = DateTime.Now;
-            _pageOpacity = 1;
-        }
-        else
-        {
-            PagingStatus = PagingStatus;
-            BookStatus = BookStatus;
-            PageStatus = PageStatus;
-        }
+        if (_prefs.ShowPagingInfo != 0)
+            ShowPagingInfo(15);
+            
+        if (_prefs.ShowAlbumPath != 0)
+            ShowBookStatus(15);
+
+        if (_prefs.ShowPageName != 0)
+            ShowpageStatus(15);
     }
+        
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -181,46 +184,15 @@ public class StatusOverlay : Control
         {
             case nameof(PagingStatus) :
                 
-                _pagingTime = null;
-                
-                if (_prefs.ShowPagingInfo > 0)
-                {
-                    _pagingTime = DateTime.Now;
-                    _pagingOpacity = 1;
-                }
-                else if (_prefs.ShowPagingInfo == 0) _pagingOpacity = 1; //doesn't fade
-                else _pagingOpacity = 0; // never show
-                
-                InvalidateVisual();
+                ShowPagingInfo();
                 break;
             
             case nameof(BookStatus):
-                _prefs = AppStorage.Instance.UserSettings;
-                _bookTime = null;
-                
-                if (_prefs.ShowAlbumPath > 0)
-                {
-                    _bookTime = DateTime.Now;
-                    _bookOpacity = 1;
-                }
-                else if (_prefs.ShowAlbumPath == 0) _bookOpacity = 1; //doesn't fade
-                else _bookOpacity = 0; // never show
-                
-                InvalidateVisual();
+                ShowBookStatus();
                 break;
             
             case nameof(PageStatus):
-                _pageTime = null;
-                
-                if (_prefs.ShowPageName > 0)
-                {
-                    _pageTime = DateTime.Now;
-                    _pageOpacity = 1;
-                }
-                else if (_prefs.ShowPageName == 0) _pageOpacity = 1; //doesn't fade
-                else _pageOpacity = 0; // never show
-                
-                InvalidateVisual();
+                ShowpageStatus();
                 break;
 
             case nameof(_prefs):
@@ -233,6 +205,55 @@ public class StatusOverlay : Control
 
         } 
         
+    }
+
+    public void ShowPagingInfo(int? duration=null)
+    {
+        _pagingStartTime = null;
+        _showPaging = duration;
+        var show = duration ?? _prefs.ShowPagingInfo;
+        if (show > 0)
+        {
+            _pagingStartTime = DateTime.Now;
+            _pagingOpacity = 1;
+        }
+        else if (show == 0) _pagingOpacity = 1; //doesn't fade
+        else _pagingOpacity = 0; // never show
+            
+        InvalidateVisual();    
+    }
+
+    public void ShowBookStatus(int? duration=null)
+    {
+        _bookStartTime = null;
+        _showBook = duration;
+        var show = duration ?? _prefs.ShowAlbumPath;
+                
+        if (show > 0)
+        {
+            _bookStartTime = DateTime.Now;
+            _bookOpacity = 1;
+        }
+        else if (show == 0) _bookOpacity = 1; //doesn't fade
+        else _bookOpacity = 0; // never show
+                
+        InvalidateVisual();
+    }
+
+    public void ShowpageStatus(int? duration=null)
+    {
+        _showPage = duration;
+        _pageStartTime = null;
+        var show = duration ?? _prefs.ShowPageName;
+        if (show > 0)
+        {
+            _pageStartTime = DateTime.Now;
+            _pageOpacity = 1;
+        }
+        else if (show == 0) _pageOpacity = 1; //doesn't fade
+        else _pageOpacity = 0; // never show
+                
+        InvalidateVisual();
     }
 
     public override void Render(DrawingContext context)

@@ -27,6 +27,8 @@ public partial class MainView : UserControl
         InitializeComponent();
 
         InputManager.ImageViewer = ImageViewer;
+        InputManager.StatusOverlay = StatusOverlay;
+        
         // Find your controls by name, assuming you have x:Name on them
         _fullscreenOverlay = FullscreenOverlay;
         if(ImageViewerContainer!= null) ImageViewerContainer.Focusable = true;

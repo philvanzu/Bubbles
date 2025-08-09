@@ -44,8 +44,7 @@ public class App : Application
                 var mvm = new MainViewModel(mainWindow, dialogService);
                 mainWindow.DataContext = mvm;
                 InputManager.MainViewModel = mvm;
-                mainWindow.Activated += (_, _) => { InputManager.Instance.StartSdlService();};
-                mainWindow.Deactivated += (_, _) => { InputManager.Instance.StopSdlService(); };
+
   
                 mvm.MainWindow = mainWindow;
                 mainWindow.Opened += (_, _) =>

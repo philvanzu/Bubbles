@@ -942,18 +942,24 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         RefreshModelInfo(Model.Path);
     }
 
-    public void PageFileChanged(FileSystemEventArgs e)
+    public async Task PageFileChanged(FileSystemEventArgs e)
     {
         if (_ignoreWatcherEvents) return;
         if (e.ChangeType == WatcherChangeTypes.Deleted && 
             SelectedPage!= null && 
             SelectedPage.Path == e.FullPath)
         {
-            var idx = GetPageIndex(SelectedPage);
-            if (idx < Pages.Count - 1)
-                Pages[++idx].IsSelected = true;
-            else
-                _library.NextBook();
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var idx = GetPageIndex(SelectedPage);
+                if (idx < Pages.Count - 1)
+                    Pages[++idx].IsSelected = true;
+                else
+                {
+                    _library.NextBook();
+                    MainViewModel.NextCommand.ExecuteAsync(null);
+                }    
+            });
         }
         EnqueueRebuildPagesListJob();  
     } 
@@ -983,19 +989,10 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
         {
             _ = Task.Run(async () =>
             {
-                bool success = false;
                 try
                 {
-                    await Task.Delay(1000);
-                    Task? loadPages = null;
-                    await Dispatcher.UIThread.InvokeAsync(() =>
-                    {
-                        _pages.Clear();
-                        loadPages = LoadPagesListAsync();
-                    });
-
-                    if (loadPages != null) await loadPages;
-                    success = true;
+                    await Task.Delay(300);
+                    await LoadPagesListAsync();
                 }
                 catch (Exception ex)
                 {
@@ -1004,11 +1001,6 @@ public partial class BookViewModel: ViewModelBase, ISelectableItem, ISelectItems
                 finally
                 {
                     Interlocked.Exchange(ref _pagesLoading, 0);
-                }
-
-                if (success)
-                {
-                    await Dispatcher.UIThread.InvokeAsync(() => Sort(CurrentSortOption, CurrentSortAscending));
                 }
             });
         }

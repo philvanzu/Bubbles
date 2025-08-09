@@ -11,7 +11,7 @@ using Bubbles4.ViewModels;
 
 namespace Bubbles4.Views;
 
-public partial class UserSettingsEditorDialog : Window
+public partial class UserSettingsEditorDialog : WindowBase
 {
     public UserSettingsEditorDialog() : this(null) { }
     public UserSettingsEditorDialog(UserSettingsEditorViewModel? vm)

@@ -472,7 +472,14 @@ public partial class LibraryViewModel : ViewModelBase, ISelectItems
                 if (bvm is not null)
                 {
                     if(bvm.Pages.Count > 0) 
-                        bvm.PageFileChanged(e);
+                        Task.Run(async ()=>
+                        {
+                            try
+                            {
+                                await bvm.PageFileChanged(e);    
+                            }
+                            catch (Exception ex){Console.WriteLine(ex);}
+                        });
                 }
                 else if(e.ChangeType == WatcherChangeTypes.Created && Directory.Exists(imgDir))
                 {
